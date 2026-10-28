@@ -1,16 +1,21 @@
 import type { ContentCatalog } from '@application/ports/content-catalog';
 import type { AvatarDefinition, AvatarId } from '@domain/avatar/avatar';
 import type { WardrobeItem, WardrobeItemId } from '@domain/avatar/wardrobe-item';
+import type { Word } from '@domain/learning/challenge';
 import type { Mission, MissionId } from '@domain/mission/mission';
 import type { World } from '@domain/world/world';
-import * as defaultContent from '@infrastructure/catalog/content';
+import { avatars, missions, wardrobeItems, worlds } from '@infrastructure/catalog/content';
+import { words } from '@infrastructure/catalog/words';
 
 export interface GameContent {
   readonly worlds: readonly World[];
   readonly missions: readonly Mission[];
   readonly wardrobeItems: readonly WardrobeItem[];
   readonly avatars: readonly AvatarDefinition[];
+  readonly words: readonly Word[];
 }
+
+const defaultContent: GameContent = { worlds, missions, wardrobeItems, avatars, words };
 
 /** Content bundled with the game. A remote or therapist-edited catalog can replace it later. */
 export class StaticContentCatalog implements ContentCatalog {
@@ -38,5 +43,9 @@ export class StaticContentCatalog implements ContentCatalog {
 
   findAvatar(id: AvatarId): Promise<AvatarDefinition | undefined> {
     return Promise.resolve(this.content.avatars.find((avatar) => avatar.id === id));
+  }
+
+  listWords(): Promise<readonly Word[]> {
+    return Promise.resolve(this.content.words);
   }
 }

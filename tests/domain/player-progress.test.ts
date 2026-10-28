@@ -112,3 +112,27 @@ describe('isWorldUnlocked', () => {
     expect(isWorldUnlocked(nature, 3)).toBe(true);
   });
 });
+
+describe('learning progress', () => {
+  it('survives a save and keeps only valid letters and levels', () => {
+    const progress = PlayerProgress.fromSnapshot({
+      ...PlayerProgress.createNew().toSnapshot(),
+      skillLevels: { letters: 3, numbers: 42 },
+      stickerIds: ['letters-1'],
+      letters: ['A', '7', 'B'],
+    });
+    const again = PlayerProgress.fromSnapshot(progress.toSnapshot());
+    expect(again.levelOf('letters')).toBe(3);
+    expect(again.levelOf('numbers')).toBe(3);
+    expect(again.levelOf('coins')).toBe(1);
+    expect(again.hasSticker('letters-1')).toBe(true);
+    expect(again.letters).toEqual(['A', 'B']);
+  });
+
+  it('ignores wrong answers', () => {
+    const progress = PlayerProgress.createNew();
+    const { progress: same, reward } = progress.recordChallenge('numbers', { correct: false });
+    expect(same).toBe(progress);
+    expect(reward).toEqual({ coins: 0, stars: 0 });
+  });
+});

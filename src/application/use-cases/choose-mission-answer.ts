@@ -48,7 +48,10 @@ export class ChooseMissionAnswer {
           at: this.clock.now(),
         });
         await this.progress.save(progress);
-        void this.speech.speak(phrases.completed);
+        const { farewell } = attempt.mission;
+        void this.speech.speak(
+          farewell === undefined ? phrases.completed : `${farewell} ${phrases.completed}`,
+        );
         return ok({ attempt, outcome, reward });
       }
     }

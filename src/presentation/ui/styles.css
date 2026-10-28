@@ -478,7 +478,7 @@ button {
   margin-bottom: 6px;
 }
 
-.mission--task .mission__shelf,
+.mission--task .mission__shelf-area,
 .mission--task .mission__list-title {
   display: none;
 }
@@ -506,6 +506,23 @@ button {
 
 .mission--task .celebration {
   pointer-events: auto;
+}
+
+.mission__shelf-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mission__shelf-title {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+
+.mission__shelf[data-group='cashier'] {
+  background: linear-gradient(#dfe9f5, #c4d4e8);
 }
 
 .mission__shelf {
@@ -783,6 +800,144 @@ button {
   font-size: 1.4rem;
   font-weight: 800;
   color: var(--ink);
+}
+
+/* ---------- Learning stations ---------- */
+.challenge {
+  --station: var(--sky);
+}
+
+.challenge .mission__sheet {
+  border-top: 10px solid var(--station);
+}
+
+.challenge__header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding-right: 80px;
+}
+
+.challenge__header .mission__title {
+  margin: 0;
+}
+
+.challenge__dots {
+  display: flex;
+  gap: 4px;
+}
+
+.challenge__dot {
+  font-size: 1.6rem;
+  filter: grayscale(1) opacity(0.35);
+  transition: filter 0.3s;
+}
+
+.challenge__dot.is-on {
+  filter: none;
+}
+
+.challenge__dots--streak {
+  gap: 8px;
+}
+
+.challenge__step {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid #d8cfb8;
+  background: #fff;
+  transition: background 0.3s;
+}
+
+.challenge__step.is-on {
+  border-color: var(--leaf);
+  background: var(--leaf);
+}
+
+.challenge__board {
+  margin: 12px 0;
+  padding: 14px 18px;
+  text-align: center;
+  background: #fff6db;
+  border-radius: 24px;
+}
+
+.challenge__show {
+  margin: 0;
+  font-size: 2.8rem;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  word-break: break-word;
+}
+
+.challenge__show--word {
+  font-size: 3.6rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--station);
+}
+
+.challenge__question {
+  margin: 6px 0 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.challenge__options {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.challenge__options.is-new {
+  animation: rise 0.35s ease;
+}
+
+.challenge__face {
+  font-weight: 900;
+  line-height: 1.1;
+  word-break: break-all;
+}
+
+.challenge__tile--letters .challenge__face,
+.challenge__tile--numbers .challenge__face {
+  font-size: 4rem;
+  color: var(--station);
+}
+
+.challenge__tile--coins .challenge__face {
+  font-size: 2.4rem;
+  max-width: 9em;
+}
+
+.challenge__toast {
+  position: absolute;
+  left: 50%;
+  top: -28px;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 22px;
+  transform: translateX(-50%);
+  background: var(--leaf);
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  font-size: 1.4rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.challenge__toast.is-visible {
+  display: flex;
+}
+
+.challenge__toast.is-popping {
+  animation: pop 0.4s ease;
+}
+
+.challenge__sticker {
+  font-size: 2.2rem;
 }
 
 /* ---------- Shared ---------- */
@@ -1160,15 +1315,72 @@ button {
   font-size: 1rem;
 }
 
-.album-teaser {
+.album {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 12px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.album__sticker {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
+  gap: 4px;
+  min-height: 118px;
+  padding: 10px 6px;
   border: 3px dashed #e4ddcc;
-  border-radius: 24px;
+  border-radius: 22px;
+  text-align: center;
   font-weight: 800;
   color: var(--ink-soft);
+}
+
+.album__sticker.is-earned {
+  border: 3px solid var(--sun);
+  background: #fff6db;
+  color: var(--ink);
+  box-shadow: 0 4px 0 var(--sun-dark);
+}
+
+.album__picture {
+  font-size: 2.6rem;
+}
+
+.album__sticker:not(.is-earned) .album__picture {
+  opacity: 0.35;
+}
+
+.album__name {
+  font-size: 0.95rem;
+}
+
+.alphabet {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.alphabet__letter {
+  display: grid;
+  place-items: center;
+  height: 56px;
+  border-radius: 16px;
+  background: #f0ece2;
+  color: #c9c2b2;
+  font-size: 1.6rem;
+  font-weight: 900;
+}
+
+.alphabet__letter.is-earned {
+  background: #9b6bf2;
+  color: #fff;
+  box-shadow: 0 4px 0 #6f45c4;
 }
 
 /* ---------- Map ---------- */

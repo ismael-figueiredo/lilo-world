@@ -35,13 +35,19 @@ export const missions: readonly Mission[] = [
       { id: 'bread', label: 'pão', pictogram: '🍞' },
       { id: 'carrot', label: 'cenoura', pictogram: '🥕' },
       { id: 'cheese', label: 'queijo', pictogram: '🧀' },
+      // At the cashier: count the coins to pay.
+      { id: 'pay-2', label: '2 moedas', pictogram: '🪙🪙', group: 'cashier' },
+      { id: 'pay-3', label: '3 moedas', pictogram: '🪙🪙🪙', group: 'cashier' },
+      { id: 'pay-4', label: '4 moedas', pictogram: '🪙🪙🪙🪙', group: 'cashier' },
     ],
     steps: [
       { targetId: 'apple', prompt: 'Pegue a maçã.' },
       { targetId: 'milk', prompt: 'Agora, pegue o leite.' },
       { targetId: 'bread', prompt: 'Agora, pegue o pão.' },
+      { targetId: 'pay-3', prompt: 'Vamos ao caixa. São 3 coisas: pague 3 moedas.' },
     ],
     reward: { coins: 10, stars: 1 },
+    farewell: 'Obrigado! Volte sempre!',
   },
   {
     // AAC: the child builds the request with cards and the game says it aloud.

@@ -9,6 +9,11 @@ export interface MissionPanelCallbacks {
   onReplay(): void;
 }
 
+const MAIN_GROUP = 'main';
+
+/** A heading over the shelf for groups other than the main one. */
+const groupTitles: Readonly<Record<string, string>> = { cashier: '🧾 Caixa: pague com moedas' };
+
 /** How each kind of mission shows its list. */
 const layouts: Readonly<
   Record<MissionKind, { readonly title: string; readonly revealList: boolean }>
@@ -44,6 +49,8 @@ export class MissionPanel {
   private readonly listTitle = h('p', { className: 'mission__list-title' });
   private readonly celebration = h('div', { className: 'celebration' });
   private readonly tiles = new Map<string, HTMLButtonElement>();
+  private readonly shelfTitle = h('p', { className: 'mission__shelf-title' });
+  private groups = new Map<string, string>();
   private readonly listItems = new Map<string, HTMLLIElement>();
 
   constructor(private readonly callbacks: MissionPanelCallbacks) {
@@ -61,7 +68,7 @@ export class MissionPanel {
         this.title,
         h('div', { className: 'mission__body' }, [
           h('div', { className: 'mission__list-card' }, [this.listTitle, this.list]),
-          this.shelf,
+          h('div', { className: 'mission__shelf-area' }, [this.shelfTitle, this.shelf]),
         ]),
       ]),
       this.celebration,
@@ -83,13 +90,22 @@ export class MissionPanel {
     this.celebration.replaceChildren();
 
     const choiceById = new Map(mission.choices.map((choice) => [choice.id, choice]));
+    this.groups = new Map(mission.choices.map((choice) => [choice.id, choice.group ?? MAIN_GROUP]));
     this.list.replaceChildren(
       ...mission.steps.map((step, index) => {
         const choice = choiceById.get(step.targetId);
         const item = h('li', { className: 'mission__list-item' }, [
           h('span', { className: 'mission__slot', text: String(index + 1) }),
-          h('span', { className: 'pictogram', text: choice?.pictogram ?? '❓' }),
-          h('span', { className: 'mission__list-label', text: choice?.label ?? '' }),
+          // A step at another counter (the cashier) is named, not answered, on the list.
+          ...(choice?.group === undefined
+            ? [
+                h('span', { className: 'pictogram', text: choice?.pictogram ?? '❓' }),
+                h('span', { className: 'mission__list-label', text: choice?.label ?? '' }),
+              ]
+            : [
+                h('span', { className: 'pictogram', text: '🧾' }),
+                h('span', { className: 'mission__list-label', text: 'pagar' }),
+              ]),
           h('span', { className: 'mission__check', attrs: { 'aria-hidden': 'true' } }),
         ]);
         this.listItems.set(step.targetId, item);
@@ -202,6 +218,15 @@ export class MissionPanel {
 
   private highlightCurrent(targetId: string | undefined): void {
     for (const [id, item] of this.listItems) item.classList.toggle('is-current', id === targetId);
+    // Only the cards of the current step's group are on the shelf (e.g. the cashier's coins).
+    if (targetId === undefined) return;
+    const group = this.groups.get(targetId) ?? MAIN_GROUP;
+    for (const [id, tile] of this.tiles) {
+      tile.classList.toggle('is-hidden', (this.groups.get(id) ?? MAIN_GROUP) !== group);
+    }
+    this.shelf.dataset.group = group;
+    this.shelfTitle.textContent = groupTitles[group] ?? '';
+    this.shelfTitle.classList.toggle('is-hidden', groupTitles[group] === undefined);
   }
 
   private clearHints(): void {

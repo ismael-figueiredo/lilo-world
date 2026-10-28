@@ -4,15 +4,16 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 
 ## Onde estamos
 
-| Sprint                                                            | Status     | Commit    |
-| ----------------------------------------------------------------- | ---------- | --------- |
-| Protótipo 3D (ilha, cidade, missão do mercado, guarda-roupa)      | ✅ feito   | `1fa268b` |
-| 1: perfis, salvamento, menu, ajustes, mapa, limite de tempo, som  | ✅ feito   | `f5008d0` |
-| 2: 9 avatares (crianças, animais, robô), pipeline de assets       | ✅ feito   | `6bc1982` |
-| 3: mundo bonito (modelos CC0), água bloqueada, controle (gamepad) | ✅ feito   | `1d61174` |
-| 4a: padaria (CAA), ônibus (sequência), semáforo (no mundo 3D)     | ✅ feito   | —         |
-| 4b: mercado 3D com caixa, estações de aprendizado, figurinhas     | ⏭️ próximo | —         |
-| 5: mundo vivo                                                     | ⏳ depois  | —         |
+| Sprint                                                              | Status     | Commit    |
+| ------------------------------------------------------------------- | ---------- | --------- |
+| Protótipo 3D (ilha, cidade, missão do mercado, guarda-roupa)        | ✅ feito   | `1fa268b` |
+| 1: perfis, salvamento, menu, ajustes, mapa, limite de tempo, som    | ✅ feito   | `f5008d0` |
+| 2: 9 avatares (crianças, animais, robô), pipeline de assets         | ✅ feito   | `6bc1982` |
+| 3: mundo bonito (modelos CC0), água bloqueada, controle (gamepad)   | ✅ feito   | `1d61174` |
+| 4a: padaria (CAA), ônibus (sequência), semáforo (no mundo 3D)       | ✅ feito   | `a8f4dfd` |
+| 4b: estações de aprendizado, figurinhas, alfabeto, caixa do mercado | ✅ feito   | —         |
+| 4c: mercado 3D por dentro, ônibus 3D, missões da Natureza           | ⏭️ próximo | —         |
+| 5: mundo vivo                                                       | ⏳ depois  | —         |
 
 ## Sprint 3: mundo bonito, água e controle (feito)
 
@@ -41,37 +42,27 @@ Pendências pequenas: testar com controle físico (só a lógica tem teste); a �
 - Estrelas: a Cidade dá 4 (mercado, padaria, ônibus, semáforo) e a Natureza (3) abre. Teste novo em `content.test.ts`: todo mundo pode ser aberto com as estrelas dos anteriores (até o primeiro mundo ainda sem missões).
 - **Falta conteúdo:** a Natureza ainda não tem missões, então a Casa (6 estrelas) continua fechada.
 
-## Sprint 4b: mercado melhor e fases de aprendizado
+## Sprint 4b: estações de aprendizado e figurinhas (feito)
 
-### Domínio
+- **Domínio** (`src/domain/learning/`, puro e testado):
+  - `createChallenge(skill, level, random, words)`: Letras (1: letra inicial entre 3; 2: entre 4; 3: palavra ↔ figura), Números (1: contar até 5; 2: até 10; 3: soma visual até 10), Moedas (pagar o preço com moedas: até 3, 6 e 10). A letra inicial ignora acentos (ÁRVORE → A).
+  - `ChallengeSession`: 3 acertos seguidos sobem o nível (máximo 3); errar nunca rebaixa, só reinicia a sequência e dá a dica (igual às missões).
+  - `Random`, `seededRandom`, `shuffled`, `pick` foram para `src/domain/shared/random.ts`; a apresentação reexporta.
+- **Progresso:** nível por habilidade, figurinhas e letras do alfabeto (`PlayerProgress.recordChallenge`). Cada acerto dá 1 moeda; a primeira vez de cada habilidade e cada nível novo dão figurinha + estrela (no máximo 9 estrelas).
+- **Casos de uso:** `StartChallenge`, `AnswerChallenge`, `GetAlbum`; port `RandomSource` (o container usa `Math.random`, os testes usam semente).
+- **Palavras** em `src/infrastructure/catalog/words.ts`; as moedas usam só coisas que se compram (`SHOP_ITEMS`).
+- **Mundo:** 3 estações na cidade (`src/presentation/world/stations.ts`): Letras (blocos A B C, lado norte, x −27), Números (caixotes 1 2 3, lado norte, x 10) e Moedas (moeda gigante girando, lado sul, x 27,5). Painel `challenge-panel.ts` com estrelas de nível e bolinhas da sequência; controller `learning-controller.ts` (modo `learning`).
+- **Álbum** em "Meu progresso": 9 figurinhas e o alfabeto colecionável.
+- **Caixa do mercado:** depois dos itens, a prateleira vira o caixa (`MissionChoice.group = 'cashier'`) e a criança paga 3 moedas; no fim o caixa diz "Obrigado! Volte sempre!" (`Mission.farewell`).
+- Árvores de rua tiradas da frente das estações.
 
-- `src/domain/learning/`: geradores puros e com semente (usar `seededRandom` como referência) de desafios:
-  - Primeira letra de uma palavra ("Com qual letra começa BOLA?")
-  - Palavra ↔ figura
-  - Contar objetos (1 a 10)
-  - Soma visual (até 10)
-  - Contar moedas para pagar
-- `ChallengeSession`:
-  - Dicas iguais às do `MissionAttempt`.
-  - **Dificuldade adaptativa**: três acertos seguidos sobem o nível; errar nunca rebaixa de forma brusca, só repete o nível com uma dica.
-- Banco de palavras em pt-BR (figura e sílabas) em `src/infrastructure/catalog/words.ts`.
-- `src/domain/stickers/`: álbum de figurinhas (uma por habilidade ou nível) e **alfabeto colecionável**. A tela "Meu progresso" já tem o espaço "Álbum: em breve".
+## Sprint 4c: próximos
 
-### Missões e fases
-
-- **Mercado 3D:**
-  - Ao entrar, uma transição com fade leva a um interior com prateleiras de frutas 3D e um carrinho.
-  - A lista de figuras fica fixa na lateral.
-  - A criança anda até o item e toca nele (ou usa a ação), e o item voa para o carrinho.
-  - No **caixa**, paga contando moedas.
-  - Uma pessoa no caixa diz "Obrigado!".
+- **Mercado 3D por dentro:** transição com fade para um interior com prateleiras de frutas 3D e um carrinho; a criança anda até o item e o item voa para o carrinho; no caixa, uma pessoa (modelo CC0) diz "Obrigado!".
 - **Ônibus em 3D:** o ônibus estacionado vem até o ponto durante a missão e a criança entra nele.
-- **Estações de aprendizado pelo mundo:**
-  - Blocos de letras 3D para pular ou tocar.
-  - Placas palavra ↔ figura.
-  - Caixotes para contar.
-  - Moedas-letra escondidas pela ilha.
-- Cada estação dá moedas, figurinhas e uma estrela por nível. Recompensa: brilho, confete e o avatar fazendo um emote.
+- **Missões da Natureza** (abre com 3 estrelas): sem elas, a Casa (6) só abre pelas estrelas das estações. Ideias: regar as plantas (sequência), achar animais pelo som, separar o lixo.
+- **Mais estações:** moedas-letra escondidas pela ilha (para o alfabeto) e placas palavra ↔ figura nas trilhas.
+- Recompensa visual ao ganhar figurinha: brilho e confete no mundo, além do aviso no painel.
 
 ## Sprint 5: mundo vivo
 

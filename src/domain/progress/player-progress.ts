@@ -1,8 +1,10 @@
 import type { WardrobeItem, WardrobeItemId, WardrobeSlot } from '@domain/avatar/wardrobe-item';
+import { MAX_LEVEL, skills, type Skill } from '@domain/learning/challenge';
 import type { Mission, MissionId } from '@domain/mission/mission';
 import { Coins } from '@domain/reward/coins';
 import { noReward, type Reward } from '@domain/reward/reward';
 import { domainError, err, ok, type Result } from '@domain/shared/result';
+import { ALBUM_LETTERS, stickerId, type StickerId } from '@domain/stickers/sticker';
 
 /** How a mission has gone so far. Used by the progress screen (and later by therapists). */
 export interface MissionStats {
@@ -28,6 +30,20 @@ export interface ProgressSnapshot {
   readonly equipped: Partial<Record<WardrobeSlot, WardrobeItemId>>;
   readonly completedMissionIds: readonly MissionId[];
   readonly missionStats?: Readonly<Record<MissionId, MissionStats>>;
+  /** Level reached in each learning skill (1 when never played). */
+  readonly skillLevels?: Readonly<Partial<Record<Skill, number>>>;
+  readonly stickerIds?: readonly StickerId[];
+  /** Letters collected for the alphabet album. */
+  readonly letters?: readonly string[];
+}
+
+/** One answer at a learning station. */
+export interface ChallengeRecord {
+  readonly correct: boolean;
+  /** The level reached with this answer, if it completed a streak. */
+  readonly reachedLevel?: number;
+  /** A letter learned with this answer (first-letter challenges). */
+  readonly letter?: string;
 }
 
 /** The result of one play of a mission. */
@@ -43,7 +59,13 @@ interface State {
   readonly equipped: Readonly<Partial<Record<WardrobeSlot, WardrobeItemId>>>;
   readonly completed: ReadonlySet<MissionId>;
   readonly stats: Readonly<Record<MissionId, MissionStats>>;
+  readonly skillLevels: Readonly<Record<Skill, number>>;
+  readonly stickers: ReadonlySet<StickerId>;
+  readonly letters: ReadonlySet<string>;
 }
+
+const startingLevels = (): Record<Skill, number> =>
+  Object.fromEntries(skills.map((skill) => [skill, 1])) as Record<Skill, number>;
 
 const wholeNumber = (value: unknown): number =>
   typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 0;
@@ -60,6 +82,9 @@ export class PlayerProgress {
       equipped: {},
       completed: new Set(),
       stats: {},
+      skillLevels: startingLevels(),
+      stickers: new Set(),
+      letters: new Set(),
     });
   }
 
@@ -81,6 +106,11 @@ export class PlayerProgress {
         },
       ]),
     );
+    const skillLevels = startingLevels();
+    for (const skill of skills) {
+      const level = wholeNumber(snapshot.skillLevels?.[skill]);
+      skillLevels[skill] = Math.min(Math.max(1, level), MAX_LEVEL);
+    }
     return new PlayerProgress({
       coins: coins.ok ? coins.value : Coins.zero,
       stars: wholeNumber(snapshot.stars),
@@ -88,6 +118,9 @@ export class PlayerProgress {
       equipped,
       completed: new Set(snapshot.completedMissionIds),
       stats,
+      skillLevels,
+      stickers: new Set(snapshot.stickerIds ?? []),
+      letters: new Set((snapshot.letters ?? []).filter((l) => ALBUM_LETTERS.includes(l))),
     });
   }
 
@@ -99,7 +132,60 @@ export class PlayerProgress {
       equipped: { ...this.state.equipped },
       completedMissionIds: [...this.state.completed],
       missionStats: { ...this.state.stats },
+      skillLevels: { ...this.state.skillLevels },
+      stickerIds: [...this.state.stickers],
+      letters: [...this.state.letters],
     };
+  }
+
+  levelOf(skill: Skill): number {
+    return this.state.skillLevels[skill];
+  }
+
+  hasSticker(id: StickerId): boolean {
+    return this.state.stickers.has(id);
+  }
+
+  get stickerIds(): readonly StickerId[] {
+    return [...this.state.stickers];
+  }
+
+  get letters(): readonly string[] {
+    return [...this.state.letters];
+  }
+
+  /**
+   * One answer at a learning station. Every right answer gives a coin. The
+   * first right answer of a skill and every new level give a sticker and a
+   * star (once each). Wrong answers change nothing: they only bring a hint.
+   */
+  recordChallenge(
+    skill: Skill,
+    record: ChallengeRecord,
+  ): { progress: PlayerProgress; reward: Reward; sticker?: StickerId } {
+    if (!record.correct) return { progress: this, reward: noReward };
+
+    const level = Math.min(
+      Math.max(this.levelOf(skill), wholeNumber(record.reachedLevel)),
+      MAX_LEVEL,
+    );
+    const candidate = stickerId(skill, record.reachedLevel === undefined ? 1 : level);
+    const sticker = this.hasSticker(candidate) ? undefined : candidate;
+    const reward: Reward = { coins: 1, stars: sticker === undefined ? 0 : 1 };
+    const earned = Coins.of(reward.coins);
+    const letter = record.letter?.toUpperCase();
+    const progress = this.with({
+      coins: earned.ok ? this.state.coins.add(earned.value) : this.state.coins,
+      stars: this.state.stars + reward.stars,
+      skillLevels: { ...this.state.skillLevels, [skill]: level },
+      stickers:
+        sticker === undefined ? this.state.stickers : new Set([...this.state.stickers, sticker]),
+      letters:
+        letter !== undefined && ALBUM_LETTERS.includes(letter)
+          ? new Set([...this.state.letters, letter])
+          : this.state.letters,
+    });
+    return sticker === undefined ? { progress, reward } : { progress, reward, sticker };
   }
 
   get coins(): Coins {

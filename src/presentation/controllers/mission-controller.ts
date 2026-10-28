@@ -144,7 +144,10 @@ export class MissionController {
             // The game says the child's request aloud, as an AAC device would.
             this.ctx.say(`${this.panel.sentence(this.attempt)}. Aqui está! Muito bem!`);
           } else {
-            this.ctx.dialog.say(phrases.completed);
+            const { farewell } = mission;
+            this.ctx.dialog.say(
+              farewell === undefined ? phrases.completed : `${farewell} ${phrases.completed}`,
+            );
           }
           this.ctx.avatar.playEmote('Dance');
           await this.ctx.refresh();

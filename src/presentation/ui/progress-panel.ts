@@ -1,3 +1,4 @@
+import type { Album } from '@application/use-cases/get-album';
 import type { ProgressSummary } from '@application/use-cases/get-progress-summary';
 import { h } from '@presentation/ui/dom';
 
@@ -28,7 +29,7 @@ export class ProgressPanel {
     );
   }
 
-  open(playerName: string, summary: ProgressSummary): void {
+  open(playerName: string, summary: ProgressSummary, album: Album): void {
     this.title.textContent = `⭐ Progresso de ${playerName}`;
     const stat = (icon: string, value: string, label: string) =>
       h('div', { className: 'stat' }, [
@@ -62,10 +63,38 @@ export class ProgressPanel {
           ]),
         ),
       ),
-      h('div', { className: 'album-teaser' }, [
-        h('span', { className: 'pictogram pictogram--big', text: '📒' }),
-        h('span', { text: 'Álbum de figurinhas: chegando em breve!' }),
-      ]),
+      h('h3', {
+        className: 'settings__heading',
+        text: `📒 Álbum (${album.stickers.filter((s) => s.earned).length}/${album.stickers.length})`,
+      }),
+      h(
+        'ul',
+        { className: 'album' },
+        album.stickers.map((sticker) =>
+          h(
+            'li',
+            {
+              className: `album__sticker${sticker.earned ? ' is-earned' : ''}`,
+              attrs: { 'aria-label': sticker.earned ? sticker.name : 'Figurinha ainda escondida' },
+            },
+            [
+              h('span', {
+                className: 'album__picture',
+                text: sticker.earned ? sticker.picture : '❔',
+              }),
+              h('span', { className: 'album__name', text: sticker.earned ? sticker.name : '' }),
+            ],
+          ),
+        ),
+      ),
+      h('h3', { className: 'settings__heading', text: '🔤 Meu alfabeto' }),
+      h(
+        'ul',
+        { className: 'alphabet' },
+        album.letters.map(({ letter, earned }) =>
+          h('li', { className: `alphabet__letter${earned ? ' is-earned' : ''}`, text: letter }),
+        ),
+      ),
     );
     this.element.classList.add('is-visible');
   }

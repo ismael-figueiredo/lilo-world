@@ -73,6 +73,7 @@ export class MenuController {
         this.progress.open(
           this.ctx.profile.name,
           await this.ctx.player.getProgressSummary.execute(),
+          await this.ctx.player.getAlbum.execute(),
         );
         return;
       case 'settings':

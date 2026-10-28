@@ -63,6 +63,12 @@ export const content: GameContent = {
     { id: 'robot', name: 'Robô', kind: 'robot', recolorable: true },
     { id: 'bunny', name: 'Coelho', kind: 'animal', recolorable: false },
   ],
+  words: [
+    { text: 'BOLA', pictogram: '⚽' },
+    { text: 'GATO', pictogram: '🐱' },
+    { text: 'PATO', pictogram: '🦆' },
+    { text: 'UVA', pictogram: '🍇' },
+  ],
 };
 
 /** Records what the mascot would say. */

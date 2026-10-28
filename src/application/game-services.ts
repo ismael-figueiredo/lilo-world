@@ -1,5 +1,6 @@
 import type { AudioPlayer } from '@application/ports/audio';
 import type { Speech } from '@application/ports/speech';
+import type { AnswerChallenge } from '@application/use-cases/answer-challenge';
 import type { ApplySettings } from '@application/use-cases/apply-settings';
 import type { BuyWardrobeItem } from '@application/use-cases/buy-wardrobe-item';
 import type { ChangeAvatar } from '@application/use-cases/change-avatar';
@@ -8,6 +9,7 @@ import type { ChooseMissionAnswer } from '@application/use-cases/choose-mission-
 import type { CreateProfile } from '@application/use-cases/create-profile';
 import type { DeleteProfile } from '@application/use-cases/delete-profile';
 import type { GetActiveProfile } from '@application/use-cases/get-active-profile';
+import type { GetAlbum } from '@application/use-cases/get-album';
 import type { GetPlayerProgress } from '@application/use-cases/get-player-progress';
 import type { GetProgressSummary } from '@application/use-cases/get-progress-summary';
 import type { GetSettings } from '@application/use-cases/get-settings';
@@ -20,6 +22,7 @@ import type { LoadSession } from '@application/use-cases/load-session';
 import type { RenameProfile } from '@application/use-cases/rename-profile';
 import type { SaveSession } from '@application/use-cases/save-session';
 import type { SelectProfile } from '@application/use-cases/select-profile';
+import type { StartChallenge } from '@application/use-cases/start-challenge';
 import type { StartMission } from '@application/use-cases/start-mission';
 import type { SuggestNextGoal } from '@application/use-cases/suggest-next-goal';
 import type { ToggleWardrobeItem } from '@application/use-cases/toggle-wardrobe-item';
@@ -38,6 +41,9 @@ export interface PlayerServices {
   readonly startMission: StartMission;
   readonly chooseMissionAnswer: ChooseMissionAnswer;
   readonly leaveMission: LeaveMission;
+  readonly startChallenge: StartChallenge;
+  readonly answerChallenge: AnswerChallenge;
+  readonly getAlbum: GetAlbum;
   readonly getWardrobe: GetWardrobe;
   readonly buyWardrobeItem: BuyWardrobeItem;
   readonly toggleWardrobeItem: ToggleWardrobeItem;

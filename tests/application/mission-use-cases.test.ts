@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ChooseMissionAnswer, phrases } from '@application/use-cases/choose-mission-answer';
 import { StartMission } from '@application/use-cases/start-mission';
-import type { MissionAttempt } from '@domain/mission/mission-attempt';
+import { MissionAttempt } from '@domain/mission/mission-attempt';
 import { StaticContentCatalog } from '@infrastructure/catalog/static-content-catalog';
 import { InMemoryProgressRepository } from '@infrastructure/persistence/in-memory-progress-repository';
 import { LeaveMission } from '@application/use-cases/leave-mission';
@@ -60,6 +60,14 @@ describe('mission use cases', () => {
     expect(saved.coins.amount).toBe(10);
     expect(saved.stars).toBe(1);
     expect(speech.spoken.at(-1)).toBe(phrases.completed);
+  });
+
+  it('lets someone in the scene say goodbye at the end', async () => {
+    const withFarewell = { ...mission, farewell: 'Obrigado!' };
+    const first = await chooseAnswer.execute(MissionAttempt.start(withFarewell), 'apple');
+    if (!first.ok) throw new Error('setup failed');
+    await chooseAnswer.execute(first.value.attempt, 'milk');
+    expect(speech.spoken.at(-1)).toBe(`Obrigado! ${phrases.completed}`);
   });
 
   it('passes on domain errors without saving', async () => {

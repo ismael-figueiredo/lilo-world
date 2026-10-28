@@ -70,5 +70,12 @@ function parseSnapshot(raw: unknown): ProgressSnapshot {
     equipped: isRecordOfStrings(data.equipped) ? data.equipped : {},
     completedMissionIds: isStringArray(data.completedMissionIds) ? data.completedMissionIds : [],
     missionStats: parseStats(data.missionStats),
+    skillLevels: isRecord(data.skillLevels)
+      ? Object.fromEntries(
+          Object.entries(data.skillLevels).filter(([, level]) => typeof level === 'number'),
+        )
+      : {},
+    stickerIds: isStringArray(data.stickerIds) ? data.stickerIds : [],
+    letters: isStringArray(data.letters) ? data.letters : [],
   };
 }

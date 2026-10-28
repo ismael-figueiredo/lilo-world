@@ -8,9 +8,10 @@ import type { Dialog } from '@presentation/ui/dialog';
 import type { GameWorld } from '@presentation/world/game-world';
 import type { Interactable } from '@presentation/world/interactable';
 
-export type Mode = 'loading' | 'profiles' | 'explore' | 'mission' | 'wardrobe' | 'menu' | 'rest';
+export type Mode =
+  'loading' | 'profiles' | 'explore' | 'mission' | 'learning' | 'wardrobe' | 'menu' | 'rest';
 
-export type PanelMode = 'mission' | 'wardrobe' | 'menu' | 'rest';
+export type PanelMode = 'mission' | 'learning' | 'wardrobe' | 'menu' | 'rest';
 
 /** What controllers can use. Implemented by GameApp; keeps controllers small and focused. */
 export interface GameContext {

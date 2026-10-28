@@ -9,6 +9,11 @@ export interface MissionChoice {
   readonly label: string;
   /** Provisional pictogram (emoji) until ARASAAC pictograms are added. */
   readonly pictogram: string;
+  /**
+   * Choices are shown in groups, one group at a time: the one of the current
+   * step (e.g. the shelf, then the cashier). Without a group, the main one.
+   */
+  readonly group?: string;
 }
 
 /** One instruction at a time: the mascot asks for a single target. */
@@ -36,4 +41,6 @@ export interface Mission {
   readonly choices: readonly MissionChoice[];
   readonly steps: readonly MissionStep[];
   readonly reward: Reward;
+  /** Said by someone in the scene when the mission ends (e.g. the cashier's "Obrigado!"). */
+  readonly farewell?: string;
 }

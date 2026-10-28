@@ -2,12 +2,14 @@ import type { GameServices, PlayerServices } from '@application/game-services';
 import type { AudioPlayer } from '@application/ports/audio';
 import type { Clock } from '@application/ports/clock';
 import type { ContentCatalog } from '@application/ports/content-catalog';
+import type { RandomSource } from '@application/ports/random';
 import type { IdGenerator } from '@application/ports/id-generator';
 import type { ProfileRepository } from '@application/ports/profile-repository';
 import type { ProgressRepository } from '@application/ports/progress-repository';
 import type { SessionRepository } from '@application/ports/session-repository';
 import type { SettingsRepository } from '@application/ports/settings-repository';
 import type { Speech } from '@application/ports/speech';
+import { AnswerChallenge } from '@application/use-cases/answer-challenge';
 import { ApplySettings } from '@application/use-cases/apply-settings';
 import { BuyWardrobeItem } from '@application/use-cases/buy-wardrobe-item';
 import { ChangeAvatar } from '@application/use-cases/change-avatar';
@@ -16,6 +18,7 @@ import { ChooseMissionAnswer } from '@application/use-cases/choose-mission-answe
 import { CreateProfile } from '@application/use-cases/create-profile';
 import { DeleteProfile } from '@application/use-cases/delete-profile';
 import { GetActiveProfile } from '@application/use-cases/get-active-profile';
+import { GetAlbum } from '@application/use-cases/get-album';
 import { GetPlayerProgress } from '@application/use-cases/get-player-progress';
 import { GetProgressSummary } from '@application/use-cases/get-progress-summary';
 import { GetSettings } from '@application/use-cases/get-settings';
@@ -28,6 +31,7 @@ import { LoadSession } from '@application/use-cases/load-session';
 import { RenameProfile } from '@application/use-cases/rename-profile';
 import { SaveSession } from '@application/use-cases/save-session';
 import { SelectProfile } from '@application/use-cases/select-profile';
+import { StartChallenge } from '@application/use-cases/start-challenge';
 import { StartMission } from '@application/use-cases/start-mission';
 import { SuggestNextGoal } from '@application/use-cases/suggest-next-goal';
 import { ToggleWardrobeItem } from '@application/use-cases/toggle-wardrobe-item';
@@ -62,11 +66,14 @@ export interface Adapters {
   readonly audio: AudioPlayer;
   readonly clock: Clock;
   readonly ids: IdGenerator;
+  /** New challenges; Math.random when not given. */
+  readonly random?: RandomSource;
 }
 
 /** Wires use cases to whatever adapters are given. Tests pass fakes; the browser passes real ones. */
 export function createServices(adapters: Adapters): GameServices {
   const { catalog, profiles, speech, audio, clock, ids } = adapters;
+  const random = adapters.random ?? Math.random;
   const players = new Map<ProfileId, PlayerServices>();
 
   const buildPlayer = (profileId: ProfileId): PlayerServices => {
@@ -80,6 +87,9 @@ export function createServices(adapters: Adapters): GameServices {
       startMission: new StartMission(catalog, speech),
       chooseMissionAnswer: new ChooseMissionAnswer(progress, speech, clock),
       leaveMission: new LeaveMission(progress, clock),
+      startChallenge: new StartChallenge(catalog, progress, speech, random),
+      answerChallenge: new AnswerChallenge(catalog, progress, speech, random),
+      getAlbum: new GetAlbum(progress),
       getWardrobe: new GetWardrobe(catalog, progress),
       buyWardrobeItem: new BuyWardrobeItem(catalog, progress),
       toggleWardrobeItem: new ToggleWardrobeItem(catalog, progress),

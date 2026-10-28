@@ -14,6 +14,7 @@ import {
 } from '@presentation/world/props';
 import type { CrosswalkZone } from '@presentation/world/crosswalk';
 import { createPostSign, createSign } from '@presentation/world/sign';
+import { LearningStations } from '@presentation/world/stations';
 import {
   fitFootprint,
   fitHeight,
@@ -68,12 +69,16 @@ export class City {
   readonly places: Interactable[] = [];
   private readonly trafficLights: TrafficLight[] = [];
   private fountainWater?: THREE.Mesh;
+  private readonly stations = new LearningStations(CITY.height);
 
   constructor(private readonly assets: WorldAssets) {
     this.group.position.y = CITY.height;
     this.addStreets();
     this.addBuildings();
     this.addStreetLife();
+    this.group.add(this.stations.group);
+    this.colliders.push(...this.stations.colliders);
+    this.places.push(...this.stations.places);
   }
 
   /** The shared traffic light cycle right now. */
@@ -82,6 +87,7 @@ export class City {
   update(time: number): void {
     this.phase = trafficPhase(time);
     for (const light of this.trafficLights) light.update(this.phase);
+    this.stations.update(time);
     if (this.fountainWater !== undefined)
       this.fountainWater.position.y = 0.62 + Math.sin(time * 2) * 0.03;
   }
@@ -395,8 +401,6 @@ export class City {
     const streetTrees: readonly (readonly [number, number])[] = [
       [-30, 9],
       [-14, 9],
-      [28, 9],
-      [-28, -9],
       [30, -9],
       [-6, -20],
       [6, -30],

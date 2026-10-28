@@ -1,5 +1,6 @@
 import type { AvatarDefinition, AvatarId } from '@domain/avatar/avatar';
 import type { WardrobeItem, WardrobeItemId } from '@domain/avatar/wardrobe-item';
+import type { Word } from '@domain/learning/challenge';
 import type { Mission, MissionId } from '@domain/mission/mission';
 import type { World } from '@domain/world/world';
 
@@ -11,4 +12,6 @@ export interface ContentCatalog {
   findWardrobeItem(id: WardrobeItemId): Promise<WardrobeItem | undefined>;
   listAvatars(): Promise<readonly AvatarDefinition[]>;
   findAvatar(id: AvatarId): Promise<AvatarDefinition | undefined>;
+  /** Words with pictures for the letter and coin challenges. */
+  listWords(): Promise<readonly Word[]>;
 }

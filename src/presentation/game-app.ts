@@ -10,6 +10,7 @@ import { AvatarLibrary } from '@presentation/actors/avatar-library';
 import { avatarPictureUrl } from '@presentation/actors/avatar-rigs';
 import type { Player } from '@presentation/actors/player';
 import { MenuController } from '@presentation/controllers/menu-controller';
+import { LearningController } from '@presentation/controllers/learning-controller';
 import { MissionController, missionPlaces } from '@presentation/controllers/mission-controller';
 import { WardrobeController } from '@presentation/controllers/wardrobe-controller';
 import { CameraRig } from '@presentation/engine/camera-rig';
@@ -34,6 +35,7 @@ import { GoalMarker } from '@presentation/world/goal-marker';
 import type { Interactable } from '@presentation/world/interactable';
 import { captureMap } from '@presentation/world/map-snapshot';
 import { portalId } from '@presentation/world/portals';
+import { skillOfStation } from '@presentation/world/stations';
 import { WorldAssets } from '@presentation/world/world-assets';
 import '@presentation/ui/styles.css';
 
@@ -70,6 +72,7 @@ export class GameApp implements GameContext {
   private readonly profileScreen: ProfileScreen;
   private readonly restScreen: RestScreen;
   private readonly missions: MissionController;
+  private readonly learning: LearningController;
   private readonly wardrobe: WardrobeController;
   private readonly menus: MenuController;
   private readonly avatars: AvatarLibrary;
@@ -129,6 +132,7 @@ export class GameApp implements GameContext {
     });
     this.avatars = new AvatarLibrary(options.baseUrl);
     this.missions = new MissionController(this);
+    this.learning = new LearningController(this);
     this.wardrobe = new WardrobeController(this);
     this.menus = new MenuController(this, () => this.goalPlace()?.id);
   }
@@ -251,6 +255,7 @@ export class GameApp implements GameContext {
     await this.saveSession();
     this.services.speech.stop();
     this.missions.close();
+    this.learning.close();
     this.wardrobe.close();
     this.menus.closeAll();
     this.restScreen.close();
@@ -294,6 +299,7 @@ export class GameApp implements GameContext {
       this.dialog.element,
       this.controls.element,
       this.missions.panel.element,
+      this.learning.panel.element,
       this.wardrobe.panel.element,
       ...this.menus.elements,
       this.restScreen.element,
@@ -521,6 +527,7 @@ export class GameApp implements GameContext {
       this.wardrobe.close();
       this.backToExploring();
     } else if (this.currentMode === 'mission') void this.missions.exit();
+    else if (this.currentMode === 'learning') this.learning.exit();
   }
 
   private updateExploration(position: THREE.Vector3, input: Input): void {
@@ -568,6 +575,12 @@ export class GameApp implements GameContext {
     if (place.id === CityPlace.home) {
       this.sound('open');
       await this.wardrobe.open();
+      return;
+    }
+    const skill = skillOfStation(place.id);
+    if (skill !== undefined) {
+      this.sound('open');
+      await this.learning.open(skill);
       return;
     }
 
