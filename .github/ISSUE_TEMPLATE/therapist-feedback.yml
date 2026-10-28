@@ -1,0 +1,45 @@
+name: 🧩 Feedback de família ou terapeuta
+description: Conte como foi usar o jogo com uma criança. Não inclua nomes nem dados pessoais.
+labels: [feedback]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por testar! **Não inclua nomes, fotos ou informações que identifiquem a criança.**
+  - type: dropdown
+    id: role
+    attributes:
+      label: Você é
+      options:
+        [
+          Mãe,
+          pai ou familiar,
+          Fonoaudióloga(o),
+          Terapeuta ocupacional,
+          Psicóloga(o),
+          Professora(or),
+          Outro,
+        ]
+    validations:
+      required: true
+  - type: input
+    id: age
+    attributes:
+      label: Faixa de idade da criança
+      placeholder: 'Ex.: 6 a 8 anos'
+  - type: textarea
+    id: liked
+    attributes:
+      label: O que a criança adorou?
+  - type: textarea
+    id: hard
+    attributes:
+      label: Onde ela teve dificuldade ou travou?
+  - type: textarea
+    id: bothered
+    attributes:
+      label: Algo incomodou? (som, cor, velocidade, câmera...)
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Sugestões

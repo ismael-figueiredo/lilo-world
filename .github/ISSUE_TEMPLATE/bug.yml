@@ -1,0 +1,33 @@
+name: 🐞 Algo não funciona
+description: Um erro, travamento ou comportamento estranho no jogo.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: O que aconteceu?
+      description: Conte o que você viu e o que esperava ver.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Como reproduzir
+      placeholder: |
+        1. Entrei no mercado
+        2. Toquei na banana
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Aparelho e navegador
+      placeholder: 'Ex.: iPad 9ª geração, Safari / Samsung A54, Chrome'
+    validations:
+      required: true
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots ou vídeo
+      description: Não envie fotos ou vídeos que mostrem o rosto de crianças.

@@ -1,0 +1,38 @@
+name: 💡 Ideia de missão
+description: Sugira uma situação do dia a dia para virar missão.
+labels: [ideia, missão]
+body:
+  - type: input
+    id: situation
+    attributes:
+      label: Situação do dia a dia
+      placeholder: 'Ex.: pedir água no restaurante'
+    validations:
+      required: true
+  - type: dropdown
+    id: world
+    attributes:
+      label: Em qual mundo?
+      options: [Cidade, Natureza, Casa, Escola e Parque, Emoções, Outro]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos (uma ação por passo)
+      placeholder: |
+        1. Encontrar a mesa
+        2. Mostrar o cartão [eu quero] + [água]
+        3. Agradecer
+    validations:
+      required: true
+  - type: textarea
+    id: skill
+    attributes:
+      label: Qual habilidade a missão treina?
+      placeholder: 'Ex.: pedir algo, esperar a vez, sequência de ações'
+  - type: textarea
+    id: care
+    attributes:
+      label: Cuidados sensoriais
+      description: Sons, cores ou situações que devem ser evitados nesta missão.

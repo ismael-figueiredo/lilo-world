@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Dúvidas e ideias gerais
+    url: https://github.com/ismael-figueiredo/lilo-world/discussions
+    about: Converse com a comunidade antes de abrir uma issue.
+  - name: Problema de segurança ou privacidade
+    url: https://github.com/ismael-figueiredo/lilo-world/security/advisories/new
+    about: Reporte de forma privada. Não abra uma issue pública.

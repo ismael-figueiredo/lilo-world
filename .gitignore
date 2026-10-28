@@ -1,0 +1,22 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Environment and local files
+.env
+.env.*
+!.env.example
+*.local
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
+
+# Screenshots dropped in the project root while working
+/Captura de Tela*.png
+/Screenshot*.png
