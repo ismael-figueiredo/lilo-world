@@ -8,7 +8,13 @@ import type { World } from '@domain/world/world';
  * replaced by ARASAAC pictograms so children see the same images used in therapy.
  */
 export const worlds: readonly World[] = [
-  { id: 'city', name: 'Cidade', requiredStars: 0, missionIds: ['city-market'], color: 0x4fa3e0 },
+  {
+    id: 'city',
+    name: 'Cidade',
+    requiredStars: 0,
+    missionIds: ['city-market', 'city-bakery', 'city-bus', 'city-crosswalk'],
+    color: 0x4fa3e0,
+  },
   { id: 'nature', name: 'Natureza', requiredStars: 3, missionIds: [], color: 0x6cc070 },
   { id: 'home', name: 'Casa', requiredStars: 6, missionIds: [], color: 0xf2a65a },
   { id: 'school', name: 'Escola e Parque', requiredStars: 9, missionIds: [], color: 0xb08ee6 },
@@ -18,6 +24,7 @@ export const worlds: readonly World[] = [
 export const missions: readonly Mission[] = [
   {
     id: 'city-market',
+    kind: 'pick-items',
     worldId: 'city',
     title: 'Compras no mercado',
     introduction: 'Vamos ao mercado! Olhe a lista.',
@@ -33,6 +40,62 @@ export const missions: readonly Mission[] = [
       { targetId: 'apple', prompt: 'Pegue a maçã.' },
       { targetId: 'milk', prompt: 'Agora, pegue o leite.' },
       { targetId: 'bread', prompt: 'Agora, pegue o pão.' },
+    ],
+    reward: { coins: 10, stars: 1 },
+  },
+  {
+    // AAC: the child builds the request with cards and the game says it aloud.
+    id: 'city-bakery',
+    kind: 'build-sentence',
+    worldId: 'city',
+    title: 'Pedir na padaria',
+    introduction: 'Vamos pedir um lanche! Monte a frase.',
+    choices: [
+      { id: 'i-want', label: 'eu quero', pictogram: '🙋' },
+      { id: 'bread', label: 'pão', pictogram: '🍞' },
+      { id: 'cake', label: 'bolo', pictogram: '🍰' },
+      { id: 'juice', label: 'suco', pictogram: '🧃' },
+    ],
+    steps: [
+      { targetId: 'i-want', prompt: 'Toque em: eu quero.' },
+      { targetId: 'bread', prompt: 'Agora, toque no pão.' },
+    ],
+    reward: { coins: 10, stars: 1 },
+  },
+  {
+    id: 'city-bus',
+    kind: 'sequence',
+    worldId: 'city',
+    title: 'Andar de ônibus',
+    introduction: 'Vamos pegar o ônibus! O que vem primeiro?',
+    choices: [
+      { id: 'wait', label: 'esperar no ponto', pictogram: '🧍' },
+      { id: 'board', label: 'entrar no ônibus', pictogram: '🚌' },
+      { id: 'sit', label: 'sentar', pictogram: '💺' },
+      { id: 'stop-button', label: 'apertar o botão', pictogram: '🔔' },
+    ],
+    steps: [
+      { targetId: 'wait', prompt: 'Primeiro, esperamos no ponto.' },
+      { targetId: 'board', prompt: 'O ônibus chegou. Agora?' },
+      { targetId: 'sit', prompt: 'Entramos. E depois?' },
+      { targetId: 'stop-button', prompt: 'Chegando. O que fazemos?' },
+    ],
+    reward: { coins: 10, stars: 1 },
+  },
+  {
+    // Played in the 3D street: the game reports what the child does.
+    id: 'city-crosswalk',
+    kind: 'world-task',
+    worldId: 'city',
+    title: 'Atravessar a rua',
+    introduction: 'Vamos atravessar na faixa.',
+    choices: [
+      { id: 'wait-green', label: 'esperar o boneco verde', pictogram: '🟢' },
+      { id: 'cross', label: 'atravessar', pictogram: '🚶' },
+    ],
+    steps: [
+      { targetId: 'wait-green', prompt: 'Fique na calçada e espere o boneco verde.' },
+      { targetId: 'cross', prompt: 'Verde! Pode atravessar na faixa.' },
     ],
     reward: { coins: 10, stars: 1 },
   },

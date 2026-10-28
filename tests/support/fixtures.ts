@@ -9,6 +9,7 @@ import type { GameContent } from '@infrastructure/catalog/static-content-catalog
 
 export const mission: Mission = {
   id: 'test-market',
+  kind: 'pick-items',
   worldId: 'city',
   title: 'Mercado de teste',
   introduction: 'Vamos ao mercado!',

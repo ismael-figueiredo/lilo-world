@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { TrafficPhase } from '@domain/city/traffic-light';
 import type { WorldMapEntry } from '@application/use-cases/get-world-map';
 import type { Random } from '@presentation/engine/math';
 import { CITY, City, isInsideCity } from '@presentation/world/city';
@@ -57,6 +58,11 @@ export class GameWorld {
     this.staticColliders = [...this.city.colliders, ...this.nature.colliders];
     this.colliders = this.staticColliders;
     this.places = this.city.places;
+  }
+
+  /** The traffic light cycle shared by the whole town. */
+  get trafficPhase(): TrafficPhase {
+    return this.city.phase;
   }
 
   heightAt(x: number, z: number): number {

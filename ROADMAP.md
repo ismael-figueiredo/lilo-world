@@ -9,8 +9,9 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | Protótipo 3D (ilha, cidade, missão do mercado, guarda-roupa)      | ✅ feito   | `1fa268b` |
 | 1: perfis, salvamento, menu, ajustes, mapa, limite de tempo, som  | ✅ feito   | `f5008d0` |
 | 2: 9 avatares (crianças, animais, robô), pipeline de assets       | ✅ feito   | `6bc1982` |
-| 3: mundo bonito (modelos CC0), água bloqueada, controle (gamepad) | ✅ feito   | —         |
-| 4: missões novas, mercado 3D, fases de aprendizado                | ⏭️ próximo | —         |
+| 3: mundo bonito (modelos CC0), água bloqueada, controle (gamepad) | ✅ feito   | `1d61174` |
+| 4a: padaria (CAA), ônibus (sequência), semáforo (no mundo 3D)     | ✅ feito   | —         |
+| 4b: mercado 3D com caixa, estações de aprendizado, figurinhas     | ⏭️ próximo | —         |
 | 5: mundo vivo                                                     | ⏳ depois  | —         |
 
 ## Sprint 3: mundo bonito, água e controle (feito)
@@ -28,29 +29,22 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 
 Pendências pequenas: testar com controle físico (só a lógica tem teste); a Área dos pais (segurar 3 s) não abre pelo controle, de propósito.
 
-## Sprint 4: missões novas, mercado melhor e fases de aprendizado
+## Sprint 4a: missões novas (feito)
 
-Problema principal: **só existe a missão do mercado (1 estrela) e a Natureza pede 3**, então a criança fica travada.
+- `Mission.kind` (`pick-items`, `build-sentence`, `sequence`, `world-task`): o motor `MissionAttempt` é o mesmo; só o painel muda (`mission-panel.ts`). Frases e sequências preenchem espaços numerados; na sequência os cartões aparecem embaralhados, sempre na mesma ordem (`shelfOrder`).
+- **Padaria (CAA):** [eu quero] + [pão]; no fim o jogo fala a frase ("Eu quero pão. Aqui está!").
+- **Ônibus:** esperar no ponto → entrar → sentar → apertar o botão.
+- **Semáforo (no mundo 3D):** a criança anda até a faixa (🚦), espera o boneco verde na calçada e atravessa. Pisar na rua no vermelho só gera a dica "espere o boneco verde". Um cartão pequeno embaixo mostra os passos.
+  - Ciclo puro e testado em `src/domain/city/traffic-light.ts` (o boneco só fica verde com os carros parados, com margem de segurança).
+  - `CrossingTracker` (`src/presentation/world/crosswalk.ts`, testado) transforma a posição em eventos da missão.
+  - Semáforo 3D novo: luzes dos carros viradas para a rua e sinal de pedestre (boneco vermelho parado / verde andando) virado para a calçada. As árvores ao lado da faixa saíram, para a criança ver o sinal.
+- Estrelas: a Cidade dá 4 (mercado, padaria, ônibus, semáforo) e a Natureza (3) abre. Teste novo em `content.test.ts`: todo mundo pode ser aberto com as estrelas dos anteriores (até o primeiro mundo ainda sem missões).
+- **Falta conteúdo:** a Natureza ainda não tem missões, então a Casa (6 estrelas) continua fechada.
 
-### Progressão sem travas
-
-- Estrelas na Cidade:
-  - Mercado: 1
-  - Padaria: 1
-  - Ônibus: 1
-  - Semáforo: 1
-  - Estações de aprendizado: 1 por nível
-- A Natureza abre com 3 estrelas, que dá para conseguir só na Cidade.
-- Novo teste em `tests/infrastructure/content.test.ts`: **todo mundo pode ser aberto com o conteúdo dos mundos anteriores**.
+## Sprint 4b: mercado melhor e fases de aprendizado
 
 ### Domínio
 
-- `Mission` ganha `kind`:
-  - `pick-items` (o mercado atual)
-  - `sequence` (pôr passos em ordem)
-  - `build-sentence` (CAA)
-  - `world-task` (agir no cenário 3D)
-- O motor continua o mesmo `MissionAttempt` (passo, alvo, dica progressiva); só a apresentação muda por tipo.
 - `src/domain/learning/`: geradores puros e com semente (usar `seededRandom` como referência) de desafios:
   - Primeira letra de uma palavra ("Com qual letra começa BOLA?")
   - Palavra ↔ figura
@@ -71,21 +65,13 @@ Problema principal: **só existe a missão do mercado (1 estrela) e a Natureza p
   - A criança anda até o item e toca nele (ou usa a ação), e o item voa para o carrinho.
   - No **caixa**, paga contando moedas.
   - Uma pessoa no caixa diz "Obrigado!".
-- **Padaria (CAA):** montar **[eu quero] + [pão]** com cartões. O jogo fala a frase e entrega o lanche.
-- **Ônibus (sequência):** esperar no ponto, o ônibus chegar, entrar e apertar o botão de parada.
-- **Semáforo:**
-  - Ir até a faixa (já existe em `city.ts`, `CROSSWALK_X`), esperar o verde e atravessar.
-  - Atravessar no vermelho só gera dica: "Vamos esperar o boneco verde".
-  - Extrair a máquina de estados do semáforo de `props.ts` para lógica pura e testada.
+- **Ônibus em 3D:** o ônibus estacionado vem até o ponto durante a missão e a criança entra nele.
 - **Estações de aprendizado pelo mundo:**
   - Blocos de letras 3D para pular ou tocar.
   - Placas palavra ↔ figura.
   - Caixotes para contar.
   - Moedas-letra escondidas pela ilha.
 - Cada estação dá moedas, figurinhas e uma estrela por nível. Recompensa: brilho, confete e o avatar fazendo um emote.
-- Lugares e handlers:
-  - Ligar a missão ao lugar em `missionPlaces` (`src/presentation/controllers/mission-controller.ts`).
-  - Hoje padaria e ônibus só dizem "em breve" (`use()` em `src/presentation/game-app.ts`).
 
 ## Sprint 5: mundo vivo
 

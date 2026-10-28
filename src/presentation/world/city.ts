@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { trafficPhase, type TrafficPhase } from '@domain/city/traffic-light';
 import { box, circle, type Collider } from '@presentation/world/collision';
 import type { Interactable } from '@presentation/world/interactable';
 import { lowPoly, solid } from '@presentation/world/materials';
@@ -11,6 +12,7 @@ import {
   trafficLight,
   type TrafficLight,
 } from '@presentation/world/props';
+import type { CrosswalkZone } from '@presentation/world/crosswalk';
 import { createPostSign, createSign } from '@presentation/world/sign';
 import {
   fitFootprint,
@@ -28,6 +30,7 @@ export const CityPlace = {
   market: 'market',
   bakery: 'bakery',
   busStop: 'bus-stop',
+  crosswalk: 'crosswalk',
 } as const;
 
 const ROAD_WIDTH = 7;
@@ -35,6 +38,14 @@ const SIDEWALK = 3;
 /** Buildings start this far from the middle of the main road. */
 const LOT_START = ROAD_WIDTH / 2 + SIDEWALK + 0.5;
 const CROSSWALK_X = 5.2;
+
+/** The painted crossing between the side street and the market. */
+export const CROSSWALK: CrosswalkZone = {
+  minX: CROSSWALK_X - 0.35,
+  maxX: CROSSWALK_X + 5 * 1.2 + 0.35,
+  roadHalfWidth: ROAD_WIDTH / 2,
+  curbDepth: SIDEWALK,
+};
 
 /** Where a building ended up: its front faces the main street. */
 interface Lot {
@@ -65,8 +76,12 @@ export class City {
     this.addStreetLife();
   }
 
+  /** The shared traffic light cycle right now. */
+  phase: TrafficPhase = trafficPhase(0);
+
   update(time: number): void {
-    for (const light of this.trafficLights) light.update(time);
+    this.phase = trafficPhase(time);
+    for (const light of this.trafficLights) light.update(this.phase);
     if (this.fountainWater !== undefined)
       this.fountainWater.position.y = 0.62 + Math.sin(time * 2) * 0.03;
   }
@@ -354,6 +369,17 @@ export class City {
       this.trafficLights.push(light);
       this.colliders.push(circle(x, z, 0.3));
     }
+    const crossingX = (CROSSWALK.minX + CROSSWALK.maxX) / 2;
+    const curbZ = ROAD_WIDTH / 2 + 1.4;
+    this.places.push({
+      id: CityPlace.crosswalk,
+      position: new THREE.Vector3(crossingX, CITY.height, curbZ),
+      markerPosition: new THREE.Vector3(crossingX, CITY.height + 3, curbZ),
+      radius: 2.6,
+      icon: '🚦',
+      label: 'Atravessar a rua',
+      name: 'Faixa de pedestres',
+    });
 
     const lampZ = ROAD_WIDTH / 2 + SIDEWALK - 0.4;
     for (const x of [-44, -30, -14, 4, 28, 44]) {
@@ -365,13 +391,12 @@ export class City {
     }
 
     const treeModels: readonly WorldModelId[] = ['tree-round', 'tree-twin', 'tree-tall'];
+    // None by the crosswalk: the child must see the walking figure across the street.
     const streetTrees: readonly (readonly [number, number])[] = [
       [-30, 9],
       [-14, 9],
-      [8, 9],
       [28, 9],
       [-28, -9],
-      [8, -9],
       [30, -9],
       [-6, -20],
       [6, -30],

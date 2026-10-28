@@ -480,6 +480,7 @@ export class GameApp implements GameContext {
 
     if (exploring) {
       this.updateExploration(player.position, input);
+      this.missions.update(player.position);
       const goal = this.goalPlace();
       this.minimap.draw(
         { x: player.position.x, z: player.position.z, facing: player.facing },
@@ -569,14 +570,7 @@ export class GameApp implements GameContext {
       await this.wardrobe.open();
       return;
     }
-    if (place.id === CityPlace.bakery) {
-      this.say('A padaria abre em breve! Lá você vai pedir um lanche.');
-      return;
-    }
-    if (place.id === CityPlace.busStop) {
-      this.say('O ônibus vai sair em breve. Essa missão está chegando!');
-      return;
-    }
+
     const portal = this.worldMap?.worlds.find((entry) => portalId(entry.world.id) === place.id);
     if (portal === undefined) return;
     if (!portal.unlocked) {

@@ -3,16 +3,31 @@ import { phrases } from '@application/use-cases/choose-mission-answer';
 import type { MissionAttempt } from '@domain/mission/mission-attempt';
 import type { GameContext } from '@presentation/game-context';
 import { MissionPanel } from '@presentation/ui/mission-panel';
-import { CityPlace } from '@presentation/world/city';
+import { CITY, CityPlace, CROSSWALK } from '@presentation/world/city';
+import { CrossingTracker, type CrossingEvent } from '@presentation/world/crosswalk';
 
 /** Where each mission happens in the open world. */
-export const missionPlaces: Readonly<Record<string, string>> = { 'city-market': CityPlace.market };
+export const missionPlaces: Readonly<Record<string, string>> = {
+  'city-market': CityPlace.market,
+  'city-bakery': CityPlace.bakery,
+  'city-bus': CityPlace.busStop,
+  'city-crosswalk': CityPlace.crosswalk,
+};
+
+/** What the crosswalk task reports, as the mission's choice ids. */
+const crossingChoices: Readonly<Record<CrossingEvent, string>> = {
+  waited: 'wait-green',
+  crossed: 'cross',
+  // Not a choice of the mission: counts as a gentle hint, never as a failure.
+  rushed: 'stepped-on-red',
+};
 
 /** Runs a mission: request → action → celebration, with gentle hints. */
 export class MissionController {
   readonly panel: MissionPanel;
   private attempt: MissionAttempt | undefined;
   private busy = false;
+  private crossing: CrossingTracker | undefined;
 
   constructor(private readonly ctx: GameContext) {
     this.panel = new MissionPanel({
@@ -35,19 +50,31 @@ export class MissionController {
       return;
     }
     this.attempt = result.value;
-    this.ctx.enterPanel('mission');
+    const { mission } = this.attempt;
 
+    if (mission.kind === 'world-task') {
+      // Played in the street: the world stays playable, the card shows the steps.
+      this.crossing = new CrossingTracker(CROSSWALK);
+      // Face the other sidewalk, where the walking figure can be seen.
+      this.ctx.rig.yaw = this.ctx.avatar.position.z - CITY.z >= 0 ? 0 : Math.PI;
+      this.panel.open(this.attempt);
+      this.ctx.dialog.say(`${mission.introduction} ${this.attempt.currentStep?.prompt ?? ''}`);
+      return;
+    }
+
+    this.ctx.enterPanel('mission');
     const place = this.ctx.world.places.find((p) => p.id === missionPlaces[missionId]);
     if (place !== undefined) {
       this.ctx.avatar.placeAt(place.position, 0);
       const { x, y, z } = place.position;
+      // Look at the building from the street, whichever side of it the place is.
+      const side = Math.sign(z - CITY.z) || 1;
       this.ctx.rig.setFocus(
-        new THREE.Vector3(x - 3, y + 3.4, z - 8),
-        new THREE.Vector3(x, y + 2.2, z + 3),
+        new THREE.Vector3(x - 3, y + 3.4, z - 8 * side),
+        new THREE.Vector3(x, y + 2.2, z + 3 * side),
       );
     }
     this.panel.open(this.attempt);
-    const { mission } = this.attempt;
     this.ctx.dialog.say(`${mission.introduction} ${this.attempt.currentStep?.prompt ?? ''}`);
   }
 
@@ -55,13 +82,31 @@ export class MissionController {
   async exit(): Promise<void> {
     const attempt = this.attempt;
     this.attempt = undefined;
+    this.crossing = undefined;
     this.panel.close();
     if (attempt !== undefined) await this.ctx.player.leaveMission.execute(attempt);
     this.ctx.backToExploring();
   }
 
+  /** Hides the mission without recording it (e.g. when the player changes). */
   close(): void {
+    this.attempt = undefined;
+    this.crossing = undefined;
     this.panel.close();
+  }
+
+  /** Every frame while exploring: follows tasks played in the 3D world. */
+  update(position: THREE.Vector3): void {
+    const attempt = this.attempt;
+    if (this.crossing === undefined || attempt === undefined || attempt.isCompleted) return;
+    const waiting = attempt.currentStep?.targetId === 'wait-green';
+    const event = this.crossing.update(
+      position.x - CITY.x,
+      position.z - CITY.z,
+      this.ctx.world.trafficPhase.walk,
+      waiting,
+    );
+    if (event !== undefined) void this.choose(crossingChoices[event]);
   }
 
   private async choose(choiceId: string): Promise<void> {
@@ -87,10 +132,20 @@ export class MissionController {
           break;
         case 'completed': {
           const reward = result.value.reward ?? { coins: 0, stars: 0 };
+          const { mission } = this.attempt;
+          if (mission.kind === 'world-task') {
+            this.crossing = undefined;
+            this.ctx.enterPanel('mission');
+          }
           this.ctx.sound(reward.stars > 0 ? 'star' : 'coin');
           this.panel.collect(choiceId);
           this.panel.celebrate(reward);
-          this.ctx.dialog.say(phrases.completed);
+          if (mission.kind === 'build-sentence') {
+            // The game says the child's request aloud, as an AAC device would.
+            this.ctx.say(`${this.panel.sentence(this.attempt)}. Aqui está! Muito bem!`);
+          } else {
+            this.ctx.dialog.say(phrases.completed);
+          }
           this.ctx.avatar.playEmote('Dance');
           await this.ctx.refresh();
           break;

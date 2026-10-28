@@ -32,6 +32,18 @@ describe('bundled content', () => {
     }
   });
 
+  it('lets every world be opened with the stars of the worlds before it', () => {
+    // Worlds after one that has no missions yet are still being built.
+    let stars = 0;
+    for (const world of worlds) {
+      expect(world.requiredStars, world.id).toBeLessThanOrEqual(stars);
+      if (world.missionIds.length === 0) break;
+      for (const id of world.missionIds) {
+        stars += missions.find((m) => m.id === id)?.reward.stars ?? 0;
+      }
+    }
+  });
+
   it('opens the first world from the start', () => {
     expect(worlds[0]?.requiredStars).toBe(0);
   });

@@ -17,8 +17,19 @@ export interface MissionStep {
   readonly prompt: string;
 }
 
+/**
+ * How the mission is shown. The rules are the same for all (one target per
+ * step, hints that get clearer); only the presentation changes.
+ * - pick-items: a shopping list and a shelf (the list shows what to pick).
+ * - build-sentence: AAC cards that form a sentence, e.g. [eu quero] + [pão].
+ * - sequence: put the steps of a routine in order.
+ * - world-task: act in the 3D world (the game reports each step as it happens).
+ */
+export type MissionKind = 'pick-items' | 'build-sentence' | 'sequence' | 'world-task';
+
 export interface Mission {
   readonly id: MissionId;
+  readonly kind: MissionKind;
   readonly worldId: WorldId;
   readonly title: string;
   readonly introduction: string;

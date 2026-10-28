@@ -118,7 +118,8 @@ As fronteiras são **garantidas pelo lint**: um `import` do domínio para a infr
 - [x] **v0.2, sprint 1:** perfis no mesmo aparelho, salvamento automático da sessão, menu, ajustes sensoriais e de som, mapa e minimapa, progresso, limite de tempo com aviso previsível, música e efeitos suaves
 - [x] **v0.2, sprint 2:** 9 personagens animados (crianças, animais e robô) para escolher no cadastro e no guarda-roupa, com chapéus e acessórios que se ajustam a cada um
 - [x] **v0.2, sprint 3:** mundo com modelos 3D CC0 (casas, lojas, carros, árvores, flores), placas 3D, personagem não entra no mar e jogo com controle (gamepad)
-- [ ] **v0.2, próximos sprints:** mercado 3D com caixa, padaria (CAA), ônibus, semáforo, estações de letras e números e mundo vivo (pessoas, carros, barcos, animais)
+- [x] **v0.2, sprint 4a:** padaria (frases com CAA: **[eu quero] + [pão]**), ônibus (passos em ordem) e semáforo (esperar o boneco verde e atravessar na faixa, no mundo 3D)
+- [ ] **v0.2, próximos sprints:** mercado 3D com caixa, estações de letras e números, álbum de figurinhas e mundo vivo (pessoas, carros, barcos, animais)
 - [ ] **Fase 2:** missões do ônibus, do semáforo e da padaria (frases com CAA: **[eu quero] + [pão]**), painel de ajustes sensoriais, álbum de figurinhas, pictogramas ARASAAC, PWA offline
 - [ ] **Fase 3:** mundos Natureza, Casa (rotinas) e Emoções
 - [ ] **Fase 4:** painel para pais e terapeutas, fotos e figuras personalizadas, traduções

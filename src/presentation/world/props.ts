@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { TrafficPhase } from '@domain/city/traffic-light';
 import { lowPoly, solid } from '@presentation/world/materials';
 
 /**
@@ -167,42 +168,121 @@ export function fountain(): { group: THREE.Group; water: THREE.Mesh } {
 
 export interface TrafficLight {
   readonly group: THREE.Group;
-  update(time: number): void;
+  update(phase: TrafficPhase): void;
 }
 
-/** Cycles calmly: long green, short yellow, long red. */
+/** A walking or standing figure lit in its color (the pedestrian signal). */
+function figureTexture(emoji: string, color: string): THREE.CanvasTexture {
+  const size = 128;
+  const figure = document.createElement('canvas');
+  figure.width = size;
+  figure.height = size;
+  const ink = figure.getContext('2d');
+  if (ink !== null) {
+    ink.font = '100px system-ui, sans-serif';
+    ink.textAlign = 'center';
+    ink.textBaseline = 'middle';
+    ink.fillText(emoji, size / 2, size * 0.55);
+    // Emoji keep their own colors: paint the figure's shape in the signal color.
+    ink.globalCompositeOperation = 'source-in';
+    ink.fillStyle = color;
+    ink.fillRect(0, 0, size, size);
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext('2d');
+  if (context !== null) {
+    context.fillStyle = '#141824';
+    context.fillRect(0, 0, size, size);
+    context.drawImage(figure, 0, 0);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+/**
+ * Car lights face the drivers (local +x); the pedestrian signal, with the
+ * standing red figure and the walking green figure, faces the sidewalk across
+ * the street (local +z), so the child sees the figure, not the car lights.
+ */
 export function trafficLight(): TrafficLight {
   const group = new THREE.Group();
+  const dark = lowPoly(0x2d3142);
   group.add(solid(new THREE.CylinderGeometry(0.2, 0.26, 0.3, 12), metal(), [0, 0.15, 0]));
-  group.add(solid(new THREE.CylinderGeometry(0.08, 0.1, 3.4, 10), metal(), [0, 1.8, 0]));
-  group.add(solid(roundedBox(0.72, 1.95, 0.5, 0.16), lowPoly(0x2d3142), [0, 3.25, 0]));
+  group.add(solid(new THREE.CylinderGeometry(0.08, 0.1, 5.2, 10), metal(), [0, 2.7, 0]));
 
+  const carHead = new THREE.Group();
+  carHead.position.set(0, 3.8, 0);
+  carHead.rotation.y = Math.PI / 2;
+  carHead.add(solid(roundedBox(0.72, 1.95, 0.5, 0.16), dark, [0, 0, 0]));
   const colors = [0xff4d4d, 0xffc83d, 0x4cd964];
   const visor = new THREE.CylinderGeometry(0.27, 0.27, 0.22, 14, 1, true, -Math.PI / 2, Math.PI);
   visor.rotateX(Math.PI / 2);
-  const lamps = colors.map((color, index) => {
+  const carLamps = colors.map((color, index) => {
     const material = new THREE.MeshStandardMaterial({
       color,
       roughness: 0.3,
       emissive: color,
       emissiveIntensity: 0,
     });
-    const y = 4.8 - index * 0.6;
+    const y = 1.55 - index * 0.6;
     const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.21, 14, 10), material);
     lamp.position.set(0, y, 0.22);
-    group.add(lamp);
-    group.add(solid(visor, lowPoly(0x2d3142), [0, y + 0.02, 0.33]));
+    carHead.add(lamp);
+    carHead.add(solid(visor, dark, [0, y + 0.02, 0.33]));
     return material;
   });
+  group.add(carHead);
+
+  const walkHead = new THREE.Group();
+  walkHead.position.set(0, 1.7, 0.12);
+  walkHead.add(solid(roundedBox(0.95, 1.9, 0.36, 0.14), dark, [0, 0, 0]));
+  const panel = new THREE.PlaneGeometry(0.75, 0.75);
+  const figures = (
+    [
+      ['🧍', '#ff4d4d', 1.4],
+      ['🚶', '#4cd964', 0.5],
+    ] as const
+  ).map(([emoji, color, y]) => {
+    const texture = figureTexture(emoji, color);
+    const material = new THREE.MeshStandardMaterial({
+      map: texture,
+      emissive: 0xffffff,
+      emissiveMap: texture,
+      emissiveIntensity: 0,
+      roughness: 0.4,
+    });
+    const mesh = new THREE.Mesh(panel, material);
+    mesh.position.set(0, y, 0.19);
+    walkHead.add(mesh);
+    return material;
+  });
+  group.add(walkHead);
+
+  const active: { cars: TrafficPhase['cars']; walk: boolean } = { cars: 'green', walk: false };
+  const order: readonly TrafficPhase['cars'][] = ['red', 'yellow', 'green'];
+  const paint = () => {
+    carLamps.forEach((material, index) => {
+      material.emissiveIntensity = order[index] === active.cars ? 1.4 : 0.02;
+    });
+    figures.forEach((material, index) => {
+      const lit = (index === 1) === active.walk;
+      material.emissiveIntensity = lit ? 1.3 : 0;
+      // Unlit, the figure is only a faint shape.
+      material.color.setHex(lit ? 0xffffff : 0x2a2a2a);
+    });
+  };
+  paint();
 
   return {
     group,
-    update(time: number) {
-      const phase = time % 14;
-      const active = phase < 6 ? 2 : phase < 8 ? 1 : 0;
-      lamps.forEach((material, index) => {
-        material.emissiveIntensity = index === active ? 1.4 : 0.02;
-      });
+    update(phase: TrafficPhase) {
+      if (phase.cars === active.cars && phase.walk === active.walk) return;
+      active.cars = phase.cars;
+      active.walk = phase.walk;
+      paint();
     },
   };
 }
