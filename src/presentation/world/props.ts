@@ -286,3 +286,85 @@ export function trafficLight(): TrafficLight {
     },
   };
 }
+
+/** The town square's bandstand (coreto): a round stage under a pointed roof. */
+export function gazebo(): THREE.Group {
+  const group = new THREE.Group();
+  const white = lowPoly(0xfdf7ee);
+  const roof = lowPoly(0xe8604c, { roughness: 0.6 });
+  group.add(solid(new THREE.CylinderGeometry(3.3, 3.5, 0.5, 8), lowPoly(0xe3ddd0), [0, 0.25, 0]));
+  group.add(solid(new THREE.CylinderGeometry(3.1, 3.1, 0.12, 8), lowPoly(0xc98a4b), [0, 0.56, 0]));
+  for (let i = 0; i < 8; i += 1) {
+    const angle = (i / 8) * Math.PI * 2 + Math.PI / 8;
+    const x = Math.cos(angle) * 2.85;
+    const z = Math.sin(angle) * 2.85;
+    group.add(solid(new THREE.CylinderGeometry(0.11, 0.13, 2.7, 10), white, [x, 1.95, z]));
+    // Low railing between posts, open toward the front (two gaps for the steps).
+    if (i === 1 || i === 2) continue;
+    const next = angle + Math.PI / 4;
+    const rail = solid(new THREE.BoxGeometry(2.15, 0.1, 0.1), white, [
+      (x + Math.cos(next) * 2.85) / 2,
+      1.15,
+      (z + Math.sin(next) * 2.85) / 2,
+    ]);
+    rail.rotation.y = -(angle + Math.PI / 8) + Math.PI / 2;
+    group.add(rail);
+  }
+  group.add(solid(new THREE.ConeGeometry(3.7, 1.9, 8), roof, [0, 4.25, 0]));
+  group.add(solid(new THREE.CylinderGeometry(3.65, 3.65, 0.18, 8), white, [0, 3.3, 0]));
+  group.add(
+    solid(
+      new THREE.SphereGeometry(0.28, 12, 8),
+      lowPoly(0xffd23f, { emissive: 0xffb300, emissiveIntensity: 0.3 }),
+      [0, 5.35, 0],
+    ),
+  );
+  return group;
+}
+
+/** A playground slide: ladder at the back (local -z), slope toward local +z. */
+export function slide(): THREE.Group {
+  const group = new THREE.Group();
+  const frame = lowPoly(0x3fa9f5);
+  const chute = lowPoly(0xffc93c, { roughness: 0.4 });
+  for (const x of [-0.55, 0.55]) {
+    group.add(solid(new THREE.CylinderGeometry(0.07, 0.07, 2.2, 8), frame, [x, 1.1, -1.4]));
+    group.add(solid(new THREE.CylinderGeometry(0.07, 0.07, 2.2, 8), frame, [x, 1.1, -0.4]));
+  }
+  for (let i = 1; i <= 4; i += 1) {
+    const rung = solid(new THREE.CylinderGeometry(0.05, 0.05, 1.1, 8), frame, [0, i * 0.42, -1.45]);
+    rung.rotation.z = Math.PI / 2;
+    group.add(rung);
+  }
+  group.add(solid(roundedBox(1.3, 0.12, 1.1, 0.06), frame, [0, 2.0, -0.9]));
+  const slope = solid(roundedBox(1.0, 0.1, 3.3, 0.05), chute, [0, 0, 0]);
+  slope.position.set(0, 1.05, 0.9);
+  slope.rotation.x = 0.62;
+  group.add(slope);
+  return group;
+}
+
+/** Two swings on an A-frame, along local x. */
+export function swings(): THREE.Group {
+  const group = new THREE.Group();
+  const frame = lowPoly(0xff7a6b);
+  for (const x of [-1.8, 1.8]) {
+    for (const z of [-0.7, 0.7]) {
+      const leg = solid(new THREE.CylinderGeometry(0.08, 0.09, 2.9, 8), frame, [x, 1.35, z * 0.5]);
+      leg.rotation.x = z > 0 ? -0.25 : 0.25;
+      group.add(leg);
+    }
+  }
+  const bar = solid(new THREE.CylinderGeometry(0.08, 0.08, 3.8, 8), frame, [0, 2.75, 0]);
+  bar.rotation.z = Math.PI / 2;
+  group.add(bar);
+  for (const x of [-0.8, 0.8]) {
+    for (const dx of [-0.25, 0.25]) {
+      group.add(
+        solid(new THREE.CylinderGeometry(0.02, 0.02, 2, 6), lowPoly(0x3d4a5c), [x + dx, 1.75, 0]),
+      );
+    }
+    group.add(solid(roundedBox(0.7, 0.08, 0.35, 0.04), lowPoly(0x3fae5a), [x, 0.7, 0]));
+  }
+  return group;
+}

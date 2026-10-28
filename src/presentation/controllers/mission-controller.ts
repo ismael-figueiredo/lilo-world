@@ -139,7 +139,7 @@ export class MissionController {
           }
           this.ctx.sound(reward.stars > 0 ? 'star' : 'coin');
           this.panel.collect(choiceId);
-          this.panel.celebrate(reward);
+          this.panel.celebrate(reward, mission.result);
           if (mission.kind === 'build-sentence') {
             // The game says the child's request aloud, as an AAC device would.
             this.ctx.say(`${this.panel.sentence(this.attempt)}. Aqui está! Muito bem!`);

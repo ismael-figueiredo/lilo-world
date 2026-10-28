@@ -1,6 +1,6 @@
 import type { AvatarDefinition } from '@domain/avatar/avatar';
 import type { WardrobeItem } from '@domain/avatar/wardrobe-item';
-import type { Mission } from '@domain/mission/mission';
+import type { Mission, MissionVariant } from '@domain/mission/mission';
 import type { World } from '@domain/world/world';
 
 /**
@@ -21,6 +21,75 @@ export const worlds: readonly World[] = [
   { id: 'emotions', name: 'Emoções', requiredStars: 12, missionIds: [], color: 0xf07a9a },
 ];
 
+/** Things on the market shelves, with how the mascot names them ("a maçã"). */
+const groceries = {
+  apple: ['maçã', '🍎', 'a maçã'],
+  banana: ['banana', '🍌', 'a banana'],
+  milk: ['leite', '🥛', 'o leite'],
+  bread: ['pão', '🍞', 'o pão'],
+  carrot: ['cenoura', '🥕', 'a cenoura'],
+  cheese: ['queijo', '🧀', 'o queijo'],
+  eggs: ['ovos', '🥚', 'os ovos'],
+  flour: ['farinha', '🌾', 'a farinha'],
+  lettuce: ['alface', '🥬', 'a alface'],
+  tomato: ['tomate', '🍅', 'o tomate'],
+  potato: ['batata', '🥔', 'a batata'],
+  onion: ['cebola', '🧅', 'a cebola'],
+  strawberry: ['morango', '🍓', 'o morango'],
+  chocolate: ['chocolate', '🍫', 'o chocolate'],
+  rice: ['arroz', '🍚', 'o arroz'],
+  beans: ['feijão', '🫘', 'o feijão'],
+  orange: ['laranja', '🍊', 'a laranja'],
+  corn: ['milho', '🌽', 'o milho'],
+  butter: ['manteiga', '🧈', 'a manteiga'],
+} as const;
+
+type Grocery = keyof typeof groceries;
+
+/** Coins at the cashier: each thing costs one coin. */
+const MAX_PAY = 6;
+
+/** A shopping trip for a recipe: pick each ingredient, then pay one coin per item. */
+function recipe(
+  id: string,
+  dish: string,
+  result: string,
+  items: readonly Grocery[],
+): MissionVariant {
+  const count = items.length;
+  return {
+    id,
+    title: `Compras para ${dish}`,
+    introduction: `Vamos fazer ${dish}! Olhe a lista.`,
+    steps: [
+      ...items.map((item, index) => ({
+        targetId: item,
+        prompt: `${index === 0 ? 'Pegue' : 'Agora, pegue'} ${groceries[item][2]}.`,
+      })),
+      {
+        targetId: `pay-${count}`,
+        prompt: `Vamos ao caixa. São ${count} coisas: pague ${count} moedas.`,
+      },
+    ],
+    farewell: `Obrigado! Bom apetite!`,
+    result,
+  };
+}
+
+/** Something to ask for at the bakery, always with "por favor". */
+function snack(id: string, item: string, name: string, result: string): MissionVariant {
+  return {
+    id,
+    introduction: `Vamos pedir ${name}! Monte a frase.`,
+    steps: [
+      { targetId: 'i-want', prompt: 'Toque em: eu quero.' },
+      { targetId: item, prompt: `Agora, toque em ${name}.` },
+      { targetId: 'please', prompt: 'E para terminar, com educação: por favor.' },
+    ],
+    result,
+  };
+}
+
 export const missions: readonly Mission[] = [
   {
     id: 'city-market',
@@ -29,16 +98,14 @@ export const missions: readonly Mission[] = [
     title: 'Compras no mercado',
     introduction: 'Vamos ao mercado! Olhe a lista.',
     choices: [
-      { id: 'apple', label: 'maçã', pictogram: '🍎' },
-      { id: 'banana', label: 'banana', pictogram: '🍌' },
-      { id: 'milk', label: 'leite', pictogram: '🥛' },
-      { id: 'bread', label: 'pão', pictogram: '🍞' },
-      { id: 'carrot', label: 'cenoura', pictogram: '🥕' },
-      { id: 'cheese', label: 'queijo', pictogram: '🧀' },
+      ...Object.entries(groceries).map(([id, [label, pictogram]]) => ({ id, label, pictogram })),
       // At the cashier: count the coins to pay.
-      { id: 'pay-2', label: '2 moedas', pictogram: '🪙🪙', group: 'cashier' },
-      { id: 'pay-3', label: '3 moedas', pictogram: '🪙🪙🪙', group: 'cashier' },
-      { id: 'pay-4', label: '4 moedas', pictogram: '🪙🪙🪙🪙', group: 'cashier' },
+      ...Array.from({ length: MAX_PAY }, (_, index) => ({
+        id: `pay-${index + 1}`,
+        label: index === 0 ? '1 moeda' : `${index + 1} moedas`,
+        pictogram: '🪙'.repeat(index + 1),
+        group: 'cashier',
+      })),
     ],
     steps: [
       { targetId: 'apple', prompt: 'Pegue a maçã.' },
@@ -46,6 +113,18 @@ export const missions: readonly Mission[] = [
       { targetId: 'bread', prompt: 'Agora, pegue o pão.' },
       { targetId: 'pay-3', prompt: 'Vamos ao caixa. São 3 coisas: pague 3 moedas.' },
     ],
+    variants: [
+      recipe('cake', 'um bolo', '🎂', ['eggs', 'milk', 'flour', 'chocolate']),
+      recipe('salad', 'uma salada', '🥗', ['lettuce', 'tomato', 'carrot']),
+      recipe('sandwich', 'um sanduíche', '🥪', ['bread', 'cheese', 'tomato']),
+      recipe('soup', 'uma sopa', '🍲', ['carrot', 'potato', 'onion']),
+      recipe('smoothie', 'uma vitamina', '🥤', ['banana', 'milk', 'strawberry']),
+      recipe('juice', 'um suco', '🧃', ['orange', 'apple']),
+      recipe('lunch', 'arroz com feijão', '🍛', ['rice', 'beans', 'onion']),
+      recipe('breakfast', 'o café da manhã', '☕', ['bread', 'butter', 'milk']),
+      recipe('popcorn', 'pipoca', '🍿', ['corn', 'butter']),
+    ],
+    distractors: 3,
     reward: { coins: 10, stars: 1 },
     farewell: 'Obrigado! Volte sempre!',
   },
@@ -61,12 +140,23 @@ export const missions: readonly Mission[] = [
       { id: 'bread', label: 'pão', pictogram: '🍞' },
       { id: 'cake', label: 'bolo', pictogram: '🍰' },
       { id: 'juice', label: 'suco', pictogram: '🧃' },
+      { id: 'cheese-bread', label: 'pão de queijo', pictogram: '🧀' },
+      { id: 'milk', label: 'leite', pictogram: '🥛' },
+      { id: 'please', label: 'por favor', pictogram: '🙏' },
     ],
     steps: [
       { targetId: 'i-want', prompt: 'Toque em: eu quero.' },
       { targetId: 'bread', prompt: 'Agora, toque no pão.' },
     ],
+    variants: [
+      snack('bread', 'bread', 'pão', '🍞'),
+      snack('cake', 'cake', 'bolo', '🍰'),
+      snack('juice', 'juice', 'suco', '🧃'),
+      snack('cheese-bread', 'cheese-bread', 'pão de queijo', '🧀'),
+    ],
+    distractors: 2,
     reward: { coins: 10, stars: 1 },
+    farewell: 'Aqui está! Obrigado!',
   },
   {
     id: 'city-bus',
@@ -77,6 +167,7 @@ export const missions: readonly Mission[] = [
     choices: [
       { id: 'wait', label: 'esperar no ponto', pictogram: '🧍' },
       { id: 'board', label: 'entrar no ônibus', pictogram: '🚌' },
+      { id: 'card', label: 'passar o cartão', pictogram: '💳' },
       { id: 'sit', label: 'sentar', pictogram: '💺' },
       { id: 'stop-button', label: 'apertar o botão', pictogram: '🔔' },
     ],
@@ -86,6 +177,30 @@ export const missions: readonly Mission[] = [
       { targetId: 'sit', prompt: 'Entramos. E depois?' },
       { targetId: 'stop-button', prompt: 'Chegando. O que fazemos?' },
     ],
+    variants: [
+      {
+        id: 'short',
+        introduction: 'Vamos pegar o ônibus! O que vem primeiro?',
+        steps: [
+          { targetId: 'wait', prompt: 'O que vem primeiro?' },
+          { targetId: 'board', prompt: 'O ônibus chegou. Agora?' },
+          { targetId: 'sit', prompt: 'Entramos. E depois?' },
+          { targetId: 'stop-button', prompt: 'Chegando. O que fazemos?' },
+        ],
+      },
+      {
+        id: 'with-card',
+        introduction: 'Vamos de ônibus, com o cartão! O que vem primeiro?',
+        steps: [
+          { targetId: 'wait', prompt: 'O que vem primeiro?' },
+          { targetId: 'board', prompt: 'O ônibus chegou. Agora?' },
+          { targetId: 'card', prompt: 'Entramos. O que fazemos com o cartão?' },
+          { targetId: 'sit', prompt: 'Pronto! E agora?' },
+          { targetId: 'stop-button', prompt: 'Chegando. O que fazemos?' },
+        ],
+      },
+    ],
+    distractors: 0,
     reward: { coins: 10, stars: 1 },
   },
   {

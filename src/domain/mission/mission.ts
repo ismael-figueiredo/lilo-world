@@ -32,6 +32,17 @@ export interface MissionStep {
  */
 export type MissionKind = 'pick-items' | 'build-sentence' | 'sequence' | 'world-task';
 
+/** One version of a mission (a recipe to shop for, a snack to ask for). */
+export interface MissionVariant {
+  readonly id: string;
+  readonly title?: string;
+  readonly introduction: string;
+  readonly steps: readonly MissionStep[];
+  readonly farewell?: string;
+  /** Picture of what was made or bought, shown in the celebration (e.g. 🎂). */
+  readonly result?: string;
+}
+
 export interface Mission {
   readonly id: MissionId;
   readonly kind: MissionKind;
@@ -43,4 +54,12 @@ export interface Mission {
   readonly reward: Reward;
   /** Said by someone in the scene when the mission ends (e.g. the cashier's "Obrigado!"). */
   readonly farewell?: string;
+  readonly result?: string;
+  /** Each play picks one of these, so the mission is not always the same. */
+  readonly variants?: readonly MissionVariant[];
+  /**
+   * How many other cards join the right ones on the main shelf, picked at
+   * random each play. Without it, every choice is shown.
+   */
+  readonly distractors?: number;
 }

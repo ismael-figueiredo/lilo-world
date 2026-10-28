@@ -54,7 +54,7 @@ O plano completo do projeto está em [docs/plano-jogo-autismo.md](docs/plano-jog
 
 **Menu ☰:** mapa (toque num lugar e a seta mostra o caminho), meu progresso, ajustes (volumes, voz, cores suaves, reduzir movimento, câmera, minimapa, limite de tempo por sessão) e trocar jogador.
 
-**Primeira missão:** siga a seta até o 🍎 **Mercado**, entre e pegue os itens da lista de figuras. Com as moedas, vá até **🏠 Minha casa** e escolha cores, chapéus e acessórios no guarda-roupa. Nas **estações de Letras, Números e Moedas** (🔤 🔢 🪙) ela pratica no próprio ritmo: três acertos seguidos sobem o nível e cada nível novo dá uma figurinha para o álbum. As estrelas abrem os portais para novos mundos.
+**Primeira missão:** siga a seta até o 🍎 **Mercado**, entre e pegue os ingredientes da receita do dia (cada vez é uma: bolo, salada, sopa…) e pague no caixa contando moedas. Com as moedas, vá até **🏠 Minha casa** e escolha cores, chapéus e acessórios no guarda-roupa. Nas **estações de Letras, Números e Moedas** (🔤 🔢 🪙) ela pratica no próprio ritmo: três acertos seguidos sobem o nível e cada nível novo dá uma figurinha para o álbum. As estrelas abrem os portais para novos mundos.
 
 ## Rodar localmente
 
@@ -120,6 +120,7 @@ As fronteiras são **garantidas pelo lint**: um `import` do domínio para a infr
 - [x] **v0.2, sprint 3:** mundo com modelos 3D CC0 (casas, lojas, carros, árvores, flores), placas 3D, personagem não entra no mar e jogo com controle (gamepad)
 - [x] **v0.2, sprint 4a:** padaria (frases com CAA: **[eu quero] + [pão]**), ônibus (passos em ordem) e semáforo (esperar o boneco verde e atravessar na faixa, no mundo 3D)
 - [x] **v0.2, sprint 4b:** estações de Letras, Números e Moedas com dificuldade adaptativa, álbum de figurinhas, alfabeto colecionável e caixa do mercado (pagar contando moedas)
+- [x] **v0.2, sprint 4c:** missões que mudam a cada vez (9 receitas no mercado, lanches na padaria), bairro novo com avenida, praça com coreto e parquinho
 - [ ] **v0.2, próximos sprints:** mercado 3D por dentro, ônibus em 3D, missões da Natureza e mundo vivo (pessoas, carros, barcos, animais)
 - [ ] **Fase 2:** missões do ônibus, do semáforo e da padaria (frases com CAA: **[eu quero] + [pão]**), painel de ajustes sensoriais, álbum de figurinhas, pictogramas ARASAAC, PWA offline
 - [ ] **Fase 3:** mundos Natureza, Casa (rotinas) e Emoções

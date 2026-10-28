@@ -8,10 +8,14 @@ import {
   bus,
   busStop,
   fountain,
+  gazebo,
+  slide,
   streetLamp,
+  swings,
   trafficLight,
   type TrafficLight,
 } from '@presentation/world/props';
+import { planStreets, type Road } from '@presentation/world/street-plan';
 import type { CrosswalkZone } from '@presentation/world/crosswalk';
 import { createPostSign, createSign } from '@presentation/world/sign';
 import { LearningStations } from '@presentation/world/stations';
@@ -24,6 +28,9 @@ import {
 } from '@presentation/world/world-assets';
 
 export const CITY = { x: 0, z: 0, radius: 50, height: 1.5 } as const;
+
+/** The newer neighborhood south of the main street: an avenue, houses, the square. */
+export const SOUTH_DISTRICT = { x: 0, z: 48, radius: 32 } as const;
 
 /** Ids of the places in town; the game decides what each one does. */
 export const CityPlace = {
@@ -39,6 +46,24 @@ const SIDEWALK = 3;
 /** Buildings start this far from the middle of the main road. */
 const LOT_START = ROAD_WIDTH / 2 + SIDEWALK + 0.5;
 const CROSSWALK_X = 5.2;
+
+/** Streets running down from the main street to the avenue (x of their middle). */
+const WEST_STREET_X = -31.5;
+const EAST_STREET_X = 28.5;
+const AVENUE_Z = 36;
+const AVENUE = { width: 6, sidewalk: 2 } as const;
+/** Front line of the houses on the avenue's south side. */
+const AVENUE_LOT_START = AVENUE_Z + AVENUE.width / 2 + AVENUE.sidewalk + 0.5;
+/** The town square, between the main street's lots and the avenue. */
+export const SQUARE = { x: 2, z: 24, radius: 6.8 } as const;
+
+const ROADS: readonly Road[] = [
+  { axis: 'x', at: 0, from: -CITY.radius, to: CITY.radius, width: ROAD_WIDTH, sidewalk: SIDEWALK },
+  { axis: 'z', at: 0, from: -CITY.radius, to: 0, width: ROAD_WIDTH, sidewalk: SIDEWALK },
+  { axis: 'x', at: AVENUE_Z, from: -36, to: 36, ...AVENUE },
+  { axis: 'z', at: WEST_STREET_X, from: 0, to: AVENUE_Z, width: 5, sidewalk: 1.5 },
+  { axis: 'z', at: EAST_STREET_X, from: 0, to: AVENUE_Z, width: 5, sidewalk: 1.5 },
+];
 
 /** The painted crossing between the side street and the market. */
 export const CROSSWALK: CrosswalkZone = {
@@ -60,8 +85,9 @@ interface Lot {
 const HOUSE_MODELS: readonly WorldModelId[] = ['house-gable', 'house-porch'];
 
 /**
- * A small, calm town: one main street, a side street to the portal hill, the
- * player's home, the market, the bakery and the bus stop.
+ * A small, calm town: the main street, a side street to the portal hill, the
+ * player's home, the market, the bakery and the bus stop, and to the south an
+ * avenue with more houses, the town square and a playground.
  */
 export class City {
   readonly group = new THREE.Group();
@@ -76,6 +102,7 @@ export class City {
     this.addStreets();
     this.addBuildings();
     this.addStreetLife();
+    this.addSouthDistrict();
     this.group.add(this.stations.group);
     this.colliders.push(...this.stations.colliders);
     this.places.push(...this.stations.places);
@@ -103,39 +130,37 @@ export class City {
     const asphalt = lowPoly(0x5d6475);
     const sidewalk = lowPoly(0xe3ddd0);
     const paint = lowPoly(0xffffff);
-    const length = CITY.radius * 2;
-
-    this.group.add(solid(new THREE.BoxGeometry(length, 0.08, ROAD_WIDTH), asphalt, [0, 0.04, 0]));
-    this.group.add(
-      solid(new THREE.BoxGeometry(ROAD_WIDTH, 0.08, CITY.radius), asphalt, [
-        0,
-        0.04,
-        -CITY.radius / 2,
-      ]),
-    );
-
-    for (const side of [-1, 1]) {
-      const z = side * (ROAD_WIDTH / 2 + SIDEWALK / 2);
-      this.group.add(solid(new THREE.BoxGeometry(length, 0.16, SIDEWALK), sidewalk, [0, 0.08, z]));
-    }
-    for (const side of [-1, 1]) {
-      const x = side * (ROAD_WIDTH / 2 + SIDEWALK / 2);
-      const sideLength = CITY.radius - ROAD_WIDTH / 2 - SIDEWALK;
+    const crosswalk = {
+      x: (CROSSWALK.minX + CROSSWALK.maxX) / 2,
+      z: 0,
+      width: CROSSWALK.maxX - CROSSWALK.minX + 1,
+      depth: ROAD_WIDTH,
+    };
+    const plan = planStreets(ROADS, [crosswalk]);
+    for (const piece of plan.asphalt) {
+      // Side streets sit a hair higher, so touching ends never flicker.
+      const lift = piece.road * 0.002;
       this.group.add(
-        solid(new THREE.BoxGeometry(SIDEWALK, 0.16, sideLength), sidewalk, [
-          x,
-          0.08,
-          -ROAD_WIDTH / 2 - SIDEWALK - sideLength / 2,
+        solid(new THREE.BoxGeometry(piece.width, 0.08, piece.depth), asphalt, [
+          piece.x,
+          0.04 + lift,
+          piece.z,
         ]),
       );
     }
-
-    for (let x = -length / 2 + 2; x < length / 2; x += 4) {
-      if (Math.abs(x) < ROAD_WIDTH) continue;
-      this.group.add(solid(new THREE.BoxGeometry(1.8, 0.1, 0.25), paint, [x, 0.06, 0]));
+    for (const piece of plan.sidewalks) {
+      this.group.add(
+        solid(new THREE.BoxGeometry(piece.width, 0.16, piece.depth), sidewalk, [
+          piece.x,
+          0.08,
+          piece.z,
+        ]),
+      );
     }
-    for (let z = -ROAD_WIDTH; z > -CITY.radius; z -= 4) {
-      this.group.add(solid(new THREE.BoxGeometry(0.25, 0.1, 1.8), paint, [0, 0.06, z]));
+    for (const dash of plan.dashes) {
+      this.group.add(
+        solid(new THREE.BoxGeometry(dash.width, 0.1, dash.depth), paint, [dash.x, 0.06, dash.z]),
+      );
     }
     // Crosswalk between the side street and the market.
     for (let i = 0; i < 6; i += 1) {
@@ -166,9 +191,15 @@ export class City {
    * Puts a building (facing local +z) on its lot with the front `setback`
    * meters behind the sidewalk, and blocks it for walking and the camera.
    */
-  private addBuilding(object: THREE.Object3D, x: number, south: boolean, setback = 0): Lot {
+  private addBuilding(
+    object: THREE.Object3D,
+    x: number,
+    south: boolean,
+    setback = 0,
+    frontLine = LOT_START,
+  ): Lot {
     const bounds = new THREE.Box3().setFromObject(object);
-    const frontDistance = LOT_START + setback;
+    const frontDistance = frontLine + setback;
     const offsetX = (bounds.min.x + bounds.max.x) / 2;
     const centerZ = (bounds.min.z + bounds.max.z) / 2;
     // South-side buildings are turned around to face the street (local x and z flip).
@@ -294,7 +325,7 @@ export class City {
     );
 
     const homes: readonly [number, boolean, number, number][] = [
-      [-38, true, 0x9fd0ff, 0x4d6fd6],
+      [-42, true, 0x9fd0ff, 0x4d6fd6],
       [2, true, 0xffb8cf, 0x9b6bf2],
       [36, true, 0xffe27a, 0x3fae5a],
       [-36, false, 0xb6ec9c, 0xe8904c],
@@ -341,8 +372,8 @@ export class City {
 
     // Cars parked by the curb, along the street.
     const parked: readonly [WorldModelId, number, number, number][] = [
-      ['car', -33, 2.3, 1],
-      ['taxi', 29, 2.3, 1],
+      ['car', -40, 2.3, 1],
+      ['taxi', 41, 2.3, 1],
       ['suv', -31, -2.3, -1],
       ['car', 33, -2.3, -1],
     ];
@@ -384,11 +415,11 @@ export class City {
       radius: 2.6,
       icon: '🚦',
       label: 'Atravessar a rua',
-      name: 'Faixa de pedestres',
+      name: 'Faixa',
     });
 
     const lampZ = ROAD_WIDTH / 2 + SIDEWALK - 0.4;
-    for (const x of [-44, -30, -14, 4, 28, 44]) {
+    for (const x of [-44, -24, -14, 4, 22, 44]) {
       for (const side of [-1, 1]) {
         if (side === -1 && Math.abs(x + 12) < 4) continue;
         this.place(streetLamp(), x, side * lampZ);
@@ -399,7 +430,6 @@ export class City {
     const treeModels: readonly WorldModelId[] = ['tree-round', 'tree-twin', 'tree-tall'];
     // None by the crosswalk: the child must see the walking figure across the street.
     const streetTrees: readonly (readonly [number, number])[] = [
-      [-30, 9],
       [-14, 9],
       [30, -9],
       [-6, -20],
@@ -414,8 +444,116 @@ export class City {
       this.colliders.push(circle(x, z, 0.45));
     });
   }
+
+  /** The avenue's houses, the town square with its bandstand, and a playground. */
+  private addSouthDistrict(): void {
+    const homes: readonly [number, number, number][] = [
+      [-26, 0xffd6a5, 0x2e86de],
+      [-13, 0xc8f2c2, 0xe8604c],
+      [0, 0xffc8dd, 0x3fae5a],
+      [13, 0xbde0fe, 0xf08c00],
+      [26, 0xfff1a8, 0x9b6bf2],
+    ];
+    homes.forEach(([x, wall, roof], index) => {
+      const model = HOUSE_MODELS[(index + 1) % HOUSE_MODELS.length] ?? 'house-gable';
+      const lot = this.addBuilding(
+        this.house(model, wall, roof, 8, 7),
+        x,
+        true,
+        0,
+        AVENUE_LOT_START,
+      );
+      const flowers = this.assets.clone(index % 2 === 0 ? 'bush-flowers' : 'flower-group');
+      fitHeight(flowers, 0.9);
+      this.place(flowers, x + 3, lot.front - 0.5);
+    });
+
+    // Lamps and trees on the avenue, between the houses.
+    const walkZ = AVENUE_Z + AVENUE.width / 2 + AVENUE.sidewalk / 2;
+    for (const x of [-32.5, -19.5, -6.5, 6.5, 19.5, 32.5]) {
+      this.place(streetLamp(), x, walkZ);
+      this.colliders.push(circle(x, walkZ, 0.25));
+    }
+    const avenueTrees: readonly (readonly [number, number])[] = [
+      [-19.5, AVENUE_Z - 4.2],
+      [19.5, AVENUE_Z - 4.2],
+      [-23, 21],
+      [-14, 28],
+      [20, 30],
+    ];
+    avenueTrees.forEach(([x, z], index) => {
+      const tree = this.assets.clone(index % 2 === 0 ? 'tree-twin' : 'tree-round');
+      fitHeight(tree, 5.4);
+      this.place(tree, x, z);
+      tree.rotation.y = index * 2.1;
+      this.colliders.push(circle(x, z, 0.45));
+    });
+
+    // The square: a round paved plaza, the bandstand, benches facing it and flower beds.
+    const { x: sx, z: sz, radius } = SQUARE;
+    const paving = solid(new THREE.CylinderGeometry(radius, radius, 0.1, 40), lowPoly(0xeadfc8), [
+      sx,
+      0.05,
+      sz,
+    ]);
+    this.group.add(paving);
+    const ring = solid(new THREE.TorusGeometry(radius, 0.18, 6, 48), lowPoly(0xcfc6b4), [
+      sx,
+      0.1,
+      sz,
+    ]);
+    ring.rotation.x = Math.PI / 2;
+    this.group.add(ring);
+    this.place(gazebo(), sx, sz);
+    this.colliders.push(circle(sx, sz, 3.6));
+    for (let i = 0; i < 4; i += 1) {
+      const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+      const x = sx + Math.cos(angle) * (radius - 1.2);
+      const z = sz + Math.sin(angle) * (radius - 1.2);
+      const seat = bench();
+      this.place(seat, x, z);
+      // Benches look at the bandstand.
+      seat.rotation.y = Math.atan2(sx - x, sz - z);
+      this.colliders.push(circle(x, z, 1));
+      const bed = this.assets.clone(i % 2 === 0 ? 'flower-group' : 'bush-flowers');
+      fitHeight(bed, 1);
+      const bedAngle = angle + Math.PI / 4;
+      this.place(
+        bed,
+        sx + Math.cos(bedAngle) * (radius + 1.2),
+        sz + Math.sin(bedAngle) * (radius + 1.2),
+      );
+    }
+    for (const [dx, dz] of [
+      [-radius - 1.5, 0],
+      [radius + 1.5, 0],
+    ] as const) {
+      this.place(streetLamp(), sx + dx, sz + dz);
+      this.colliders.push(circle(sx + dx, sz + dz, 0.25));
+    }
+    const squareSign = createPostSign(
+      ['🎪 PRAÇA'],
+      { background: '#e8604c', color: '#ffffff', width: 2.6, height: 0.95 },
+      1.4,
+    );
+    this.place(squareSign, sx + 4, sz - radius - 1, false);
+    this.colliders.push(circle(sx + 4, sz - radius - 1, 0.5));
+
+    // Playground beside the square, on soft rubber floor.
+    const play = { x: 17.5, z: 22 };
+    this.group.add(
+      solid(new THREE.BoxGeometry(9, 0.08, 9), lowPoly(0x7ec8a3), [play.x, 0.04, play.z]),
+    );
+    this.place(slide(), play.x - 2.2, play.z, true);
+    this.colliders.push(box(play.x - 2.2, play.z - 0.3, 1.6, 3.6));
+    const swingSet = swings();
+    this.place(swingSet, play.x + 2.4, play.z + 1);
+    swingSet.rotation.y = Math.PI / 2;
+    this.colliders.push(box(play.x + 2.4, play.z + 1, 1.2, 4));
+  }
 }
 
-/** Keeps the city free of wild trees and rocks. */
+/** Keeps the city (and its southern neighborhood) free of wild trees and rocks. */
 export const isInsideCity = (x: number, z: number, margin = 0): boolean =>
-  Math.hypot(x - CITY.x, z - CITY.z) < CITY.radius + margin;
+  Math.hypot(x - CITY.x, z - CITY.z) < CITY.radius + margin ||
+  Math.hypot(x - SOUTH_DISTRICT.x, z - SOUTH_DISTRICT.z) < SOUTH_DISTRICT.radius + margin;

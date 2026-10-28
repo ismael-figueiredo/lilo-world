@@ -128,7 +128,11 @@ export class MissionPanel {
     const labels = attempt.mission.steps.map(
       (step) => attempt.mission.choices.find((choice) => choice.id === step.targetId)?.label ?? '',
     );
-    const text = labels.filter(Boolean).join(' ');
+    // "por favor" closes the request after a comma, as it is said.
+    const text = labels
+      .filter(Boolean)
+      .join(' ')
+      .replace(/ por favor$/u, ', por favor');
     return text.charAt(0).toUpperCase() + text.slice(1);
   }
 
@@ -151,7 +155,8 @@ export class MissionPanel {
     this.highlightCurrent(nextTargetId);
   }
 
-  celebrate(reward: Reward): void {
+  /** `result` is what was made or bought (🎂), shown big above the prize. */
+  celebrate(reward: Reward, result?: string): void {
     // A task in the street is replayed right there, by walking to it again.
     const canReplay = this.element.dataset.kind !== 'world-task';
     // The celebration covers the screen, also after a task in the street
@@ -170,6 +175,7 @@ export class MissionPanel {
     this.celebration.replaceChildren(
       ...confetti,
       h('div', { className: 'celebration__card' }, [
+        result === undefined ? null : h('p', { className: 'celebration__result', text: result }),
         h('p', { className: 'celebration__title', text: '🎉 Muito bem! 🎉' }),
         h('p', { className: 'celebration__prize', text: prize }),
         h('div', { className: 'celebration__actions' }, [

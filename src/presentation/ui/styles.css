@@ -603,6 +603,13 @@ button {
   animation: pop 0.5s ease;
 }
 
+.celebration__result {
+  margin: 0;
+  font-size: 5rem;
+  line-height: 1;
+  animation: pop 0.5s ease;
+}
+
 .celebration__title {
   margin: 0;
   font-size: 2.6rem;

@@ -18,17 +18,39 @@ describe('bundled content', () => {
     }
   });
 
-  it('asks only for choices that are on screen', () => {
-    for (const mission of missions) {
+  const everyVersion = missions.flatMap((mission) => [
+    { mission, steps: mission.steps },
+    ...(mission.variants ?? []).map((variant) => ({ mission, steps: variant.steps })),
+  ]);
+
+  it('asks only for choices that exist, in every variant', () => {
+    for (const { mission, steps } of everyVersion) {
       const choiceIds = new Set(mission.choices.map((c) => c.id));
-      for (const step of mission.steps) expect(choiceIds.has(step.targetId)).toBe(true);
+      for (const step of steps) expect(choiceIds.has(step.targetId), step.targetId).toBe(true);
     }
   });
 
-  it('keeps missions short (1 to 3 minutes)', () => {
-    for (const mission of missions) {
-      expect(mission.steps.length).toBeGreaterThan(0);
-      expect(mission.steps.length).toBeLessThanOrEqual(5);
+  it('keeps missions short (1 to 3 minutes), in every variant', () => {
+    for (const { steps } of everyVersion) {
+      expect(steps.length).toBeGreaterThan(0);
+      expect(steps.length).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it('charges one coin per thing bought at the market', () => {
+    const market = missions.find((m) => m.id === 'city-market');
+    expect(market?.variants?.length).toBeGreaterThanOrEqual(5);
+    for (const variant of market?.variants ?? []) {
+      const items = variant.steps.length - 1;
+      expect(variant.steps.at(-1)?.targetId).toBe(`pay-${items}`);
+    }
+  });
+
+  it('uses every shelf item in some recipe', () => {
+    const market = missions.find((m) => m.id === 'city-market');
+    const used = new Set(market?.variants?.flatMap((v) => v.steps.map((s) => s.targetId)));
+    for (const choice of market?.choices ?? []) {
+      if (choice.group === undefined) expect(used.has(choice.id), choice.id).toBe(true);
     }
   });
 

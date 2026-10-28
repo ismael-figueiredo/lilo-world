@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { TrafficPhase } from '@domain/city/traffic-light';
 import type { WorldMapEntry } from '@application/use-cases/get-world-map';
 import type { Random } from '@presentation/engine/math';
-import { CITY, City, isInsideCity } from '@presentation/world/city';
+import { CITY, City, isInsideCity, SOUTH_DISTRICT } from '@presentation/world/city';
 import type { Collider } from '@presentation/world/collision';
 import type { Interactable } from '@presentation/world/interactable';
 import { lowPoly } from '@presentation/world/materials';
@@ -39,6 +39,7 @@ export class GameWorld {
       ...defaultTerrainOptions,
       flatAreas: [
         { x: CITY.x, z: CITY.z, radius: CITY.radius, height: CITY.height, blend: 14 },
+        { ...SOUTH_DISTRICT, height: CITY.height, blend: 12 },
         { ...PORTAL_PLAZA, blend: 10 },
       ],
     });

@@ -104,7 +104,7 @@ function coinsProp(): { group: THREE.Group; coin: THREE.Object3D } {
 const placements: readonly (readonly [Skill, number, number])[] = [
   ['letters', -27, -12],
   ['numbers', 10, -12],
-  ['coins', 27.5, 13],
+  ['coins', -11, 26],
 ];
 
 /** The learning stations: big toy objects and a sign; walking up opens the challenges. */
@@ -147,7 +147,7 @@ export class LearningStations {
         radius: 2.8,
         icon: look.icon,
         label: look.name,
-        name: `Estação de ${look.name.toLowerCase()}`,
+        name: look.name,
       });
     }
   }

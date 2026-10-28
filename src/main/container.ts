@@ -84,7 +84,7 @@ export function createServices(adapters: Adapters): GameServices {
       getProgressSummary: new GetProgressSummary(catalog, progress),
       getWorldMap: new GetWorldMap(catalog, progress),
       suggestNextGoal: new SuggestNextGoal(catalog, progress),
-      startMission: new StartMission(catalog, speech),
+      startMission: new StartMission(catalog, speech, random),
       chooseMissionAnswer: new ChooseMissionAnswer(progress, speech, clock),
       leaveMission: new LeaveMission(progress, clock),
       startChallenge: new StartChallenge(catalog, progress, speech, random),

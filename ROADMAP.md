@@ -11,8 +11,9 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | 2: 9 avatares (crianças, animais, robô), pipeline de assets         | ✅ feito   | `6bc1982` |
 | 3: mundo bonito (modelos CC0), água bloqueada, controle (gamepad)   | ✅ feito   | `1d61174` |
 | 4a: padaria (CAA), ônibus (sequência), semáforo (no mundo 3D)       | ✅ feito   | `a8f4dfd` |
-| 4b: estações de aprendizado, figurinhas, alfabeto, caixa do mercado | ✅ feito   | —         |
-| 4c: mercado 3D por dentro, ônibus 3D, missões da Natureza           | ⏭️ próximo | —         |
+| 4b: estações de aprendizado, figurinhas, alfabeto, caixa do mercado | ✅ feito   | `2780634` |
+| 4c: missões sorteadas, receitas no mercado, bairro sul com praça    | ✅ feito   | —         |
+| 4d: missões da Natureza, mercado 3D por dentro, ônibus 3D           | ⏭️ próximo | —         |
 | 5: mundo vivo                                                       | ⏳ depois  | —         |
 
 ## Sprint 3: mundo bonito, água e controle (feito)
@@ -56,7 +57,17 @@ Pendências pequenas: testar com controle físico (só a lógica tem teste); a �
 - **Caixa do mercado:** depois dos itens, a prateleira vira o caixa (`MissionChoice.group = 'cashier'`) e a criança paga 3 moedas; no fim o caixa diz "Obrigado! Volte sempre!" (`Mission.farewell`).
 - Árvores de rua tiradas da frente das estações.
 
-## Sprint 4c: próximos
+## Sprint 4c: missões que variam e cidade maior (feito)
+
+- **Missões sorteadas** (`src/domain/mission/prepare-mission.ts`, puro e testado): `Mission.variants` (o jogo sorteia uma a cada vez) e `Mission.distractors` (quantos cartões errados entram junto, também sorteados). A prateleira do mercado muda de ordem; os cartões de CAA ficam sempre no mesmo lugar; no caixa as moedas erradas são as vizinhas da certa (2, 3, 4). `StartMission` recebe a `RandomSource`.
+- **Mercado com receitas:** 9 receitas de 2 a 4 ingredientes (bolo, salada, sanduíche, sopa, vitamina, suco, arroz com feijão, café da manhã, pipoca), 19 itens. O caixa cobra 1 moeda por item; a comemoração mostra o prato pronto (`Mission.result`). Um teste garante que todo item da prateleira aparece em alguma receita.
+- **Padaria:** 4 lanches e o cartão "por favor" (frase: "Eu quero pão, por favor").
+- **Ônibus:** duas versões, uma com "passar o cartão".
+- **Bairro sul** (área plana `SOUTH_DISTRICT`): avenida em z = 36 com 5 casas, postes e árvores; duas ruas ligando a avenida à rua principal (x = −31,5 e 28,5); **praça** com coreto, bancos, canteiros e placa; **parquinho** com escorregador e balanço. A estação de Moedas foi para a praça.
+- Ruas feitas pelo planejador puro `street-plan.ts` (testado): calçadas abrem nos cruzamentos, nada se sobrepõe (sem faces piscando), tracejado fora de cruzamentos e da faixa.
+- Nomes curtos no mapa (Letras, Números, Moedas, Faixa).
+
+## Sprint 4d: próximos
 
 - **Mercado 3D por dentro:** transição com fade para um interior com prateleiras de frutas 3D e um carrinho; a criança anda até o item e o item voa para o carrinho; no caixa, uma pessoa (modelo CC0) diz "Obrigado!".
 - **Ônibus em 3D:** o ônibus estacionado vem até o ponto durante a missão e a criança entra nele.
