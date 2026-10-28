@@ -63,6 +63,20 @@ describe('prepareMission', () => {
     expect(played.steps.map((s) => s.targetId)).toContain('please');
   });
 
+  it('asks quiz questions whose answers are always on the shelf', () => {
+    const animals = missionById('nature-animals');
+    const random = seededRandom(13);
+    for (let i = 0; i < 30; i += 1) {
+      const played = prepareMission(animals, random);
+      const ids = played.choices.map((c) => c.id);
+      for (const step of played.steps) {
+        expect(ids).toContain(step.targetId);
+        expect(step.show).toBeDefined();
+      }
+      expect(ids).toHaveLength(played.steps.length + 2);
+    }
+  });
+
   it('is the same for the same seed', () => {
     expect(prepareMission(market, seededRandom(9))).toEqual(
       prepareMission(market, seededRandom(9)),

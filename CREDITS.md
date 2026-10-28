@@ -47,6 +47,11 @@ Processados por `pnpm assets` (veja `scripts/world-assets.json`) e gravados em `
 | Rock Medium (`rock-medium`)        | Quaternius | [fonte](https://poly.pizza/m/KZdEP3uUpa) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | Rock (`rock-small`)                | Quaternius | [fonte](https://poly.pizza/m/Z6M4GNkgWt) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | Mushroom (`mushroom`)              | Quaternius | [fonte](https://poly.pizza/m/db1tjMhmiA) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Cow (`cow`)                        | Quaternius | [fonte](https://poly.pizza/m/5XSc2Fka3F) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Pig (`pig`)                        | Quaternius | [fonte](https://poly.pizza/m/u35l6uP5vj) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Sheep (`sheep`)                    | Quaternius | [fonte](https://poly.pizza/m/C39AUXUUes) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Horse (`horse`)                    | Quaternius | [fonte](https://poly.pizza/m/D3hAeqeDBE) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Chick (`chick`)                    | Quaternius | [fonte](https://poly.pizza/m/LH96IMq0rE) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
 
 O terreno, o mar, as ruas, o ônibus, postes, bancos, semáforo, fonte, portais, placas, acessórios e o mascote Lilo são gerados por código no próprio projeto e seguem a licença do projeto.
 

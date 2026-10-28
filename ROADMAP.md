@@ -12,8 +12,9 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | 3: mundo bonito (modelos CC0), água bloqueada, controle (gamepad)   | ✅ feito   | `1d61174` |
 | 4a: padaria (CAA), ônibus (sequência), semáforo (no mundo 3D)       | ✅ feito   | `a8f4dfd` |
 | 4b: estações de aprendizado, figurinhas, alfabeto, caixa do mercado | ✅ feito   | `2780634` |
-| 4c: missões sorteadas, receitas no mercado, bairro sul com praça    | ✅ feito   | —         |
-| 4d: missões da Natureza, mercado 3D por dentro, ônibus 3D           | ⏭️ próximo | —         |
+| 4c: missões sorteadas, receitas no mercado, bairro sul com praça    | ✅ feito   | `0d41a2d` |
+| 4d: mundo Natureza (acampamento, fazenda, horta, reciclagem)        | ✅ feito   | —         |
+| 4e: mercado 3D por dentro, ônibus 3D, mundo Casa (rotinas)          | ⏭️ próximo | —         |
 | 5: mundo vivo                                                       | ⏳ depois  | —         |
 
 ## Sprint 3: mundo bonito, água e controle (feito)
@@ -67,7 +68,18 @@ Pendências pequenas: testar com controle físico (só a lógica tem teste); a �
 - Ruas feitas pelo planejador puro `street-plan.ts` (testado): calçadas abrem nos cruzamentos, nada se sobrepõe (sem faces piscando), tracejado fora de cruzamentos e da faixa.
 - Nomes curtos no mapa (Letras, Números, Moedas, Faixa).
 
-## Sprint 4d: próximos
+## Sprint 4d: mundo Natureza (feito)
+
+- O portal da Natureza (aberto com 3 estrelas) leva, com um fade (`GameApp.travel`), ao **Acampamento** numa clareira plana do oeste da ilha (`src/presentation/world/nature-camp.ts`, `NATURE_CAMP`). Também dá para chegar andando. Um portal verde leva de volta aos portais.
+- Novo tipo de missão `quiz` (respostas escondidas até achar) e `MissionStep.show` (o que aparece grande na pergunta, como "🔊 Muuu!").
+- Missões (1 estrela cada, com variantes sorteadas):
+  - **Sons da fazenda** (`nature-animals`): 8 animais; a fazenda tem vaca, cavalo, ovelha, porco e pintinho 3D (Quaternius, CC0).
+  - **Plantar uma flor** (`nature-garden`): cavar → semente → cobrir → regar → sol → 🌻.
+  - **Separar o lixo** (`nature-recycling`): lixeiras nas cores usadas no Brasil (azul papel, vermelho plástico, verde vidro, amarelo metal, marrom orgânico).
+- Com a Natureza, a Cidade + Natureza dão 7 estrelas: a Casa (6) abre pelas missões.
+- Pipeline: modelos do mundo perdem animações e esqueleto (ficam parados); sem isso, a compressão perdia a escala dos animais e eles sumiam. `WorldAssets.clone` usa `SkeletonUtils.clone`.
+
+## Sprint 4e: próximos
 
 - **Mercado 3D por dentro:** transição com fade para um interior com prateleiras de frutas 3D e um carrinho; a criança anda até o item e o item voa para o carrinho; no caixa, uma pessoa (modelo CC0) diz "Obrigado!".
 - **Ônibus em 3D:** o ônibus estacionado vem até o ponto durante a missão e a criança entra nele.

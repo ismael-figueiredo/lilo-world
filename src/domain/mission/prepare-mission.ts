@@ -58,6 +58,7 @@ export function prepareMission(mission: Mission, random: Random): Mission {
   // Shopping shelves change order; AAC boards keep each card where it always is.
   const main = onShelf.filter((choice) => groupOf(choice) === MAIN_GROUP);
   const side = onShelf.filter((choice) => groupOf(choice) !== MAIN_GROUP);
-  const choices = played.kind === 'pick-items' ? [...shuffled(random, main), ...side] : onShelf;
+  const shuffles = played.kind === 'pick-items' || played.kind === 'quiz';
+  const choices = shuffles ? [...shuffled(random, main), ...side] : onShelf;
   return { ...played, choices };
 }

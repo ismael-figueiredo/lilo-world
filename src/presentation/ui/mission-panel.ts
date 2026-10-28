@@ -21,6 +21,7 @@ const layouts: Readonly<
   'pick-items': { title: '📝 Lista', revealList: true },
   'build-sentence': { title: '💬 Minha frase', revealList: false },
   sequence: { title: '🔢 Passos', revealList: false },
+  quiz: { title: '❓ Perguntas', revealList: false },
   'world-task': { title: '🎯 Missão', revealList: true },
 };
 
@@ -50,6 +51,9 @@ export class MissionPanel {
   private readonly celebration = h('div', { className: 'celebration' });
   private readonly tiles = new Map<string, HTMLButtonElement>();
   private readonly shelfTitle = h('p', { className: 'mission__shelf-title' });
+  /** What the current step shows big (a sound, a thing to sort). */
+  private readonly question = h('p', { className: 'mission__question is-hidden' });
+  private shows = new Map<string, string>();
   private groups = new Map<string, string>();
   private readonly listItems = new Map<string, HTMLLIElement>();
 
@@ -68,7 +72,11 @@ export class MissionPanel {
         this.title,
         h('div', { className: 'mission__body' }, [
           h('div', { className: 'mission__list-card' }, [this.listTitle, this.list]),
-          h('div', { className: 'mission__shelf-area' }, [this.shelfTitle, this.shelf]),
+          h('div', { className: 'mission__shelf-area' }, [
+            this.shelfTitle,
+            this.question,
+            this.shelf,
+          ]),
         ]),
       ]),
       this.celebration,
@@ -90,6 +98,11 @@ export class MissionPanel {
     this.celebration.replaceChildren();
 
     const choiceById = new Map(mission.choices.map((choice) => [choice.id, choice]));
+    this.shows = new Map(
+      mission.steps.flatMap((step) =>
+        step.show === undefined ? [] : [[step.targetId, step.show]],
+      ),
+    );
     this.groups = new Map(mission.choices.map((choice) => [choice.id, choice.group ?? MAIN_GROUP]));
     this.list.replaceChildren(
       ...mission.steps.map((step, index) => {
@@ -224,6 +237,10 @@ export class MissionPanel {
 
   private highlightCurrent(targetId: string | undefined): void {
     for (const [id, item] of this.listItems) item.classList.toggle('is-current', id === targetId);
+    const show = targetId === undefined ? undefined : this.shows.get(targetId);
+    this.question.textContent = show ?? '';
+    this.question.classList.toggle('is-hidden', show === undefined);
+    if (show !== undefined) replayAnimation(this.question, 'is-popping');
     // Only the cards of the current step's group are on the shelf (e.g. the cashier's coins).
     if (targetId === undefined) return;
     const group = this.groups.get(targetId) ?? MAIN_GROUP;

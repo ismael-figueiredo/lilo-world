@@ -7,6 +7,7 @@ import type { Collider } from '@presentation/world/collision';
 import type { Interactable } from '@presentation/world/interactable';
 import { lowPoly } from '@presentation/world/materials';
 import { Nature } from '@presentation/world/nature';
+import { NATURE_CAMP, NatureCamp } from '@presentation/world/nature-camp';
 import { PORTAL_PLAZA, Portals } from '@presentation/world/portals';
 import { Sky } from '@presentation/world/sky';
 import { createTerrainMesh } from '@presentation/world/terrain-mesh';
@@ -29,36 +30,44 @@ export class GameWorld {
 
   private readonly water = new Water();
   private readonly city: City;
+  private readonly camp: NatureCamp;
   private readonly portals = new Portals();
   private readonly nature: Nature;
   private readonly staticColliders: Collider[];
 
   constructor(scene: THREE.Scene, random: Random, assets: WorldAssets) {
     this.city = new City(assets);
+    this.camp = new NatureCamp(assets);
     this.shape = new TerrainShape(random, {
       ...defaultTerrainOptions,
       flatAreas: [
         { x: CITY.x, z: CITY.z, radius: CITY.radius, height: CITY.height, blend: 14 },
         { ...SOUTH_DISTRICT, height: CITY.height, blend: 12 },
+        { ...NATURE_CAMP, blend: 10 },
         { ...PORTAL_PLAZA, blend: 10 },
       ],
     });
     this.sky = new Sky(scene);
 
     scene.add(createTerrainMesh(this.shape, random));
-    scene.add(this.water.mesh, this.city.group, this.portals.group);
+    scene.add(this.water.mesh, this.city.group, this.portals.group, this.camp.group);
     this.addPath(scene);
 
     this.nature = new Nature(this.shape, random, assets, {
       keepClear: (x, z) =>
         isInsideCity(x, z, 3) ||
+        Math.hypot(x - NATURE_CAMP.x, z - NATURE_CAMP.z) < NATURE_CAMP.radius + 2 ||
         Math.hypot(x - PORTAL_PLAZA.x, z - PORTAL_PLAZA.z) < PORTAL_PLAZA.radius + 3 ||
         (Math.abs(x) < 5 && z < PATH.fromZ + 4 && z > PATH.toZ - 4),
     });
     scene.add(this.nature.group);
-    this.staticColliders = [...this.city.colliders, ...this.nature.colliders];
+    this.staticColliders = [
+      ...this.city.colliders,
+      ...this.camp.colliders,
+      ...this.nature.colliders,
+    ];
     this.colliders = this.staticColliders;
-    this.places = this.city.places;
+    this.places = [...this.city.places, ...this.camp.places];
   }
 
   /** The traffic light cycle shared by the whole town. */
@@ -85,12 +94,13 @@ export class GameWorld {
   showWorlds(entries: readonly WorldMapEntry[]): void {
     this.portals.show(entries);
     this.colliders = [...this.staticColliders, ...this.portals.colliders];
-    this.places = [...this.city.places, ...this.portals.places];
+    this.places = [...this.city.places, ...this.camp.places, ...this.portals.places];
   }
 
   update(time: number, dt: number, focus: THREE.Vector3): void {
     this.water.update(time);
     this.city.update(time);
+    this.camp.update(time);
     this.portals.update(time);
     this.nature.update(dt);
     this.sky.follow(focus);

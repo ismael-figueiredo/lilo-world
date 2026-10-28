@@ -515,6 +515,20 @@ button {
   gap: 8px;
 }
 
+.mission__question {
+  margin: 0;
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 2.6rem;
+  font-weight: 900;
+  background: #fff6db;
+  border-radius: 20px;
+}
+
+.mission__question.is-popping {
+  animation: pop 0.35s ease;
+}
+
 .mission__shelf-title {
   margin: 0;
   font-size: 1.3rem;
@@ -945,6 +959,27 @@ button {
 
 .challenge__sticker {
   font-size: 2.2rem;
+}
+
+/* ---------- Travel fade ---------- */
+.fade {
+  position: absolute;
+  inset: 0;
+  background: #fffdf8;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.fade.is-on {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade {
+    transition-duration: 0.15s;
+  }
 }
 
 /* ---------- Shared ---------- */

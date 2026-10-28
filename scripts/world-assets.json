@@ -177,6 +177,41 @@
       "source": "https://static.poly.pizza/c30dcc3b-c43d-4ce8-9b2d-6dd942b81fd7.glb",
       "page": "https://poly.pizza/m/db1tjMhmiA",
       "author": "Quaternius"
+    },
+    {
+      "id": "cow",
+      "name": "Cow",
+      "source": "https://static.poly.pizza/48c5f4af-07d6-4493-a261-0919967afe85.glb",
+      "page": "https://poly.pizza/m/5XSc2Fka3F",
+      "author": "Quaternius"
+    },
+    {
+      "id": "pig",
+      "name": "Pig",
+      "source": "https://static.poly.pizza/6277c120-ea5c-405d-9614-0d3d7e0b829d.glb",
+      "page": "https://poly.pizza/m/u35l6uP5vj",
+      "author": "Quaternius"
+    },
+    {
+      "id": "sheep",
+      "name": "Sheep",
+      "source": "https://static.poly.pizza/a4bd2c4e-fe71-4dbd-9881-cf3ac8a00bbf.glb",
+      "page": "https://poly.pizza/m/C39AUXUUes",
+      "author": "Quaternius"
+    },
+    {
+      "id": "horse",
+      "name": "Horse",
+      "source": "https://static.poly.pizza/52b9bf67-bf41-4aec-a4ff-e93e630289f2.glb",
+      "page": "https://poly.pizza/m/D3hAeqeDBE",
+      "author": "Quaternius"
+    },
+    {
+      "id": "chick",
+      "name": "Chick",
+      "source": "https://static.poly.pizza/6589c0bb-26b3-413f-9a82-770f99511980.glb",
+      "page": "https://poly.pizza/m/LH96IMq0rE",
+      "author": "Quaternius"
     }
   ]
 }

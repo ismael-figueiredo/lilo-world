@@ -20,6 +20,8 @@ export interface MissionChoice {
 export interface MissionStep {
   readonly targetId: string;
   readonly prompt: string;
+  /** Shown big above the cards while this step is asked (a sound "Muuu!", a thing to sort). */
+  readonly show?: string;
 }
 
 /**
@@ -28,9 +30,10 @@ export interface MissionStep {
  * - pick-items: a shopping list and a shelf (the list shows what to pick).
  * - build-sentence: AAC cards that form a sentence, e.g. [eu quero] + [pão].
  * - sequence: put the steps of a routine in order.
+ * - quiz: one question per step; the answers are hidden until found.
  * - world-task: act in the 3D world (the game reports each step as it happens).
  */
-export type MissionKind = 'pick-items' | 'build-sentence' | 'sequence' | 'world-task';
+export type MissionKind = 'pick-items' | 'build-sentence' | 'sequence' | 'quiz' | 'world-task';
 
 /** One version of a mission (a recipe to shop for, a snack to ask for). */
 export interface MissionVariant {

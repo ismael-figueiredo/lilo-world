@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { clone as cloneWithSkeleton } from 'three/addons/utils/SkeletonUtils.js';
 
 /**
  * Models of the world (built by `pnpm assets` from scripts/world-assets.json
@@ -32,6 +33,11 @@ export const worldModelIds = [
   'rock-medium',
   'rock-small',
   'mushroom',
+  'cow',
+  'pig',
+  'sheep',
+  'horse',
+  'chick',
 ] as const;
 
 export type WorldModelId = (typeof worldModelIds)[number];
@@ -71,7 +77,8 @@ export class WorldAssets {
 
   /** A fresh copy of a model (geometry is shared), optionally with new colors. */
   clone(id: WorldModelId, recolor: Recolor = {}): THREE.Group {
-    const copy = this.scene(id).clone(true);
+    // Animals are skinned: a plain clone would lose their skeleton and vanish.
+    const copy = cloneWithSkeleton(this.scene(id)) as THREE.Group;
     copy.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.material = this.recolor(child.material as THREE.Material | THREE.Material[], recolor);

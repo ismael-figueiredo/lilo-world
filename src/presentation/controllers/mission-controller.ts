@@ -5,6 +5,7 @@ import type { GameContext } from '@presentation/game-context';
 import { MissionPanel } from '@presentation/ui/mission-panel';
 import { CITY, CityPlace, CROSSWALK } from '@presentation/world/city';
 import { CrossingTracker, type CrossingEvent } from '@presentation/world/crosswalk';
+import { NaturePlace } from '@presentation/world/nature-camp';
 
 /** Where each mission happens in the open world. */
 export const missionPlaces: Readonly<Record<string, string>> = {
@@ -12,6 +13,9 @@ export const missionPlaces: Readonly<Record<string, string>> = {
   'city-bakery': CityPlace.bakery,
   'city-bus': CityPlace.busStop,
   'city-crosswalk': CityPlace.crosswalk,
+  'nature-animals': NaturePlace.farm,
+  'nature-garden': NaturePlace.garden,
+  'nature-recycling': NaturePlace.recycling,
 };
 
 /** What the crosswalk task reports, as the mission's choice ids. */

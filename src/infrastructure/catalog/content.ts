@@ -15,7 +15,13 @@ export const worlds: readonly World[] = [
     missionIds: ['city-market', 'city-bakery', 'city-bus', 'city-crosswalk'],
     color: 0x4fa3e0,
   },
-  { id: 'nature', name: 'Natureza', requiredStars: 3, missionIds: [], color: 0x6cc070 },
+  {
+    id: 'nature',
+    name: 'Natureza',
+    requiredStars: 3,
+    missionIds: ['nature-animals', 'nature-garden', 'nature-recycling'],
+    color: 0x6cc070,
+  },
   { id: 'home', name: 'Casa', requiredStars: 6, missionIds: [], color: 0xf2a65a },
   { id: 'school', name: 'Escola e Parque', requiredStars: 9, missionIds: [], color: 0xb08ee6 },
   { id: 'emotions', name: 'Emoções', requiredStars: 12, missionIds: [], color: 0xf07a9a },
@@ -87,6 +93,68 @@ function snack(id: string, item: string, name: string, result: string): MissionV
       { targetId: 'please', prompt: 'E para terminar, com educação: por favor.' },
     ],
     result,
+  };
+}
+
+/** Farm animals and the sound each one makes. */
+const animals = {
+  cow: ['vaca', '🐮', 'Muuu!'],
+  pig: ['porco', '🐷', 'Oinc, oinc!'],
+  sheep: ['ovelha', '🐑', 'Méééé!'],
+  horse: ['cavalo', '🐴', 'Hiiiin!'],
+  chick: ['pintinho', '🐥', 'Piu, piu!'],
+  dog: ['cachorro', '🐶', 'Au, au!'],
+  cat: ['gato', '🐱', 'Miau!'],
+  duck: ['pato', '🦆', 'Quá, quá!'],
+} as const;
+
+type Animal = keyof typeof animals;
+
+function animalQuiz(id: string, asked: readonly Animal[]): MissionVariant {
+  return {
+    id,
+    introduction: 'Vamos ouvir os animais da fazenda!',
+    steps: asked.map((animal, index) => ({
+      targetId: animal,
+      prompt: `${index === 0 ? 'Escute' : 'E agora'}: ${animals[animal][2]} Quem faz assim?`,
+      show: `🔊 ${animals[animal][2]}`,
+    })),
+  };
+}
+
+/** Recycling bins, with the colors used in Brazil. */
+const bins = {
+  paper: ['papel', '🟦'],
+  plastic: ['plástico', '🟥'],
+  glass: ['vidro', '🟩'],
+  metal: ['metal', '🟨'],
+  food: ['comida', '🟫'],
+} as const;
+
+type Bin = keyof typeof bins;
+
+const trash: readonly (readonly [string, string, Bin])[] = [
+  ['a caixa', '📦', 'paper'],
+  ['o jornal', '📰', 'paper'],
+  ['a garrafa de plástico', '🧴', 'plastic'],
+  ['o pote de vidro', '🫙', 'glass'],
+  ['a lata', '🥫', 'metal'],
+  ['a casca de banana', '🍌', 'food'],
+  ['o miolo da maçã', '🍎', 'food'],
+];
+
+function sorting(id: string, items: readonly number[]): MissionVariant {
+  return {
+    id,
+    introduction: 'Vamos separar o lixo! Cada coisa na sua cor.',
+    steps: items.map((index, step) => {
+      const [name, picture, bin] = trash[index] ?? trash[0] ?? ['a lata', '🥫', 'metal'];
+      return {
+        targetId: bin,
+        prompt: `${step === 0 ? 'Onde' : 'E agora, onde'} jogamos ${name}?`,
+        show: picture,
+      };
+    }),
   };
 }
 
@@ -219,6 +287,69 @@ export const missions: readonly Mission[] = [
       { targetId: 'cross', prompt: 'Verde! Pode atravessar na faixa.' },
     ],
     reward: { coins: 10, stars: 1 },
+  },
+  {
+    id: 'nature-animals',
+    kind: 'quiz',
+    worldId: 'nature',
+    title: 'Sons da fazenda',
+    introduction: 'Vamos ouvir os animais da fazenda!',
+    choices: Object.entries(animals).map(([id, [label, pictogram]]) => ({ id, label, pictogram })),
+    steps: animalQuiz('first', ['cow', 'pig', 'sheep']).steps,
+    variants: [
+      animalQuiz('a', ['cow', 'pig', 'sheep']),
+      animalQuiz('b', ['horse', 'chick', 'cow']),
+      animalQuiz('c', ['dog', 'duck', 'pig']),
+      animalQuiz('d', ['sheep', 'cat', 'horse']),
+      animalQuiz('e', ['chick', 'cow', 'duck']),
+      animalQuiz('f', ['cat', 'dog', 'sheep']),
+    ],
+    distractors: 2,
+    reward: { coins: 10, stars: 1 },
+    farewell: 'Os animais adoraram sua visita!',
+  },
+  {
+    id: 'nature-garden',
+    kind: 'sequence',
+    worldId: 'nature',
+    title: 'Plantar uma flor',
+    introduction: 'Vamos plantar uma flor! O que vem primeiro?',
+    choices: [
+      { id: 'dig', label: 'cavar um buraco', pictogram: '🕳️' },
+      { id: 'seed', label: 'pôr a semente', pictogram: '🌱' },
+      { id: 'cover', label: 'cobrir com terra', pictogram: '🤲' },
+      { id: 'water', label: 'regar', pictogram: '💧' },
+      { id: 'sun', label: 'esperar o sol', pictogram: '☀️' },
+    ],
+    steps: [
+      { targetId: 'dig', prompt: 'O que vem primeiro?' },
+      { targetId: 'seed', prompt: 'O buraco está pronto. E agora?' },
+      { targetId: 'cover', prompt: 'A semente está no buraco. E agora?' },
+      { targetId: 'water', prompt: 'A plantinha tem sede. E agora?' },
+      { targetId: 'sun', prompt: 'Para crescer, ela precisa de luz. E agora?' },
+    ],
+    reward: { coins: 10, stars: 1 },
+    farewell: 'Olha a flor que nasceu!',
+    result: '🌻',
+  },
+  {
+    id: 'nature-recycling',
+    kind: 'quiz',
+    worldId: 'nature',
+    title: 'Separar o lixo',
+    introduction: 'Vamos separar o lixo! Cada coisa na sua cor.',
+    choices: Object.entries(bins).map(([id, [label, pictogram]]) => ({ id, label, pictogram })),
+    steps: sorting('first', [0, 2, 4]).steps,
+    variants: [
+      sorting('a', [0, 2, 4]),
+      sorting('b', [1, 3, 5]),
+      sorting('c', [2, 4, 6]),
+      sorting('d', [3, 5, 0]),
+      sorting('e', [6, 1, 2]),
+    ],
+    reward: { coins: 10, stars: 1 },
+    farewell: 'A natureza agradece!',
+    result: '♻️',
   },
 ];
 

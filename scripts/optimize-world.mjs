@@ -62,6 +62,22 @@ for (const model of manifest.models) {
   }
   const document = await io.read(cached.pathname);
 
+  // World models stand still (animals too): animations would only add bytes,
+  // and a standing animal is a plain mesh. Skins would also lose the scale
+  // that compression stores on the node.
+  for (const animation of document.getRoot().listAnimations()) animation.dispose();
+  for (const node of document.getRoot().listNodes()) node.setSkin(null);
+  for (const skin of document.getRoot().listSkins()) skin.dispose();
+  for (const mesh of document.getRoot().listMeshes()) {
+    for (const primitive of mesh.listPrimitives()) {
+      for (const semantic of primitive.listSemantics()) {
+        if (semantic.startsWith('JOINTS_') || semantic.startsWith('WEIGHTS_')) {
+          primitive.setAttribute(semantic, null);
+        }
+      }
+    }
+  }
+
   // Normal maps cost a lot of bytes and barely show on flat-shaded toys.
   for (const material of document.getRoot().listMaterials()) material.setNormalTexture(null);
 

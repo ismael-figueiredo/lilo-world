@@ -34,7 +34,8 @@ import { GameWorld } from '@presentation/world/game-world';
 import { GoalMarker } from '@presentation/world/goal-marker';
 import type { Interactable } from '@presentation/world/interactable';
 import { captureMap } from '@presentation/world/map-snapshot';
-import { portalId } from '@presentation/world/portals';
+import { campArrival, NaturePlace } from '@presentation/world/nature-camp';
+import { PORTAL_PLAZA, portalId } from '@presentation/world/portals';
 import { skillOfStation } from '@presentation/world/stations';
 import { WorldAssets } from '@presentation/world/world-assets';
 import '@presentation/ui/styles.css';
@@ -59,6 +60,7 @@ export class GameApp implements GameContext {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(55, 1, 0.1, 1200);
   private readonly ui = h('div', { className: 'ui' });
+  private readonly fade = h('div', { className: 'fade', attrs: { 'aria-hidden': 'true' } });
   private readonly hud = new Hud(() => {
     if (this.currentMode === 'explore') this.menus.open();
   });
@@ -303,6 +305,7 @@ export class GameApp implements GameContext {
       this.wardrobe.panel.element,
       ...this.menus.elements,
       this.restScreen.element,
+      this.fade,
     );
     this.root.append(this.ui, this.profileScreen.element);
     this.ui.addEventListener(
@@ -577,6 +580,14 @@ export class GameApp implements GameContext {
       await this.wardrobe.open();
       return;
     }
+    if (place.id === NaturePlace.back) {
+      this.sound('open');
+      await this.travel(
+        new THREE.Vector3(PORTAL_PLAZA.x, PORTAL_PLAZA.height, PORTAL_PLAZA.z + 7),
+        0,
+      );
+      return;
+    }
     const skill = skillOfStation(place.id);
     if (skill !== undefined) {
       this.sound('open');
@@ -589,9 +600,29 @@ export class GameApp implements GameContext {
     if (!portal.unlocked) {
       const plural = portal.starsMissing === 1 ? 'estrela' : 'estrelas';
       this.say(`Ganhe mais ${portal.starsMissing} ${plural} para abrir ${portal.world.name}.`);
+    } else if (portal.world.id === 'nature') {
+      this.sound('open');
+      await this.travel(campArrival, Math.PI / 2);
+      this.say('Bem-vindo à Natureza! Visite a fazenda, a horta e a reciclagem.');
     } else {
       this.say(`${portal.world.name} ainda está sendo construído!`);
     }
+  }
+
+  /** Moves the child far away behind a short, gentle fade (never a sudden cut). */
+  private async travel(to: THREE.Vector3, yaw: number): Promise<void> {
+    const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+    this.fade.classList.add('is-on');
+    this.input?.reset();
+    await wait(450);
+    this.character?.placeAt(to, yaw + Math.PI);
+    if (this.cameraRig !== undefined && this.character !== undefined) {
+      this.cameraRig.yaw = yaw;
+      this.cameraRig.snapTo(this.character.position);
+    }
+    this.mascot.placeNear(to);
+    await wait(150);
+    this.fade.classList.remove('is-on');
   }
 
   // ---------- Goal arrow ----------
