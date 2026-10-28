@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shelfOrder } from '@presentation/ui/mission-panel';
+import { shelfOrder, spokenSentence } from '@presentation/ui/mission-panel';
 
 describe('mission shelf order', () => {
   it('keeps the content order for lists and sentences', () => {
@@ -18,5 +18,13 @@ describe('mission shelf order', () => {
       expect([...shown].sort()).toEqual(steps);
       expect(shelfOrder(steps, 'sequence')).toEqual(shown);
     }
+  });
+});
+
+describe('AAC sentence', () => {
+  it('reads the cards with commas where they are said', () => {
+    expect(spokenSentence(['eu quero', 'pão', 'por favor'])).toBe('Eu quero pão, por favor');
+    expect(spokenSentence(['bom dia', 'professora'])).toBe('Bom dia, professora');
+    expect(spokenSentence(['posso', 'ir ao banheiro'])).toBe('Posso ir ao banheiro');
   });
 });

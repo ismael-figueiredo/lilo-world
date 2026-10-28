@@ -14,8 +14,9 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | 4b: estações de aprendizado, figurinhas, alfabeto, caixa do mercado | ✅ feito   | `2780634` |
 | 4c: missões sorteadas, receitas no mercado, bairro sul com praça    | ✅ feito   | `0d41a2d` |
 | 4d: mundo Natureza (acampamento, fazenda, horta, reciclagem)        | ✅ feito   | `3139b1f` |
-| 4e: mundo Casa (banheiro, quarto, cozinha)                          | ✅ feito   | —         |
-| 4f: mundo Escola e Parque, mercado 3D por dentro, ônibus 3D         | ⏭️ próximo | —         |
+| 4e: mundo Casa (banheiro, quarto, cozinha)                          | ✅ feito   | `1ff1687` |
+| 4f: mundo Escola e Parque (mochila, falar na escola, esperar a vez) | ✅ feito   | —         |
+| 4g: mundo Emoções, mercado 3D por dentro, ônibus 3D                 | ⏭️ próximo | —         |
 | 5: mundo vivo                                                       | ⏳ depois  | —         |
 
 ## Sprint 3: mundo bonito, água e controle (feito)
@@ -91,16 +92,22 @@ Pendências pequenas: testar com controle físico (só a lógica tem teste); a �
 - Teste novo: a introdução nunca repete a primeira instrução (antes saía "O que vem primeiro? O que vem primeiro?").
 - Agora Cidade + Natureza + Casa dão 10 estrelas: Escola e Parque (9) abre. Falta o conteúdo dela.
 
-## Sprint 4f: próximos
+## Sprint 4f: mundo Escola e Parque (feito)
 
-- **Escola e Parque** (9 estrelas): sala de aula e parque. Ideias: arrumar a mochila (lista), cumprimentar e pedir ajuda (CAA), esperar a vez no escorregador (sequência).
-- **Emoções** (12 estrelas): reconhecer feliz, triste, bravo, com medo (quiz com rostos) e "o que me acalma".
+- O portal da Escola (9 estrelas) leva com fade a uma escola num morro do nordeste (`src/presentation/world/school-area.ts`, `SCHOOL_AREA`): sala de aula aberta (carteiras, lousa, estante, mesa da professora) e parque (escorregador, balanço, caixa de areia), com portal de volta.
+- Missões (1 estrela cada, com variantes):
+  - **Arrumar a mochila** (`school-backpack`, lista): matemática, arte, leitura, educação física ou passeio.
+  - **Falar na escola** (`school-talk`, CAA): bom dia para a professora ou o amigo, pedir ajuda, pedir para ir ao banheiro ou beber água, convidar para brincar. Cada variante tem a resposta de quem ouviu.
+  - **Esperar a vez** (`school-turn`, sequência): no escorregador ou no balanço.
+- `spokenSentence` (pura, testada): vírgulas onde se fala ("Bom dia, professora", "…, por favor"). A frase de CAA termina com a resposta da variante, não mais com o "Aqui está!" da padaria.
+- Agora as quatro áreas dão 13 estrelas: Emoções (12) abre. Falta o conteúdo dela.
 
-- **Mercado 3D por dentro:** transição com fade para um interior com prateleiras de frutas 3D e um carrinho; a criança anda até o item e o item voa para o carrinho; no caixa, uma pessoa (modelo CC0) diz "Obrigado!".
-- **Ônibus em 3D:** o ônibus estacionado vem até o ponto durante a missão e a criança entra nele.
-- **Missões da Natureza** (abre com 3 estrelas): sem elas, a Casa (6) só abre pelas estrelas das estações. Ideias: regar as plantas (sequência), achar animais pelo som, separar o lixo.
+## Sprint 4g: próximos
+
+- **Emoções** (12 estrelas): reconhecer feliz, triste, bravo, com medo e surpreso (quiz com rostos e situações: "Ganhei um presente. Como eu fico?"), e "o que me acalma" (respirar, abraço, cantinho calmo).
+- **Mercado 3D por dentro:** transição com fade para um interior com prateleiras de frutas 3D e um carrinho; no caixa, uma pessoa diz "Obrigado!".
+- **Ônibus em 3D:** o ônibus estacionado vem até o ponto durante a missão.
 - **Mais estações:** moedas-letra escondidas pela ilha (para o alfabeto) e placas palavra ↔ figura nas trilhas.
-- Recompensa visual ao ganhar figurinha: brilho e confete no mundo, além do aviso no painel.
 
 ## Sprint 5: mundo vivo
 

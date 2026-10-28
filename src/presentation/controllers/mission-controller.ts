@@ -7,6 +7,7 @@ import { CITY, CityPlace, CROSSWALK } from '@presentation/world/city';
 import { CrossingTracker, type CrossingEvent } from '@presentation/world/crosswalk';
 import { HomePlace } from '@presentation/world/home-area';
 import { NaturePlace } from '@presentation/world/nature-camp';
+import { SchoolPlace } from '@presentation/world/school-area';
 
 /** Where each mission happens in the open world. */
 export const missionPlaces: Readonly<Record<string, string>> = {
@@ -20,6 +21,9 @@ export const missionPlaces: Readonly<Record<string, string>> = {
   'home-hygiene': HomePlace.bathroom,
   'home-dressing': HomePlace.bedroom,
   'home-table': HomePlace.kitchen,
+  'school-backpack': SchoolPlace.classroom,
+  'school-talk': SchoolPlace.teacher,
+  'school-turn': SchoolPlace.park,
 };
 
 /** What the crosswalk task reports, as the mission's choice ids. */
@@ -155,7 +159,9 @@ export class MissionController {
           this.panel.celebrate(reward, mission.result);
           if (mission.kind === 'build-sentence') {
             // The game says the child's request aloud, as an AAC device would.
-            this.ctx.say(`${this.panel.sentence(this.attempt)}. Aqui está! Muito bem!`);
+            // Then the answer of whoever was asked (the baker, the teacher…).
+            const answer = mission.farewell === undefined ? '' : ` ${mission.farewell}`;
+            this.ctx.say(`${this.panel.sentence(this.attempt)}.${answer} Muito bem!`);
           } else {
             const { farewell } = mission;
             this.ctx.dialog.say(

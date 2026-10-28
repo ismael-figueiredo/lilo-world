@@ -36,6 +36,16 @@ export function shelfOrder<T>(items: readonly T[], kind: MissionKind): T[] {
   return [...odd.reverse(), ...even];
 }
 
+/** AAC cards read as one sentence, with commas where they are said. */
+export function spokenSentence(labels: readonly string[]): string {
+  const text = labels
+    .filter(Boolean)
+    .join(' ')
+    .replace(/ por favor$/u, ', por favor')
+    .replace(/^bom dia (?=\S)/u, 'bom dia, ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 /**
  * The list and the shelf. Pictograms first, words second; a wrong tap only
  * makes the right card glow (and then an arrow points at it). Sentences and
@@ -138,15 +148,12 @@ export class MissionPanel {
 
   /** The sentence built so far, e.g. "Eu quero pão" (for the game to say aloud). */
   sentence(attempt: MissionAttempt): string {
-    const labels = attempt.mission.steps.map(
-      (step) => attempt.mission.choices.find((choice) => choice.id === step.targetId)?.label ?? '',
+    return spokenSentence(
+      attempt.mission.steps.map(
+        (step) =>
+          attempt.mission.choices.find((choice) => choice.id === step.targetId)?.label ?? '',
+      ),
     );
-    // "por favor" closes the request after a comma, as it is said.
-    const text = labels
-      .filter(Boolean)
-      .join(' ')
-      .replace(/ por favor$/u, ', por favor');
-    return text.charAt(0).toUpperCase() + text.slice(1);
   }
 
   showHint(targetId: string, level: HintLevel): void {

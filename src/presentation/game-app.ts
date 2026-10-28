@@ -36,6 +36,7 @@ import type { Interactable } from '@presentation/world/interactable';
 import { captureMap } from '@presentation/world/map-snapshot';
 import { homeArrival, HomePlace } from '@presentation/world/home-area';
 import { campArrival, NaturePlace } from '@presentation/world/nature-camp';
+import { schoolArrival, SchoolPlace } from '@presentation/world/school-area';
 import { PORTAL_PLAZA, portalId } from '@presentation/world/portals';
 import { skillOfStation } from '@presentation/world/stations';
 import { WorldAssets } from '@presentation/world/world-assets';
@@ -581,7 +582,11 @@ export class GameApp implements GameContext {
       await this.wardrobe.open();
       return;
     }
-    if (place.id === NaturePlace.back || place.id === HomePlace.back) {
+    if (
+      place.id === NaturePlace.back ||
+      place.id === HomePlace.back ||
+      place.id === SchoolPlace.back
+    ) {
       this.sound('open');
       await this.travel(
         new THREE.Vector3(PORTAL_PLAZA.x, PORTAL_PLAZA.height, PORTAL_PLAZA.z + 7),
@@ -605,6 +610,10 @@ export class GameApp implements GameContext {
       this.sound('open');
       await this.travel(campArrival, Math.PI / 2);
       this.say('Bem-vindo à Natureza! Visite a fazenda, a horta e a reciclagem.');
+    } else if (portal.world.id === 'school') {
+      this.sound('open');
+      await this.travel(schoolArrival, 0);
+      this.say('Bem-vindo à Escola! Visite a sala de aula, a professora e o parque.');
     } else if (portal.world.id === 'home') {
       this.sound('open');
       await this.travel(homeArrival, 0);

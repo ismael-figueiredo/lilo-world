@@ -9,6 +9,7 @@ import { lowPoly } from '@presentation/world/materials';
 import { Nature } from '@presentation/world/nature';
 import { HOME_AREA, HomeArea } from '@presentation/world/home-area';
 import { NATURE_CAMP, NatureCamp } from '@presentation/world/nature-camp';
+import { SCHOOL_AREA, SchoolArea } from '@presentation/world/school-area';
 import { PORTAL_PLAZA, Portals } from '@presentation/world/portals';
 import { Sky } from '@presentation/world/sky';
 import { createTerrainMesh } from '@presentation/world/terrain-mesh';
@@ -33,6 +34,7 @@ export class GameWorld {
   private readonly city: City;
   private readonly camp: NatureCamp;
   private readonly home: HomeArea;
+  private readonly school: SchoolArea;
   private readonly portals = new Portals();
   private readonly nature: Nature;
   private readonly staticColliders: Collider[];
@@ -41,6 +43,7 @@ export class GameWorld {
     this.city = new City(assets);
     this.camp = new NatureCamp(assets);
     this.home = new HomeArea(assets);
+    this.school = new SchoolArea(assets);
     this.shape = new TerrainShape(random, {
       ...defaultTerrainOptions,
       flatAreas: [
@@ -48,6 +51,7 @@ export class GameWorld {
         { ...SOUTH_DISTRICT, height: CITY.height, blend: 12 },
         { ...NATURE_CAMP, blend: 10 },
         { ...HOME_AREA, blend: 10 },
+        { ...SCHOOL_AREA, blend: 10 },
         { ...PORTAL_PLAZA, blend: 10 },
       ],
     });
@@ -60,6 +64,7 @@ export class GameWorld {
       this.portals.group,
       this.camp.group,
       this.home.group,
+      this.school.group,
     );
     this.addPath(scene);
 
@@ -68,6 +73,7 @@ export class GameWorld {
         isInsideCity(x, z, 3) ||
         Math.hypot(x - NATURE_CAMP.x, z - NATURE_CAMP.z) < NATURE_CAMP.radius + 2 ||
         Math.hypot(x - HOME_AREA.x, z - HOME_AREA.z) < HOME_AREA.radius + 2 ||
+        Math.hypot(x - SCHOOL_AREA.x, z - SCHOOL_AREA.z) < SCHOOL_AREA.radius + 2 ||
         Math.hypot(x - PORTAL_PLAZA.x, z - PORTAL_PLAZA.z) < PORTAL_PLAZA.radius + 3 ||
         (Math.abs(x) < 5 && z < PATH.fromZ + 4 && z > PATH.toZ - 4),
     });
@@ -76,10 +82,16 @@ export class GameWorld {
       ...this.city.colliders,
       ...this.camp.colliders,
       ...this.home.colliders,
+      ...this.school.colliders,
       ...this.nature.colliders,
     ];
     this.colliders = this.staticColliders;
-    this.places = [...this.city.places, ...this.camp.places, ...this.home.places];
+    this.places = [
+      ...this.city.places,
+      ...this.camp.places,
+      ...this.home.places,
+      ...this.school.places,
+    ];
   }
 
   /** The traffic light cycle shared by the whole town. */
@@ -110,6 +122,7 @@ export class GameWorld {
       ...this.city.places,
       ...this.camp.places,
       ...this.home.places,
+      ...this.school.places,
       ...this.portals.places,
     ];
   }

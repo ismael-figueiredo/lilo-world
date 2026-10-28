@@ -29,7 +29,13 @@ export const worlds: readonly World[] = [
     missionIds: ['home-hygiene', 'home-dressing', 'home-table'],
     color: 0xf2a65a,
   },
-  { id: 'school', name: 'Escola e Parque', requiredStars: 9, missionIds: [], color: 0xb08ee6 },
+  {
+    id: 'school',
+    name: 'Escola e Parque',
+    requiredStars: 9,
+    missionIds: ['school-backpack', 'school-talk', 'school-turn'],
+    color: 0xb08ee6,
+  },
   { id: 'emotions', name: 'Emoções', requiredStars: 12, missionIds: [], color: 0xf07a9a },
 ];
 
@@ -226,6 +232,51 @@ function settingTable(id: string, meal: string, items: readonly Tableware[]): Mi
       prompt: `${index === 0 ? 'Pegue' : 'Agora, pegue'} ${tableware[item][2]}.`,
     })),
     farewell: 'A mesa está pronta! Bom apetite!',
+  };
+}
+
+/** School things, with how the mascot names them. */
+const schoolThings = {
+  notebook: ['caderno', '📓', 'o caderno'],
+  pencil: ['lápis', '✏️', 'o lápis'],
+  crayons: ['giz de cera', '🖍️', 'o giz de cera'],
+  book: ['livro', '📕', 'o livro'],
+  lunchbox: ['lancheira', '🍱', 'a lancheira'],
+  bottle: ['garrafinha', '🥤', 'a garrafinha'],
+  ruler: ['régua', '📏', 'a régua'],
+  scissors: ['tesoura', '✂️', 'a tesoura'],
+  sneakers: ['tênis', '👟', 'o tênis'],
+  ball: ['bola', '⚽', 'a bola'],
+} as const;
+
+type SchoolThing = keyof typeof schoolThings;
+
+function backpack(id: string, day: string, items: readonly SchoolThing[]): MissionVariant {
+  return {
+    id,
+    title: `Mochila para ${day}`,
+    introduction: `Hoje tem ${day}! Vamos arrumar a mochila. Olhe a lista.`,
+    steps: items.map((item, index) => ({
+      targetId: item,
+      prompt: `${index === 0 ? 'Ponha' : 'Agora, ponha'} ${schoolThings[item][2]} na mochila.`,
+    })),
+    farewell: 'Mochila pronta! Boa aula!',
+    result: '🎒',
+  };
+}
+
+/** Something to say at school with AAC cards. */
+function saying(
+  id: string,
+  introduction: string,
+  cards: readonly (readonly [string, string])[],
+  farewell: string,
+): MissionVariant {
+  return {
+    id,
+    introduction,
+    steps: cards.map(([targetId, prompt]) => ({ targetId, prompt })),
+    farewell,
   };
 }
 
@@ -516,6 +567,171 @@ export const missions: readonly Mission[] = [
     distractors: 2,
     reward: { coins: 10, stars: 1 },
     result: '🍽️',
+  },
+  {
+    id: 'school-backpack',
+    kind: 'pick-items',
+    worldId: 'school',
+    title: 'Arrumar a mochila',
+    introduction: 'Vamos arrumar a mochila! Olhe a lista.',
+    choices: Object.entries(schoolThings).map(([id, [label, pictogram]]) => ({
+      id,
+      label,
+      pictogram,
+    })),
+    steps: backpack('first', 'matemática', ['notebook', 'pencil', 'ruler']).steps,
+    variants: [
+      backpack('math', 'matemática', ['notebook', 'pencil', 'ruler']),
+      backpack('art', 'arte', ['crayons', 'scissors', 'notebook']),
+      backpack('reading', 'leitura', ['book', 'notebook', 'pencil']),
+      backpack('pe', 'educação física', ['sneakers', 'bottle', 'ball']),
+      backpack('lunch', 'passeio', ['lunchbox', 'bottle', 'book']),
+    ],
+    distractors: 3,
+    reward: { coins: 10, stars: 1 },
+  },
+  {
+    // AAC at school: greeting, asking for help, asking to go to the bathroom.
+    id: 'school-talk',
+    kind: 'build-sentence',
+    worldId: 'school',
+    title: 'Falar na escola',
+    introduction: 'Vamos falar com a professora! Monte a frase.',
+    choices: [
+      { id: 'hello', label: 'bom dia', pictogram: '👋' },
+      { id: 'i-need', label: 'eu preciso de', pictogram: '🙋' },
+      { id: 'can-i', label: 'posso', pictogram: '🤔' },
+      { id: 'teacher', label: 'professora', pictogram: '👩‍🏫' },
+      { id: 'friend', label: 'amigo', pictogram: '🧒' },
+      { id: 'help', label: 'ajuda', pictogram: '🆘' },
+      { id: 'bathroom', label: 'ir ao banheiro', pictogram: '🚻' },
+      { id: 'water', label: 'beber água', pictogram: '💧' },
+      { id: 'play', label: 'brincar com você', pictogram: '⚽' },
+      { id: 'please', label: 'por favor', pictogram: '🙏' },
+    ],
+    steps: [
+      { targetId: 'hello', prompt: 'Toque em: bom dia.' },
+      { targetId: 'teacher', prompt: 'Agora, toque em: professora.' },
+    ],
+    variants: [
+      saying(
+        'greet-teacher',
+        'Você chegou na escola! Vamos dar bom dia para a professora.',
+        [
+          ['hello', 'Toque em: bom dia.'],
+          ['teacher', 'Agora, toque em: professora.'],
+        ],
+        'Bom dia! Que bom te ver!',
+      ),
+      saying(
+        'greet-friend',
+        'Seu amigo chegou! Vamos cumprimentar.',
+        [
+          ['hello', 'Toque em: bom dia.'],
+          ['friend', 'Agora, toque em: amigo.'],
+        ],
+        'Bom dia, amigo!',
+      ),
+      saying(
+        'help',
+        'A tarefa está difícil. Vamos pedir ajuda.',
+        [
+          ['i-need', 'Toque em: eu preciso de.'],
+          ['help', 'Agora, toque em: ajuda.'],
+          ['please', 'E para terminar: por favor.'],
+        ],
+        'Claro! Eu te ajudo.',
+      ),
+      saying(
+        'bathroom',
+        'Você quer ir ao banheiro. Vamos pedir.',
+        [
+          ['can-i', 'Toque em: posso.'],
+          ['bathroom', 'Agora, toque em: ir ao banheiro.'],
+          ['please', 'E para terminar: por favor.'],
+        ],
+        'Pode sim! Volte logo.',
+      ),
+      saying(
+        'water',
+        'Você está com sede. Vamos pedir.',
+        [
+          ['can-i', 'Toque em: posso.'],
+          ['water', 'Agora, toque em: beber água.'],
+          ['please', 'E para terminar: por favor.'],
+        ],
+        'Pode sim!',
+      ),
+      saying(
+        'play',
+        'Você quer brincar com um amigo. Vamos convidar.',
+        [
+          ['can-i', 'Toque em: posso.'],
+          ['play', 'Agora, toque em: brincar com você.'],
+        ],
+        'Oba! Vamos brincar!',
+      ),
+    ],
+    distractors: 3,
+    reward: { coins: 10, stars: 1 },
+  },
+  {
+    id: 'school-turn',
+    kind: 'sequence',
+    worldId: 'school',
+    title: 'Esperar a vez',
+    introduction: 'Vamos brincar no parque, cada um na sua vez!',
+    choices: [
+      { id: 'line', label: 'entrar na fila', pictogram: '🧍' },
+      { id: 'wait-friend', label: 'esperar o amigo descer', pictogram: '⏳' },
+      { id: 'climb', label: 'subir a escada', pictogram: '🪜' },
+      { id: 'slide', label: 'escorregar', pictogram: '🛝' },
+      { id: 'back-line', label: 'voltar para a fila', pictogram: '🔁' },
+      { id: 'wait-stop', label: 'esperar o balanço parar', pictogram: '⏳' },
+      { id: 'sit', label: 'sentar', pictogram: '🪑' },
+      { id: 'hold', label: 'segurar firme', pictogram: '✊' },
+      { id: 'swing', label: 'balançar', pictogram: '🎠' },
+      { id: 'give-turn', label: 'dar a vez ao amigo', pictogram: '🤝' },
+    ],
+    steps: [
+      { targetId: 'line', prompt: 'O que vem primeiro?' },
+      { targetId: 'wait-friend', prompt: 'Tem um amigo no escorregador. E agora?' },
+      { targetId: 'climb', prompt: 'Chegou a sua vez! E agora?' },
+      { targetId: 'slide', prompt: 'Você está lá em cima. E agora?' },
+      { targetId: 'back-line', prompt: 'Que legal! Para brincar de novo?' },
+    ],
+    variants: [
+      {
+        id: 'slide',
+        title: 'A vez no escorregador',
+        introduction: 'Vamos ao escorregador, cada um na sua vez!',
+        steps: [
+          { targetId: 'line', prompt: 'O que vem primeiro?' },
+          { targetId: 'wait-friend', prompt: 'Tem um amigo no escorregador. E agora?' },
+          { targetId: 'climb', prompt: 'Chegou a sua vez! E agora?' },
+          { targetId: 'slide', prompt: 'Você está lá em cima. E agora?' },
+          { targetId: 'back-line', prompt: 'Que legal! Para brincar de novo?' },
+        ],
+        farewell: 'Você esperou a sua vez. Muito bem!',
+        result: '🛝',
+      },
+      {
+        id: 'swing',
+        title: 'A vez no balanço',
+        introduction: 'Vamos ao balanço, cada um na sua vez!',
+        steps: [
+          { targetId: 'wait-stop', prompt: 'O que vem primeiro?' },
+          { targetId: 'sit', prompt: 'O balanço parou. E agora?' },
+          { targetId: 'hold', prompt: 'Sentou! Para não cair?' },
+          { targetId: 'swing', prompt: 'Segurando firme. E agora?' },
+          { targetId: 'give-turn', prompt: 'Seu amigo está esperando. E agora?' },
+        ],
+        farewell: 'Você deu a vez. Que gentil!',
+        result: '🤝',
+      },
+    ],
+    distractors: 0,
+    reward: { coins: 10, stars: 1 },
   },
 ];
 
