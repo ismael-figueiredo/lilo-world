@@ -5,6 +5,7 @@ import type { GameContext } from '@presentation/game-context';
 import { MissionPanel } from '@presentation/ui/mission-panel';
 import { CITY, CityPlace, CROSSWALK } from '@presentation/world/city';
 import { CrossingTracker, type CrossingEvent } from '@presentation/world/crosswalk';
+import { HomePlace } from '@presentation/world/home-area';
 import { NaturePlace } from '@presentation/world/nature-camp';
 
 /** Where each mission happens in the open world. */
@@ -16,6 +17,9 @@ export const missionPlaces: Readonly<Record<string, string>> = {
   'nature-animals': NaturePlace.farm,
   'nature-garden': NaturePlace.garden,
   'nature-recycling': NaturePlace.recycling,
+  'home-hygiene': HomePlace.bathroom,
+  'home-dressing': HomePlace.bedroom,
+  'home-table': HomePlace.kitchen,
 };
 
 /** What the crosswalk task reports, as the mission's choice ids. */
@@ -72,7 +76,12 @@ export class MissionController {
       this.ctx.avatar.placeAt(place.position, 0);
       const { x, y, z } = place.position;
       // Look at the building from the street, whichever side of it the place is.
-      const side = Math.sign(z - CITY.z) || 1;
+      const side =
+        place.viewFrom === 'south'
+          ? -1
+          : place.viewFrom === 'north'
+            ? 1
+            : Math.sign(z - CITY.z) || 1;
       this.ctx.rig.setFocus(
         new THREE.Vector3(x - 3, y + 3.4, z - 8 * side),
         new THREE.Vector3(x, y + 2.2, z + 3 * side),

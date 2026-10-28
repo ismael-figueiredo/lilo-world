@@ -13,8 +13,9 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | 4a: padaria (CAA), ônibus (sequência), semáforo (no mundo 3D)       | ✅ feito   | `a8f4dfd` |
 | 4b: estações de aprendizado, figurinhas, alfabeto, caixa do mercado | ✅ feito   | `2780634` |
 | 4c: missões sorteadas, receitas no mercado, bairro sul com praça    | ✅ feito   | `0d41a2d` |
-| 4d: mundo Natureza (acampamento, fazenda, horta, reciclagem)        | ✅ feito   | —         |
-| 4e: mercado 3D por dentro, ônibus 3D, mundo Casa (rotinas)          | ⏭️ próximo | —         |
+| 4d: mundo Natureza (acampamento, fazenda, horta, reciclagem)        | ✅ feito   | `3139b1f` |
+| 4e: mundo Casa (banheiro, quarto, cozinha)                          | ✅ feito   | —         |
+| 4f: mundo Escola e Parque, mercado 3D por dentro, ônibus 3D         | ⏭️ próximo | —         |
 | 5: mundo vivo                                                       | ⏳ depois  | —         |
 
 ## Sprint 3: mundo bonito, água e controle (feito)
@@ -79,7 +80,21 @@ Pendências pequenas: testar com controle físico (só a lógica tem teste); a �
 - Com a Natureza, a Cidade + Natureza dão 7 estrelas: a Casa (6) abre pelas missões.
 - Pipeline: modelos do mundo perdem animações e esqueleto (ficam parados); sem isso, a compressão perdia a escala dos animais e eles sumiam. `WorldAssets.clone` usa `SkeletonUtils.clone`.
 
-## Sprint 4e: próximos
+## Sprint 4e: mundo Casa (feito)
+
+- O portal da Casa (6 estrelas) leva com fade a uma "casa de bonecas" aberta na frente, a leste do bairro sul (`src/presentation/world/home-area.ts`, `HOME_AREA`), com banheiro, quarto e cozinha mobiliados e um portal de volta.
+- Missões (1 estrela cada, com variantes):
+  - **Cuidar de mim** (`home-hygiene`, sequência): escovar os dentes (4 passos) ou lavar as mãos (5 passos).
+  - **Roupa para o tempo** (`home-dressing`, quiz): frio → casaco, chuva → guarda-chuva, calor → bermuda, lama → botas, praia → chinelo…
+  - **Pôr a mesa** (`home-table`, lista): almoço, café da manhã ou jantar.
+- `Interactable.viewFrom` escolhe de que lado a câmera mostra o lugar na missão (os cômodos abrem para o sul).
+- Teste novo: a introdução nunca repete a primeira instrução (antes saía "O que vem primeiro? O que vem primeiro?").
+- Agora Cidade + Natureza + Casa dão 10 estrelas: Escola e Parque (9) abre. Falta o conteúdo dela.
+
+## Sprint 4f: próximos
+
+- **Escola e Parque** (9 estrelas): sala de aula e parque. Ideias: arrumar a mochila (lista), cumprimentar e pedir ajuda (CAA), esperar a vez no escorregador (sequência).
+- **Emoções** (12 estrelas): reconhecer feliz, triste, bravo, com medo (quiz com rostos) e "o que me acalma".
 
 - **Mercado 3D por dentro:** transição com fade para um interior com prateleiras de frutas 3D e um carrinho; a criança anda até o item e o item voa para o carrinho; no caixa, uma pessoa (modelo CC0) diz "Obrigado!".
 - **Ônibus em 3D:** o ônibus estacionado vem até o ponto durante a missão e a criança entra nele.

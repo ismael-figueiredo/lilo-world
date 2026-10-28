@@ -122,9 +122,10 @@ As fronteiras são **garantidas pelo lint**: um `import` do domínio para a infr
 - [x] **v0.2, sprint 4b:** estações de Letras, Números e Moedas com dificuldade adaptativa, álbum de figurinhas, alfabeto colecionável e caixa do mercado (pagar contando moedas)
 - [x] **v0.2, sprint 4c:** missões que mudam a cada vez (9 receitas no mercado, lanches na padaria), bairro novo com avenida, praça com coreto e parquinho
 - [x] **v0.2, sprint 4d:** mundo Natureza: acampamento com fazenda (sons dos animais), horta (plantar uma flor) e reciclagem (separar o lixo)
-- [ ] **v0.2, próximos sprints:** mercado 3D por dentro, ônibus em 3D, mundo Casa (rotinas) e mundo vivo (pessoas, carros, barcos, animais)
+- [x] **v0.2, sprint 4e:** mundo Casa: escovar os dentes e lavar as mãos, escolher a roupa para o tempo e pôr a mesa
+- [ ] **v0.2, próximos sprints:** mundos Escola e Parque e Emoções, mercado 3D por dentro, ônibus em 3D e mundo vivo (pessoas, carros, barcos, animais)
 - [ ] **Fase 2:** missões do ônibus, do semáforo e da padaria (frases com CAA: **[eu quero] + [pão]**), painel de ajustes sensoriais, álbum de figurinhas, pictogramas ARASAAC, PWA offline
-- [ ] **Fase 3:** mundos Casa (rotinas) e Emoções
+- [ ] **Fase 3:** mundos Escola e Parque e Emoções
 - [ ] **Fase 4:** painel para pais e terapeutas, fotos e figuras personalizadas, traduções
 
 Quer ajudar numa dessas etapas? Veja as [issues](https://github.com/ismael-figueiredo/lilo-world/issues) e o [guia de contribuição](CONTRIBUTING.md).

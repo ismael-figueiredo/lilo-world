@@ -34,6 +34,7 @@ import { GameWorld } from '@presentation/world/game-world';
 import { GoalMarker } from '@presentation/world/goal-marker';
 import type { Interactable } from '@presentation/world/interactable';
 import { captureMap } from '@presentation/world/map-snapshot';
+import { homeArrival, HomePlace } from '@presentation/world/home-area';
 import { campArrival, NaturePlace } from '@presentation/world/nature-camp';
 import { PORTAL_PLAZA, portalId } from '@presentation/world/portals';
 import { skillOfStation } from '@presentation/world/stations';
@@ -580,7 +581,7 @@ export class GameApp implements GameContext {
       await this.wardrobe.open();
       return;
     }
-    if (place.id === NaturePlace.back) {
+    if (place.id === NaturePlace.back || place.id === HomePlace.back) {
       this.sound('open');
       await this.travel(
         new THREE.Vector3(PORTAL_PLAZA.x, PORTAL_PLAZA.height, PORTAL_PLAZA.z + 7),
@@ -604,6 +605,10 @@ export class GameApp implements GameContext {
       this.sound('open');
       await this.travel(campArrival, Math.PI / 2);
       this.say('Bem-vindo à Natureza! Visite a fazenda, a horta e a reciclagem.');
+    } else if (portal.world.id === 'home') {
+      this.sound('open');
+      await this.travel(homeArrival, 0);
+      this.say('Bem-vindo à Casa! Vamos cuidar das nossas rotinas.');
     } else {
       this.say(`${portal.world.name} ainda está sendo construído!`);
     }

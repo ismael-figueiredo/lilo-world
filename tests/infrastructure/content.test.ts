@@ -37,6 +37,14 @@ describe('bundled content', () => {
     }
   });
 
+  it('never says the same sentence twice when a mission starts', () => {
+    const versions = missions.flatMap((mission) => [mission, ...(mission.variants ?? [])]);
+    for (const version of versions) {
+      const first = version.steps[0]?.prompt ?? '';
+      expect(version.introduction.endsWith(first), version.introduction).toBe(false);
+    }
+  });
+
   it('charges one coin per thing bought at the market', () => {
     const market = missions.find((m) => m.id === 'city-market');
     expect(market?.variants?.length).toBeGreaterThanOrEqual(5);

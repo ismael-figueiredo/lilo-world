@@ -15,4 +15,9 @@ export interface Interactable {
   readonly name: string;
   /** Places shown as one pin on the map (all the portals, for example). */
   readonly mapGroup?: string;
+  /**
+   * Where the camera stands to show the place during a mission. By default it
+   * looks from the main street's side; 'south' looks from larger z.
+   */
+  readonly viewFrom?: 'north' | 'south';
 }
