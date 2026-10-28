@@ -696,6 +696,13 @@ button {
 }
 
 /* ---------- Shared ---------- */
+/* Playing with a controller: the focused button must be easy to spot. */
+.is-pad :focus {
+  outline: 6px solid var(--sun);
+  outline-offset: 4px;
+  box-shadow: 0 0 0 12px rgba(255, 210, 63, 0.35);
+}
+
 .is-hidden {
   display: none !important;
 }

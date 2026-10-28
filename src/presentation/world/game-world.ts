@@ -11,6 +11,7 @@ import { Sky } from '@presentation/world/sky';
 import { createTerrainMesh } from '@presentation/world/terrain-mesh';
 import { defaultTerrainOptions, TerrainShape } from '@presentation/world/terrain-shape';
 import { Water } from '@presentation/world/water';
+import type { WorldAssets } from '@presentation/world/world-assets';
 
 /** Path of stones from the side street up to the portal hill. */
 const PATH = { fromZ: -CITY.radius + 2, toZ: PORTAL_PLAZA.z + PORTAL_PLAZA.radius - 2 } as const;
@@ -26,12 +27,13 @@ export class GameWorld {
   places: readonly Interactable[] = [];
 
   private readonly water = new Water();
-  private readonly city = new City();
+  private readonly city: City;
   private readonly portals = new Portals();
   private readonly nature: Nature;
   private readonly staticColliders: Collider[];
 
-  constructor(scene: THREE.Scene, random: Random) {
+  constructor(scene: THREE.Scene, random: Random, assets: WorldAssets) {
+    this.city = new City(assets);
     this.shape = new TerrainShape(random, {
       ...defaultTerrainOptions,
       flatAreas: [
@@ -45,7 +47,7 @@ export class GameWorld {
     scene.add(this.water.mesh, this.city.group, this.portals.group);
     this.addPath(scene);
 
-    this.nature = new Nature(this.shape, random, {
+    this.nature = new Nature(this.shape, random, assets, {
       keepClear: (x, z) =>
         isInsideCity(x, z, 3) ||
         Math.hypot(x - PORTAL_PLAZA.x, z - PORTAL_PLAZA.z) < PORTAL_PLAZA.radius + 3 ||

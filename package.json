@@ -24,7 +24,7 @@
     "test:coverage": "vitest run --coverage",
     "check": "pnpm lint && pnpm typecheck && pnpm test:coverage",
     "prepare": "husky",
-    "assets": "node scripts/optimize-avatars.mjs"
+    "assets": "node scripts/optimize-avatars.mjs && node scripts/optimize-world.mjs"
   },
   "lint-staged": {
     "*.{ts,js}": [
@@ -50,7 +50,9 @@
     "globals": "^17.13.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
+    "meshoptimizer": "1.1.1",
     "prettier": "^3.9.10",
+    "sharp": "0.35.5",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.1",
     "vite": "^8.3.5",

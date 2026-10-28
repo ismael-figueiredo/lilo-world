@@ -1,6 +1,10 @@
+import type { PadFrame } from '@presentation/engine/gamepad';
 import { idleInput, keyboardInput, type MoveInput } from '@presentation/engine/movement';
 
 const BLOCKED_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+
+/** Camera turn from a fully pushed right stick, in "mouse pixels" per second. */
+const PAD_LOOK_SPEED = 420;
 
 const isTyping = (target: EventTarget | null): boolean =>
   target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
@@ -12,6 +16,7 @@ const isTyping = (target: EventTarget | null): boolean =>
 export class Input {
   private readonly keys = new Set<string>();
   private joystick: MoveInput = idleInput;
+  private pad: MoveInput = idleInput;
   private jumpQueued = false;
   private actionQueued = false;
   private look = { x: 0, y: 0 };
@@ -31,7 +36,17 @@ export class Input {
 
   get move(): MoveInput {
     if (!this.enabled) return idleInput;
-    return this.joystick !== idleInput ? this.joystick : keyboardInput(this.keys);
+    if (this.joystick !== idleInput) return this.joystick;
+    return this.pad !== idleInput ? this.pad : keyboardInput(this.keys);
+  }
+
+  /** Feeds one frame of the controller (moving, camera, jump and use). */
+  applyPad(frame: PadFrame, dt: number): void {
+    this.pad = frame.move;
+    this.look.x += frame.look.x * PAD_LOOK_SPEED * dt;
+    this.look.y += frame.look.y * PAD_LOOK_SPEED * dt;
+    if (frame.jump) this.jumpQueued = true;
+    if (frame.action) this.actionQueued = true;
   }
 
   setJoystick(input: MoveInput): void {
@@ -62,6 +77,7 @@ export class Input {
   reset(): void {
     this.keys.clear();
     this.joystick = idleInput;
+    this.pad = idleInput;
     this.jumpQueued = false;
     this.actionQueued = false;
     this.look = { x: 0, y: 0 };

@@ -7,14 +7,18 @@ import {
   bus,
   busStop,
   fountain,
-  fruitCrate,
-  house,
-  shop,
   streetLamp,
   trafficLight,
   type TrafficLight,
 } from '@presentation/world/props';
-import { createSign } from '@presentation/world/sign';
+import { createPostSign, createSign } from '@presentation/world/sign';
+import {
+  fitFootprint,
+  fitHeight,
+  type Recolor,
+  type WorldAssets,
+  type WorldModelId,
+} from '@presentation/world/world-assets';
 
 export const CITY = { x: 0, z: 0, radius: 50, height: 1.5 } as const;
 
@@ -32,6 +36,17 @@ const SIDEWALK = 3;
 const LOT_START = ROAD_WIDTH / 2 + SIDEWALK + 0.5;
 const CROSSWALK_X = 5.2;
 
+/** Where a building ended up: its front faces the main street. */
+interface Lot {
+  /** Street-side face of the building (world z inside the city group). */
+  readonly front: number;
+  /** Spot on the sidewalk in front of the door. */
+  readonly doorZ: number;
+  readonly height: number;
+}
+
+const HOUSE_MODELS: readonly WorldModelId[] = ['house-gable', 'house-porch'];
+
 /**
  * A small, calm town: one main street, a side street to the portal hill, the
  * player's home, the market, the bakery and the bus stop.
@@ -43,7 +58,7 @@ export class City {
   private readonly trafficLights: TrafficLight[] = [];
   private fountainWater?: THREE.Mesh;
 
-  constructor() {
+  constructor(private readonly assets: WorldAssets) {
     this.group.position.y = CITY.height;
     this.addStreets();
     this.addBuildings();
@@ -109,18 +124,51 @@ export class City {
     }
   }
 
-  private addBuilding(
-    object: THREE.Group,
-    x: number,
-    width: number,
-    depth: number,
-    south: boolean,
-  ): { z: number; doorZ: number } {
-    const z = south ? LOT_START + depth / 2 : -(LOT_START + depth / 2);
-    this.place(object, x, z, !south);
-    const top = CITY.height + new THREE.Box3().setFromObject(object).max.y;
-    this.colliders.push(box(x, z, width + 0.4, depth + 0.4, top));
-    return { z, doorZ: south ? LOT_START - 1.6 : -(LOT_START - 1.6) };
+  /** A house model with its own wall and roof colors, sized to a lot. */
+  private house(model: WorldModelId, wall: number, roof: number, width: number, depth: number) {
+    const object = this.assets.clone(model, { White: wall, Grey: roof });
+    fitFootprint(object, width, depth);
+    return object;
+  }
+
+  /** A shop model (they face local -z, so it is turned around), sized by height. */
+  private shop(model: WorldModelId, recolor: Recolor, height: number) {
+    const group = new THREE.Group();
+    const inner = this.assets.clone(model, recolor);
+    inner.rotation.y = Math.PI;
+    group.add(inner);
+    fitHeight(group, height);
+    return group;
+  }
+
+  /**
+   * Puts a building (facing local +z) on its lot with the front `setback`
+   * meters behind the sidewalk, and blocks it for walking and the camera.
+   */
+  private addBuilding(object: THREE.Object3D, x: number, south: boolean, setback = 0): Lot {
+    const bounds = new THREE.Box3().setFromObject(object);
+    const frontDistance = LOT_START + setback;
+    const offsetX = (bounds.min.x + bounds.max.x) / 2;
+    const centerZ = (bounds.min.z + bounds.max.z) / 2;
+    // South-side buildings are turned around to face the street (local x and z flip).
+    const z = south ? frontDistance + bounds.max.z : -frontDistance - bounds.max.z;
+    this.place(object, south ? x + offsetX : x - offsetX, z, !south);
+    const width = bounds.max.x - bounds.min.x;
+    const depth = bounds.max.z - bounds.min.z;
+    this.colliders.push(
+      box(
+        x,
+        south ? z - centerZ : z + centerZ,
+        width + 0.3,
+        depth + 0.3,
+        CITY.height + bounds.max.y,
+      ),
+    );
+    return {
+      front: south ? frontDistance : -frontDistance,
+      doorZ: south ? frontDistance - 1.6 : -(frontDistance - 1.6),
+      height: bounds.max.y,
+    };
   }
 
   private addPlace(
@@ -143,77 +191,105 @@ export class City {
     });
   }
 
-  private addSign(
+  /** A sign on the facade, just in front of the building's street side. */
+  private addFacadeSign(
     lines: readonly string[],
     background: string,
     x: number,
     y: number,
-    z: number,
-    south: boolean,
+    lot: Lot,
     width = 5,
   ): void {
     const sign = createSign(lines, { background, color: '#ffffff', width, height: 1.3 });
-    sign.position.set(x, y, z);
+    const south = lot.front > 0;
+    sign.position.set(x, y, lot.front + (south ? -0.25 : 0.25));
     sign.rotation.y = south ? Math.PI : 0;
     this.group.add(sign);
   }
 
   private addBuildings(): void {
-    // Player's home (south side, faces the street).
-    const home = this.addBuilding(
-      house({ width: 9, depth: 8, height: 5, wall: 0xfff1d6, roof: 0xe8604c, door: 0x4d8fd6 }),
-      -22,
-      9,
-      8,
-      true,
+    // Player's home (south side, faces the street), with a sign in the front yard.
+    const home = this.addBuilding(this.house('house-gable', 0xffe0a8, 0xe8604c, 9, 8), -22, true);
+    const homeSign = createPostSign(
+      ['🏠 Minha casa'],
+      {
+        background: '#e8604c',
+        color: '#ffffff',
+        width: 3.6,
+        height: 1.1,
+      },
+      1.2,
     );
-    this.addSign(['🏠 Minha casa'], '#e8604c', -22, 6.2, home.z - 4.12, true, 4.2);
-    this.addPlace(CityPlace.home, -22, home.doorZ, 5.8, '🏠', 'Guarda-roupa', 'Minha casa');
+    this.place(homeSign, -26.4, home.front - 0.6, false);
+    this.colliders.push(box(-26.4, home.front - 0.6, 3, 0.4));
+    this.addPlace(
+      CityPlace.home,
+      -22,
+      home.doorZ,
+      home.height + 0.8,
+      '🏠',
+      'Guarda-roupa',
+      'Minha casa',
+    );
 
     const market = this.addBuilding(
-      shop({ width: 12, depth: 9, height: 5.5, wall: 0x7fd1ae, stripes: [0xe8504c, 0xffffff] }),
+      this.shop('shop-wide', { _defaultMat: 0x8fdcb8, roof: 0xe8504c, border: 0x2f9e6e }, 6.2),
       18,
-      12,
-      9,
       true,
+      2.4,
     );
-    this.addSign(['🍎 MERCADO'], '#2f9e6e', 18, 6.6, market.z - 4.62, true, 6);
-    this.addPlace(CityPlace.market, 18, market.doorZ, 6.2, '🛒', 'Entrar no mercado', 'Mercado');
-    for (const [dx, fruit] of [
-      [-4.6, 0xe8433b],
-      [4.6, 0xffd23f],
-    ] as const) {
-      this.place(fruitCrate(fruit), 18 + dx, LOT_START + 0.2);
-      this.colliders.push(box(18 + dx, LOT_START + 0.2, 1.3, 0.9));
+    this.addFacadeSign(['🍎 MERCADO'], '#2f9e6e', 18, market.height * 0.62, market, 6);
+    this.addPlace(
+      CityPlace.market,
+      18,
+      market.doorZ,
+      market.height + 0.6,
+      '🛒',
+      'Entrar no mercado',
+      'Mercado',
+    );
+    for (const dx of [-4.4, 4.4]) {
+      const stall = this.assets.clone('market-stall');
+      fitFootprint(stall, 3.4, 2.6);
+      // Stalls face the sidewalk, beside the door.
+      this.place(stall, 18 + dx, LOT_START + 1.2, false);
+      this.colliders.push(box(18 + dx, LOT_START + 1.2, 3.4, 2.2));
     }
 
     const bakery = this.addBuilding(
-      shop({ width: 9, depth: 8, height: 5, wall: 0xf6c28b, stripes: [0x8a5a3b, 0xfff1d6] }),
+      this.shop('shop-tall', { _defaultMat: 0xf6c28b, roof: 0x8a5a3b, border: 0xa0643c }, 8),
       20,
-      9,
-      8,
       false,
     );
-    this.addSign(['🍞 PADARIA'], '#a0643c', 20, 6.1, bakery.z + 4.12, false, 5);
-    this.addPlace(CityPlace.bakery, 20, bakery.doorZ, 6, '🥐', 'Padaria', 'Padaria');
+    this.addFacadeSign(['🍞 PADARIA'], '#a0643c', 20, 3.3, bakery, 4.4);
+    this.addPlace(
+      CityPlace.bakery,
+      20,
+      bakery.doorZ,
+      bakery.height + 0.6,
+      '🥐',
+      'Padaria',
+      'Padaria',
+    );
 
     const homes: readonly [number, boolean, number, number][] = [
-      [-38, true, 0xcfe8ff, 0x4d6fd6],
-      [2, true, 0xffe3ec, 0x9b6bf2],
-      [36, true, 0xfff6c9, 0x3fae5a],
-      [-36, false, 0xe2f7d9, 0xe8904c],
-      [-18, false, 0xf9e0ff, 0xe8604c],
-      [38, false, 0xd9f2ff, 0xe8b14c],
+      [-38, true, 0x9fd0ff, 0x4d6fd6],
+      [2, true, 0xffb8cf, 0x9b6bf2],
+      [36, true, 0xffe27a, 0x3fae5a],
+      [-36, false, 0xb6ec9c, 0xe8904c],
+      [-18, false, 0xe3b8ff, 0xe8604c],
+      [38, false, 0xa8e6f0, 0xe8b14c],
     ];
-    for (const [x, south, wall, roof] of homes) {
-      this.addBuilding(
-        house({ width: 8, depth: 7, height: 4.4, wall, roof, door: 0x8a5a3b }),
-        x,
-        8,
-        7,
-        south,
-      );
-    }
+    homes.forEach(([x, south, wall, roof], index) => {
+      const model = HOUSE_MODELS[index % HOUSE_MODELS.length] ?? 'house-gable';
+      const lot = this.addBuilding(this.house(model, wall, roof, 8, 7), x, south);
+      // A little garden by the door.
+      for (const dx of [-3, 3]) {
+        const flowers = this.assets.clone(dx < 0 ? 'flower-group' : 'bush-flowers');
+        fitHeight(flowers, 0.9);
+        this.place(flowers, x + dx, lot.front + (south ? -0.5 : 0.5));
+      }
+    });
   }
 
   private addStreetLife(): void {
@@ -221,7 +297,13 @@ export class City {
     // North side of the street: the shelter's back wall faces away from the road.
     this.place(stop, -12, -(ROAD_WIDTH / 2 + 1.6));
     this.colliders.push(box(-12, -(ROAD_WIDTH / 2 + 2.2), 4.4, 0.4));
-    this.addSign(['🚌 ÔNIBUS'], '#2e86de', -12 + 2.6, 3.6, -(ROAD_WIDTH / 2 + 1.2), false, 2.6);
+    const stopSign = createPostSign(
+      ['🚌 ÔNIBUS'],
+      { background: '#2e86de', color: '#ffffff', width: 2.6, height: 1 },
+      2.2,
+    );
+    this.place(stopSign, -12 + 2.9, -(ROAD_WIDTH / 2 + 0.9));
+    this.colliders.push(circle(-12 + 2.9, -(ROAD_WIDTH / 2 + 0.9), 0.4));
     this.places.push({
       id: CityPlace.busStop,
       position: new THREE.Vector3(-12, CITY.height, -(ROAD_WIDTH / 2 + 0.5)),
@@ -235,6 +317,21 @@ export class City {
     const parkedBus = bus();
     this.place(parkedBus, -20, -1.7);
     this.colliders.push(box(-20, -1.7, 8.4, 3, CITY.height + 3.3));
+
+    // Cars parked by the curb, along the street.
+    const parked: readonly [WorldModelId, number, number, number][] = [
+      ['car', -33, 2.3, 1],
+      ['taxi', 29, 2.3, 1],
+      ['suv', -31, -2.3, -1],
+      ['car', 33, -2.3, -1],
+    ];
+    for (const [model, x, z, direction] of parked) {
+      const car = this.assets.clone(model, model === 'car' && x > 0 ? { Blue: 0xe8604c } : {});
+      car.scale.setScalar(1.1);
+      this.place(car, x, z);
+      car.rotation.y = (direction * Math.PI) / 2;
+      this.colliders.push(box(x, z, 4.8, 2.3, CITY.height + 1.6));
+    }
 
     const { group, water } = fountain();
     this.place(group, -9, 14);
@@ -267,9 +364,8 @@ export class City {
       }
     }
 
-    const treeTrunk = lowPoly(0x8a5a3b);
-    const treeTop = lowPoly(0x55c25a);
-    for (const [x, z] of [
+    const treeModels: readonly WorldModelId[] = ['tree-round', 'tree-twin', 'tree-tall'];
+    const streetTrees: readonly (readonly [number, number])[] = [
       [-30, 9],
       [-14, 9],
       [8, 9],
@@ -280,13 +376,14 @@ export class City {
       [-6, -20],
       [6, -30],
       [-6, -40],
-    ] as const) {
-      const tree = new THREE.Group();
-      tree.add(solid(new THREE.CylinderGeometry(0.2, 0.3, 2, 6), treeTrunk, [0, 1, 0]));
-      tree.add(solid(new THREE.IcosahedronGeometry(1.4, 0), treeTop, [0, 2.8, 0]));
+    ];
+    streetTrees.forEach(([x, z], index) => {
+      const tree = this.assets.clone(treeModels[index % treeModels.length] ?? 'tree-round');
+      fitHeight(tree, 5.2 + (index % 3) * 0.5);
       this.place(tree, x, z);
+      tree.rotation.y = index * 1.7;
       this.colliders.push(circle(x, z, 0.45));
-    }
+    });
   }
 }
 

@@ -63,9 +63,15 @@ importers:
       lint-staged:
         specifier: ^17.6.0
         version: 17.6.0
+      meshoptimizer:
+        specifier: 1.1.1
+        version: 1.1.1
       prettier:
         specifier: ^3.9.10
         version: 3.9.10
+      sharp:
+        specifier: 0.35.5
+        version: 0.35.5(@types/node@22.20.5)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3

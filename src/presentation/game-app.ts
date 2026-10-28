@@ -13,6 +13,7 @@ import { MenuController } from '@presentation/controllers/menu-controller';
 import { MissionController, missionPlaces } from '@presentation/controllers/mission-controller';
 import { WardrobeController } from '@presentation/controllers/wardrobe-controller';
 import { CameraRig } from '@presentation/engine/camera-rig';
+import { GamepadReader } from '@presentation/engine/gamepad';
 import { Input } from '@presentation/engine/input';
 import { seededRandom } from '@presentation/engine/math';
 import { cameraRelative } from '@presentation/engine/movement';
@@ -23,6 +24,7 @@ import { Dialog } from '@presentation/ui/dialog';
 import { h } from '@presentation/ui/dom';
 import { Hud } from '@presentation/ui/hud';
 import { Minimap } from '@presentation/ui/minimap';
+import { moveFocus, pressFocused } from '@presentation/ui/pad-focus';
 import { ProfileScreen } from '@presentation/ui/profile-screen';
 import { RestScreen } from '@presentation/ui/rest-screen';
 import { CityPlace } from '@presentation/world/city';
@@ -32,6 +34,7 @@ import { GoalMarker } from '@presentation/world/goal-marker';
 import type { Interactable } from '@presentation/world/interactable';
 import { captureMap } from '@presentation/world/map-snapshot';
 import { portalId } from '@presentation/world/portals';
+import { WorldAssets } from '@presentation/world/world-assets';
 import '@presentation/ui/styles.css';
 
 export interface GameAppOptions {
@@ -70,6 +73,10 @@ export class GameApp implements GameContext {
   private readonly wardrobe: WardrobeController;
   private readonly menus: MenuController;
   private readonly avatars: AvatarLibrary;
+  private readonly gamepad = new GamepadReader((connected) => {
+    this.input?.reset();
+    this.say(connected ? '🎮 Controle conectado!' : 'O controle desligou.');
+  });
 
   private renderer: THREE.WebGLRenderer | undefined;
   private gameWorld: GameWorld | undefined;
@@ -309,7 +316,8 @@ export class GameApp implements GameContext {
         fitToContainer(renderer, this.camera, this.root);
       });
 
-      const world = new GameWorld(this.scene, seededRandom(this.options.seed ?? 20261028));
+      const assets = await WorldAssets.load(this.options.baseUrl);
+      const world = new GameWorld(this.scene, seededRandom(this.options.seed ?? 20261028), assets);
       this.gameWorld = world;
       const player = await this.avatars.create(DEFAULT_AVATAR_ID);
       this.character = player;
@@ -450,6 +458,7 @@ export class GameApp implements GameContext {
     this.elapsed += dt;
 
     const exploring = this.currentMode === 'explore';
+    this.pollGamepad(dt, input, exploring);
     const look = input.consumeLook();
     if (exploring) rig.rotate(look.x, look.y);
 
@@ -484,6 +493,33 @@ export class GameApp implements GameContext {
     }
 
     renderer.render(this.scene, this.camera);
+  }
+
+  /** Controller: plays the game while exploring, moves the focus in panels. */
+  private pollGamepad(dt: number, input: Input, exploring: boolean): void {
+    const pad = this.gamepad.poll();
+    if (pad === undefined) return;
+    if (exploring) {
+      input.applyPad(pad, dt);
+      if (pad.menu) this.goBack();
+      return;
+    }
+    if (pad.navigate !== undefined || pad.confirm) document.body.classList.add('is-pad');
+    if (pad.navigate !== undefined) moveFocus(this.ui, pad.navigate);
+    if (pad.confirm) pressFocused(this.ui);
+    if (pad.back || pad.menu) this.goBack();
+  }
+
+  /** Esc, or B / Start on a controller: opens the menu or closes what is open. */
+  private goBack(): void {
+    if (this.currentMode === 'explore') this.menus.open();
+    else if (this.currentMode === 'menu') {
+      this.menus.closeAll();
+      this.backToExploring();
+    } else if (this.currentMode === 'wardrobe') {
+      this.wardrobe.close();
+      this.backToExploring();
+    } else if (this.currentMode === 'mission') void this.missions.exit();
   }
 
   private updateExploration(position: THREE.Vector3, input: Input): void {
@@ -655,15 +691,10 @@ export class GameApp implements GameContext {
       void this.saveSession();
     });
     window.addEventListener('keydown', (event) => {
-      if (event.key !== 'Escape') return;
-      if (this.currentMode === 'explore') this.menus.open();
-      else if (this.currentMode === 'menu') {
-        this.menus.closeAll();
-        this.backToExploring();
-      } else if (this.currentMode === 'wardrobe') {
-        this.wardrobe.close();
-        this.backToExploring();
-      } else if (this.currentMode === 'mission') void this.missions.exit();
+      if (event.key === 'Escape') this.goBack();
+    });
+    window.addEventListener('pointerdown', () => {
+      document.body.classList.remove('is-pad');
     });
   }
 
@@ -675,6 +706,20 @@ export class GameApp implements GameContext {
           const place = this.gameWorld?.places.find((p) => p.id === placeId);
           if (place !== undefined) this.character?.placeAt(place.position, 0);
           return place !== undefined;
+        },
+        teleport: (x: number, z: number, yaw?: number) => {
+          const world = this.gameWorld;
+          if (world === undefined) return false;
+          this.character?.placeAt(new THREE.Vector3(x, world.heightAt(x, z), z), 0);
+          if (yaw !== undefined && this.cameraRig !== undefined) this.cameraRig.yaw = yaw;
+          return world.isWalkable(x, z);
+        },
+        scene: this.scene,
+        where: () => {
+          const position = this.character?.position;
+          return position === undefined
+            ? undefined
+            : { x: position.x, y: position.y, z: position.z };
         },
         use: (placeId: string) => {
           const place = this.gameWorld?.places.find((p) => p.id === placeId);

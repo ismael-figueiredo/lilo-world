@@ -16,7 +16,39 @@ Os personagens são processados por `pnpm assets` (veja `scripts/avatars.json`):
 | Panda (`public/models/avatars/panda.glb`)              | Quaternius                                              | [fonte](https://poly.pizza/m/q1uJ28Hs8T)                                                                           | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | Sapo (`public/models/avatars/frog.glb`)                | Quaternius                                              | [fonte](https://poly.pizza/m/37wofOCOzG)                                                                           | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
 
-O mundo (terreno, cidade, árvores, portais, acessórios e o mascote Lilo) é gerado por código no próprio projeto e segue a licença do projeto.
+### Mundo
+
+Processados por `pnpm assets` (veja `scripts/world-assets.json`) e gravados em `public/models/world/`. As cores de casas, lojas e carros são trocadas no jogo.
+
+| Modelo                             | Autor      | Origem                                   | Licença                                                       |
+| ---------------------------------- | ---------- | ---------------------------------------- | ------------------------------------------------------------- |
+| House (`house-gable`)              | Quaternius | [fonte](https://poly.pizza/m/roqiHdrpgc) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| House (`house-porch`)              | Quaternius | [fonte](https://poly.pizza/m/HeHDd2rTpX) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Small Building (`shop-wide`)       | Kenney     | [fonte](https://poly.pizza/m/gyjF60t7CG) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Small Building (`shop-tall`)       | Kenney     | [fonte](https://poly.pizza/m/Rq572hdKEz) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Market Stalls (`market-stall`)     | Quaternius | [fonte](https://poly.pizza/m/jSqGy8V0MQ) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Car (`car`)                        | Quaternius | [fonte](https://poly.pizza/m/Cz6yDaUcM9) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| SUV (`suv`)                        | Quaternius | [fonte](https://poly.pizza/m/xsMtZhBkxL) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Taxi (`taxi`)                      | Quaternius | [fonte](https://poly.pizza/m/x43lOScTpN) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Tree (`tree-round`)                | Quaternius | [fonte](https://poly.pizza/m/qZtx0AHhcy) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Tree (`tree-tall`)                 | Quaternius | [fonte](https://poly.pizza/m/aVOxaHRPWe) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Tree (`tree-twin`)                 | Quaternius | [fonte](https://poly.pizza/m/t9KbsfYdXz) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Tree (`tree-slim`)                 | Quaternius | [fonte](https://poly.pizza/m/YWjGDJ9F7g) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Pine (`pine`)                      | Quaternius | [fonte](https://poly.pizza/m/79gmlLnweB) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Pine (`pine-wide`)                 | Quaternius | [fonte](https://poly.pizza/m/igSu0cPoBz) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Birch Tree (`birch`)               | Quaternius | [fonte](https://poly.pizza/m/k6cozoNfLH) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Bush (`bush`)                      | Quaternius | [fonte](https://poly.pizza/m/ooG6CkLyE8) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Bush with Flowers (`bush-flowers`) | Quaternius | [fonte](https://poly.pizza/m/U1ymDy8tbY) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Flower Group (`flower-group`)      | Quaternius | [fonte](https://poly.pizza/m/hfPzQAedOe) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Flowers (`flowers`)                | Quaternius | [fonte](https://poly.pizza/m/NBUxHir6FJ) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Grass (`grass-wide`)               | Quaternius | [fonte](https://poly.pizza/m/UGTOzcO3P2) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Grass (`grass-tall`)               | Quaternius | [fonte](https://poly.pizza/m/vUJjrRsFp4) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Rock Medium (`rock-big`)           | Quaternius | [fonte](https://poly.pizza/m/s1OJ3bBzqc) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Rock Medium (`rock-medium`)        | Quaternius | [fonte](https://poly.pizza/m/KZdEP3uUpa) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Rock (`rock-small`)                | Quaternius | [fonte](https://poly.pizza/m/Z6M4GNkgWt) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Mushroom (`mushroom`)              | Quaternius | [fonte](https://poly.pizza/m/db1tjMhmiA) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+
+O terreno, o mar, as ruas, o ônibus, postes, bancos, semáforo, fonte, portais, placas, acessórios e o mascote Lilo são gerados por código no próprio projeto e seguem a licença do projeto.
 
 ## Bibliotecas
 

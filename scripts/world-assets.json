@@ -1,0 +1,182 @@
+{
+  "$comment": "World models (buildings, vehicles, nature, street). All CC0 1.0 (see CREDITS.md). Run `pnpm assets` to rebuild public/models/world.",
+  "models": [
+    {
+      "id": "house-gable",
+      "name": "House",
+      "source": "https://static.poly.pizza/d42ffe97-ae91-40b8-9189-24fab8a608fb.glb",
+      "page": "https://poly.pizza/m/roqiHdrpgc",
+      "author": "Quaternius",
+      "simplify": 0.3
+    },
+    {
+      "id": "house-porch",
+      "name": "House",
+      "source": "https://static.poly.pizza/eba1a4e9-7203-4a79-b527-b6f5c65bb99e.glb",
+      "page": "https://poly.pizza/m/HeHDd2rTpX",
+      "author": "Quaternius",
+      "simplify": 0.3
+    },
+    {
+      "id": "shop-wide",
+      "name": "Small Building",
+      "source": "https://static.poly.pizza/23f5c878-1de4-4816-b227-9fc79adb6216.glb",
+      "page": "https://poly.pizza/m/gyjF60t7CG",
+      "author": "Kenney"
+    },
+    {
+      "id": "shop-tall",
+      "name": "Small Building",
+      "source": "https://static.poly.pizza/011e7321-3404-4d66-b759-39b0349ceb80.glb",
+      "page": "https://poly.pizza/m/Rq572hdKEz",
+      "author": "Kenney"
+    },
+    {
+      "id": "market-stall",
+      "name": "Market Stalls",
+      "source": "https://static.poly.pizza/5db05200-3d40-4d9b-b1b1-7ffec481e1b4.glb",
+      "page": "https://poly.pizza/m/jSqGy8V0MQ",
+      "author": "Quaternius"
+    },
+    {
+      "id": "car",
+      "name": "Car",
+      "source": "https://static.poly.pizza/59a67a6c-490e-472e-bae6-5a4d2541f1c7.glb",
+      "page": "https://poly.pizza/m/Cz6yDaUcM9",
+      "author": "Quaternius"
+    },
+    {
+      "id": "suv",
+      "name": "SUV",
+      "source": "https://static.poly.pizza/e5fbf2ee-5c9e-47d5-8ab6-80cacd463baa.glb",
+      "page": "https://poly.pizza/m/xsMtZhBkxL",
+      "author": "Quaternius"
+    },
+    {
+      "id": "taxi",
+      "name": "Taxi",
+      "source": "https://static.poly.pizza/3622a7bf-f213-44c8-8949-c1bdd1e961a9.glb",
+      "page": "https://poly.pizza/m/x43lOScTpN",
+      "author": "Quaternius"
+    },
+    {
+      "id": "tree-round",
+      "name": "Tree",
+      "source": "https://static.poly.pizza/24cf9df9-435f-408e-971b-640d670ce973.glb",
+      "page": "https://poly.pizza/m/qZtx0AHhcy",
+      "author": "Quaternius"
+    },
+    {
+      "id": "tree-tall",
+      "name": "Tree",
+      "source": "https://static.poly.pizza/7bf2aa94-cc44-40d9-a93c-9489eb09e008.glb",
+      "page": "https://poly.pizza/m/aVOxaHRPWe",
+      "author": "Quaternius"
+    },
+    {
+      "id": "tree-twin",
+      "name": "Tree",
+      "source": "https://static.poly.pizza/7f84a768-ac30-48d4-9c5d-f760492e7867.glb",
+      "page": "https://poly.pizza/m/t9KbsfYdXz",
+      "author": "Quaternius"
+    },
+    {
+      "id": "tree-slim",
+      "name": "Tree",
+      "source": "https://static.poly.pizza/856b5db4-21c1-406b-a800-d96843d1ec69.glb",
+      "page": "https://poly.pizza/m/YWjGDJ9F7g",
+      "author": "Quaternius"
+    },
+    {
+      "id": "pine",
+      "name": "Pine",
+      "source": "https://static.poly.pizza/082c2026-56af-4e3f-bea7-9ae5de71101f.glb",
+      "page": "https://poly.pizza/m/79gmlLnweB",
+      "author": "Quaternius"
+    },
+    {
+      "id": "pine-wide",
+      "name": "Pine",
+      "source": "https://static.poly.pizza/712aaefa-ae7f-4cb3-8834-a1b8860df3b2.glb",
+      "page": "https://poly.pizza/m/igSu0cPoBz",
+      "author": "Quaternius"
+    },
+    {
+      "id": "birch",
+      "name": "Birch Tree",
+      "source": "https://static.poly.pizza/f51ba6c2-51e9-43ce-b2a9-ccb0230b55e6.glb",
+      "page": "https://poly.pizza/m/k6cozoNfLH",
+      "author": "Quaternius"
+    },
+    {
+      "id": "bush",
+      "name": "Bush",
+      "source": "https://static.poly.pizza/6bbb833e-26cb-4bf9-ae67-a31b98e30bd9.glb",
+      "page": "https://poly.pizza/m/ooG6CkLyE8",
+      "author": "Quaternius"
+    },
+    {
+      "id": "bush-flowers",
+      "name": "Bush with Flowers",
+      "source": "https://static.poly.pizza/af83abca-9b41-4229-9652-e336a5f5eaba.glb",
+      "page": "https://poly.pizza/m/U1ymDy8tbY",
+      "author": "Quaternius"
+    },
+    {
+      "id": "flower-group",
+      "name": "Flower Group",
+      "source": "https://static.poly.pizza/89f163b2-af28-4dd7-bd09-ed7b80fde2b7.glb",
+      "page": "https://poly.pizza/m/hfPzQAedOe",
+      "author": "Quaternius"
+    },
+    {
+      "id": "flowers",
+      "name": "Flowers",
+      "source": "https://static.poly.pizza/c25cb5dc-3cd3-470c-a08c-045af0c0fe3d.glb",
+      "page": "https://poly.pizza/m/NBUxHir6FJ",
+      "author": "Quaternius"
+    },
+    {
+      "id": "grass-wide",
+      "name": "Grass",
+      "source": "https://static.poly.pizza/99357ca2-6364-4990-8d4c-9bc5a1a5e859.glb",
+      "page": "https://poly.pizza/m/UGTOzcO3P2",
+      "author": "Quaternius"
+    },
+    {
+      "id": "grass-tall",
+      "name": "Grass",
+      "source": "https://static.poly.pizza/0a84d74b-eb09-4794-ad58-dd10eed6b11e.glb",
+      "page": "https://poly.pizza/m/vUJjrRsFp4",
+      "author": "Quaternius"
+    },
+    {
+      "id": "rock-big",
+      "name": "Rock Medium",
+      "source": "https://static.poly.pizza/be5fef3a-4fa1-4d08-b2d4-82e02284588d.glb",
+      "page": "https://poly.pizza/m/s1OJ3bBzqc",
+      "author": "Quaternius"
+    },
+    {
+      "id": "rock-medium",
+      "name": "Rock Medium",
+      "source": "https://static.poly.pizza/aaf0aaa7-c244-430a-908b-2ac57567d81c.glb",
+      "page": "https://poly.pizza/m/KZdEP3uUpa",
+      "author": "Quaternius"
+    },
+    {
+      "id": "rock-small",
+      "name": "Rock",
+      "source": "https://static.poly.pizza/d5f4a307-766c-4448-94a6-c9b2a5c6de23.glb",
+      "page": "https://poly.pizza/m/Z6M4GNkgWt",
+      "author": "Quaternius"
+    },
+    {
+      "id": "mushroom",
+      "name": "Mushroom",
+      "source": "https://static.poly.pizza/c30dcc3b-c43d-4ce8-9b2d-6dd942b81fd7.glb",
+      "page": "https://poly.pizza/m/db1tjMhmiA",
+      "author": "Quaternius"
+    }
+  ]
+}

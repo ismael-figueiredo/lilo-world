@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { randomBetween, type Random } from '@presentation/engine/math';
 import { circle, type Collider } from '@presentation/world/collision';
-import { lowPoly } from '@presentation/world/materials';
 import type { TerrainShape } from '@presentation/world/terrain-shape';
+import type { WorldAssets, WorldModelId } from '@presentation/world/world-assets';
 
 export interface NatureOptions {
   /** Places where nothing should grow (city, paths, portal plaza). */
@@ -17,8 +17,16 @@ interface Placement {
   readonly rotation: number;
 }
 
-const greens = [0x4fb847, 0x3fa34a, 0x62c454, 0x2f8f45, 0x77cc4f];
-const flowerColors = [0xff6b8b, 0xffd23f, 0xffffff, 0xb48cff, 0xff9f43];
+/** How tall each plant model is drawn (before the random size of each one). */
+const TREE_HEIGHTS: readonly (readonly [WorldModelId, number])[] = [
+  ['tree-round', 6.2],
+  ['tree-tall', 6.8],
+  ['tree-twin', 6],
+  ['tree-slim', 6.6],
+  ['pine', 7.4],
+  ['pine-wide', 6.8],
+  ['birch', 5.8],
+];
 
 /** Trees, rocks, bushes, grass and flowers, drawn with instancing so tablets stay smooth. */
 export class Nature {
@@ -29,6 +37,7 @@ export class Nature {
   constructor(
     private readonly shape: TerrainShape,
     private readonly random: Random,
+    private readonly assets: WorldAssets,
     private readonly options: NatureOptions,
   ) {
     this.addTrees();
@@ -71,139 +80,98 @@ export class Nature {
     return placements;
   }
 
-  private instanced(
-    geometry: THREE.BufferGeometry,
-    material: THREE.Material,
-    placements: readonly Placement[],
-    transform: (p: Placement, matrix: THREE.Matrix4) => void,
-    colors?: readonly number[],
-    shadows = true,
-  ): void {
-    const mesh = new THREE.InstancedMesh(geometry, material, placements.length);
-    const matrix = new THREE.Matrix4();
-    const color = new THREE.Color();
-    placements.forEach((placement, index) => {
-      transform(placement, matrix);
-      mesh.setMatrixAt(index, matrix);
-      if (colors !== undefined) {
-        mesh.setColorAt(
-          index,
-          color.setHex(colors[Math.floor(this.random() * colors.length)] ?? 0xffffff),
-        );
+  /** Patches of plants: a few centers, each with several plants close together. */
+  private clusters(centers: number, perCluster: number, radius: number, minHeight: number) {
+    const placements: Placement[] = [];
+    for (const center of this.scatter(centers, minHeight, radius * 2)) {
+      for (let i = 0; i < perCluster; i += 1) {
+        const angle = this.random() * Math.PI * 2;
+        const distance = Math.sqrt(this.random()) * radius;
+        const x = center.x + Math.cos(angle) * distance;
+        const z = center.z + Math.sin(angle) * distance;
+        const y = this.shape.heightAt(x, z);
+        if (y < minHeight || this.options.keepClear(x, z)) continue;
+        placements.push({
+          x,
+          y,
+          z,
+          scale: randomBetween(this.random, 0.75, 1.25),
+          rotation: this.random() * Math.PI * 2,
+        });
       }
-    });
-    mesh.castShadow = shadows;
-    mesh.receiveShadow = true;
-    this.group.add(mesh);
+    }
+    return placements;
+  }
+
+  /**
+   * Draws a model at every placement: one InstancedMesh per mesh of the model.
+   * `height` is the size of the model at scale 1; `sink` pushes roots into slopes.
+   */
+  private instanced(
+    model: WorldModelId,
+    placements: readonly Placement[],
+    height: number,
+    { sink = 0, shadows = true }: { sink?: number; shadows?: boolean } = {},
+  ): void {
+    if (placements.length === 0) return;
+    const fit = height / Math.max(this.assets.size(model).y, 0.001);
+    const place = new THREE.Matrix4();
+    const matrix = new THREE.Matrix4();
+    const rotation = new THREE.Quaternion();
+    const up = new THREE.Vector3(0, 1, 0);
+    for (const part of this.assets.parts(model)) {
+      const mesh = new THREE.InstancedMesh(part.geometry, part.material, placements.length);
+      placements.forEach((p, index) => {
+        const size = fit * p.scale;
+        place.compose(
+          new THREE.Vector3(p.x, p.y - sink * size, p.z),
+          rotation.setFromAxisAngle(up, p.rotation),
+          new THREE.Vector3(size, size, size),
+        );
+        mesh.setMatrixAt(index, matrix.multiplyMatrices(place, part.matrix));
+      });
+      mesh.castShadow = shadows;
+      mesh.receiveShadow = true;
+      mesh.computeBoundingSphere();
+      this.group.add(mesh);
+    }
+  }
+
+  /** Splits placements among models in turn, so each kind is spread over the island. */
+  private static deal<T>(items: readonly T[], kinds: number): T[][] {
+    const hands: T[][] = Array.from({ length: kinds }, () => []);
+    items.forEach((item, index) => hands[index % kinds]?.push(item));
+    return hands;
   }
 
   private addTrees(): void {
-    const white = lowPoly(0xffffff);
-    const trunk = lowPoly(0x8a5a3b);
-    const all = this.scatter(260, 1.4, 3.2);
-    const round = all.filter((_, i) => i % 3 !== 0);
-    const pines = all.filter((_, i) => i % 3 === 0);
-    const q = new THREE.Quaternion();
-    const up = new THREE.Vector3(0, 1, 0);
-    const at = (p: Placement, dy: number, s: number, m: THREE.Matrix4) =>
-      m.compose(
-        new THREE.Vector3(p.x, p.y + dy * p.scale, p.z),
-        q.setFromAxisAngle(up, p.rotation),
-        new THREE.Vector3(s * p.scale, s * p.scale, s * p.scale),
-      );
-
-    const trunkGeometry = new THREE.CylinderGeometry(0.22, 0.34, 2, 6);
-    this.instanced(trunkGeometry, trunk, all, (p, m) => at(p, 1, 1, m));
-
-    const crown = new THREE.IcosahedronGeometry(1.5, 0);
-    this.instanced(crown, white, round, (p, m) => at(p, 2.8, 1, m), greens);
-    const crownTop = new THREE.IcosahedronGeometry(1.05, 0);
-    this.instanced(crownTop, white, round, (p, m) => at(p, 3.9, 1, m), greens);
-
-    const pineLow = new THREE.ConeGeometry(1.5, 2.6, 7);
-    this.instanced(pineLow, white, pines, (p, m) => at(p, 2.6, 1, m), [0x2f8f55, 0x2a7d4f]);
-    const pineHigh = new THREE.ConeGeometry(1.05, 2.1, 7);
-    this.instanced(pineHigh, white, pines, (p, m) => at(p, 3.9, 1, m), [0x3aa565, 0x34965b]);
-
+    const all = this.scatter(220, 1.4, 3.4);
+    Nature.deal(all, TREE_HEIGHTS.length).forEach((placements, index) => {
+      const [model, height] = TREE_HEIGHTS[index] ?? TREE_HEIGHTS[0] ?? ['tree-round', 6];
+      this.instanced(model, placements, height, { sink: 0.02 });
+    });
     for (const p of all) this.colliders.push(circle(p.x, p.z, 0.45 * p.scale));
   }
 
   private addRocks(): void {
-    const rocks = this.scatter(90, 0.3, 2);
-    const geometry = new THREE.DodecahedronGeometry(0.9, 0);
-    const position = geometry.attributes.position as THREE.BufferAttribute;
-    for (let i = 0; i < position.count; i += 1) {
-      position.setXYZ(
-        i,
-        position.getX(i) * randomBetween(this.random, 0.8, 1.2),
-        position.getY(i) * 0.7,
-        position.getZ(i) * randomBetween(this.random, 0.8, 1.2),
-      );
-    }
-    geometry.computeVertexNormals();
-    this.instanced(
-      geometry,
-      lowPoly(0xffffff),
-      rocks,
-      (p, m) => {
-        m.compose(
-          new THREE.Vector3(p.x, p.y + 0.2, p.z),
-          new THREE.Quaternion().setFromEuler(new THREE.Euler(0, p.rotation, 0)),
-          new THREE.Vector3(p.scale, p.scale, p.scale),
-        );
-      },
-      [0xb3b0a4, 0x9c9a90, 0xc4c1b5],
-    );
+    const rocks = this.scatter(90, 0.9, 2);
+    const [big = [], medium = [], small = []] = Nature.deal(rocks, 3);
+    this.instanced('rock-big', big, 1.5, { sink: 0.12 });
+    this.instanced('rock-medium', medium, 1.2, { sink: 0.08 });
+    this.instanced('rock-small', small, 0.8, { sink: 0.1 });
     for (const p of rocks) this.colliders.push(circle(p.x, p.z, 0.75 * p.scale));
   }
 
   private addGround(): void {
-    const bushes = this.scatter(160, 1.2);
-    this.instanced(
-      new THREE.IcosahedronGeometry(0.7, 0),
-      lowPoly(0xffffff),
-      bushes,
-      (p, m) => {
-        m.compose(
-          new THREE.Vector3(p.x, p.y + 0.35, p.z),
-          new THREE.Quaternion(),
-          new THREE.Vector3(p.scale * 1.2, p.scale * 0.8, p.scale * 1.2),
-        );
-      },
-      greens,
-    );
+    const [bushes = [], flowering = []] = Nature.deal(this.clusters(90, 3, 2.5, 1.2), 2);
+    this.instanced('bush', bushes, 1.5, { sink: 0.15 });
+    this.instanced('bush-flowers', flowering, 1.5, { sink: 0.1 });
 
-    const grass = this.scatter(2600, 1.1);
-    this.instanced(
-      new THREE.ConeGeometry(0.07, 0.55, 3),
-      lowPoly(0xffffff),
-      grass,
-      (p, m) => {
-        m.compose(
-          new THREE.Vector3(p.x, p.y + 0.25 * p.scale, p.z),
-          new THREE.Quaternion().setFromEuler(new THREE.Euler(0.15, p.rotation, 0.1)),
-          new THREE.Vector3(p.scale, p.scale, p.scale),
-        );
-      },
-      [0x5fbf45, 0x78d257, 0x4caa3c],
-      false,
-    );
-
-    const flowers = this.scatter(700, 1.2);
-    this.instanced(
-      new THREE.IcosahedronGeometry(0.14, 0),
-      lowPoly(0xffffff),
-      flowers,
-      (p, m) => {
-        m.compose(
-          new THREE.Vector3(p.x, p.y + 0.3, p.z),
-          new THREE.Quaternion(),
-          new THREE.Vector3(p.scale, p.scale * 0.7, p.scale),
-        );
-      },
-      flowerColors,
-      false,
-    );
+    this.instanced('grass-tall', this.scatter(2400, 1.1), 0.85, { shadows: false });
+    this.instanced('grass-wide', this.scatter(500, 1.1), 0.7, { shadows: false });
+    this.instanced('flower-group', this.clusters(70, 9, 3, 1.2), 1, { shadows: false });
+    this.instanced('flowers', this.clusters(40, 5, 3, 1.2), 0.7, { shadows: false });
+    this.instanced('mushroom', this.scatter(50, 1.4), 0.5, { shadows: false });
   }
 
   private addClouds(): void {
