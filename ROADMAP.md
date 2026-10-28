@@ -4,17 +4,33 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 
 ## Onde estamos
 
-| Sprint                                                           | Status     | Commit    |
-| ---------------------------------------------------------------- | ---------- | --------- |
-| Protótipo 3D (ilha, cidade, missão do mercado, guarda-roupa)     | ✅ feito   | `1fa268b` |
-| 1: perfis, salvamento, menu, ajustes, mapa, limite de tempo, som | ✅ feito   | `f5008d0` |
-| 2: 9 avatares (crianças, animais, robô), pipeline de assets      | ✅ feito   | `6bc1982` |
-| 3: missões novas, mercado 3D, fases de aprendizado               | ⏭️ próximo | —         |
-| 4: mundo vivo e joystick Bluetooth                               | ⏳ depois  | —         |
+| Sprint                                                            | Status     | Commit    |
+| ----------------------------------------------------------------- | ---------- | --------- |
+| Protótipo 3D (ilha, cidade, missão do mercado, guarda-roupa)      | ✅ feito   | `1fa268b` |
+| 1: perfis, salvamento, menu, ajustes, mapa, limite de tempo, som  | ✅ feito   | `f5008d0` |
+| 2: 9 avatares (crianças, animais, robô), pipeline de assets       | ✅ feito   | `6bc1982` |
+| 3: mundo bonito (modelos CC0), água bloqueada, controle (gamepad) | ✅ feito   | —         |
+| 4: missões novas, mercado 3D, fases de aprendizado                | ⏭️ próximo | —         |
+| 5: mundo vivo                                                     | ⏳ depois  | —         |
 
-Problema principal que o sprint 3 resolve: **só existe a missão do mercado (1 estrela) e a Natureza pede 3**, então a criança fica travada.
+## Sprint 3: mundo bonito, água e controle (feito)
 
-## Sprint 3: missões novas, mercado melhor e fases de aprendizado
+- **Modelos 3D CC0** (Quaternius e Kenney, via Poly Pizza) no lugar das caixas:
+  - Manifesto `scripts/world-assets.json`; `pnpm assets` roda `scripts/optimize-world.mjs`: centraliza, junta malhas, simplifica as casas, reduz texturas para 256 px WebP (sharp) e comprime com meshopt. Total ≈ 1,2 MB em `public/models/world/`.
+  - `src/presentation/world/world-assets.ts` carrega tudo antes de montar a ilha: `clone(id, recolor)` (cores por nome de material, cada casa de uma cor), `parts(id)` para `InstancedMesh`, `fitFootprint`/`fitHeight`.
+  - Cidade: casas, mercado (com bancas de frutas), padaria, carros estacionados e árvores de rua. Natureza: 7 árvores, arbustos e flores em canteiros, grama, pedras e cogumelos, tudo instanciado.
+  - Sem modelo bom: ônibus, poste, banco, ponto de ônibus, semáforo e fonte continuam procedurais, refeitos com cantos arredondados (`props.ts`).
+  - Atenção: materiais "blend" do GLB chegam com `depthWrite = false`; para folhas recortadas (`alphaTest`) é preciso ligar de novo (feito em `prepare()`).
+- **Placas 3D** (`sign.ts`): tábua com espessura e bordas arredondadas, emoji num círculo, texto com sombra; `createPostSign` para placas em postes.
+- **Água:** `SHORE_MARGIN = 0.6` em `terrain-shape.ts`; a criança para na areia, acima das ondas.
+- **Controle** (`src/presentation/engine/gamepad.ts`, testado): analógico esquerdo/direcional anda (borda ou RB/RT corre), analógico direito gira a câmera, A pula, B/X usa, Start abre o menu. Nos painéis o direcional move o foco (`ui/pad-focus.ts`), A confirma e B volta. Aviso "🎮 Controle conectado!".
+- Atalhos de dev novos: `window.lilo.teleport(x, z, yaw?)`, `window.lilo.where()`, `window.lilo.scene`.
+
+Pendências pequenas: testar com controle físico (só a lógica tem teste); a Área dos pais (segurar 3 s) não abre pelo controle, de propósito.
+
+## Sprint 4: missões novas, mercado melhor e fases de aprendizado
+
+Problema principal: **só existe a missão do mercado (1 estrela) e a Natureza pede 3**, então a criança fica travada.
 
 ### Progressão sem travas
 
@@ -71,7 +87,7 @@ Problema principal que o sprint 3 resolve: **só existe a missão do mercado (1 
   - Ligar a missão ao lugar em `missionPlaces` (`src/presentation/controllers/mission-controller.ts`).
   - Hoje padaria e ônibus só dizem "em breve" (`use()` em `src/presentation/game-app.ts`).
 
-## Sprint 4: mundo vivo e joystick Bluetooth
+## Sprint 5: mundo vivo
 
 ### Mundo vivo (`src/presentation/life/`)
 
@@ -93,19 +109,6 @@ Problema principal que o sprint 3 resolve: **só existe a missão do mercado (1 
   - Qualidade (baixa, média ou alta) automática pelo FPS.
   - O ajuste "Movimento na cidade: Calmo" (já salvo em `Settings.worldActivity`) reduz a quantidade de agentes.
 
-### Joystick Bluetooth (`src/presentation/engine/gamepad.ts`)
-
-- Gamepad API, consultada a cada quadro.
-- Mapeamento:
-  - Analógico esquerdo: andar (correr no limite)
-  - Analógico direito: câmera
-  - A: pular
-  - X ou B: usar
-  - Start: menu
-- Mapeamento puro e testado.
-- Navegação nos painéis pelo direcional (foco espacial; A confirma, B volta).
-- Aviso "🎮 Controle conectado".
-
 ### Modelos CC0 já encontrados (Quaternius, via Poly Pizza)
 
 Links diretos `https://static.poly.pizza/<uuid>.glb`:
@@ -122,7 +125,8 @@ Páginas: `https://poly.pizza/m/<id>`. Confirmar "Quaternius" e "CC0 1.0" antes 
 ## Notas para quem continuar
 
 - **Ferramentas:**
-  - `pnpm dev`, `pnpm check` (lint, typecheck e testes, o mesmo que a CI), `pnpm build`, `pnpm assets` (reconstrói avatares).
+  - `pnpm dev`, `pnpm check` (lint, typecheck e testes, o mesmo que a CI), `pnpm build`, `pnpm assets` (reconstrói avatares e modelos do mundo).
+  - Para achar modelos CC0: a busca `https://poly.pizza/search/<termo>` traz os resultados em JSON (`window.__SERVER_APP_STATE__`); o GLB está em `static.poly.pizza/<uuid>.glb` na página do modelo (precisa de User-Agent).
   - Node 22.13; o TypeScript fica fixado na 6.0, porque o typescript-eslint ainda não suporta a 7.
   - Não usar jsdom: a versão atual não roda no Node 22.13. Usar `tests/support/memory-storage.ts`.
 - **Arquitetura:**

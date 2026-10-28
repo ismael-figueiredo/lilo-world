@@ -41,14 +41,14 @@ O plano completo do projeto está em [docs/plano-jogo-autismo.md](docs/plano-jog
 
 ## Como jogar
 
-| Ação           | Tablet / celular                   | Computador           |
-| -------------- | ---------------------------------- | -------------------- |
-| Andar          | Joystick (canto inferior esquerdo) | `W A S D` ou setas   |
-| Correr         | Empurrar o joystick até a borda    | `Shift`              |
-| Pular          | Botão ⤒                            | `Espaço`             |
-| Girar a câmera | Arrastar o dedo na tela            | Arrastar com o mouse |
-| Usar / entrar  | Botão amarelo que aparece perto    | `E` ou `Enter`       |
-| Menu           | Botão ☰ (canto superior direito)  | `Esc`                |
+| Ação           | Tablet / celular                   | Computador           | Controle (USB ou Bluetooth)               |
+| -------------- | ---------------------------------- | -------------------- | ----------------------------------------- |
+| Andar          | Joystick (canto inferior esquerdo) | `W A S D` ou setas   | Analógico esquerdo ou direcional          |
+| Correr         | Empurrar o joystick até a borda    | `Shift`              | Analógico até a borda, ou RB / RT         |
+| Pular          | Botão ⤒                            | `Espaço`             | A (✕)                                     |
+| Girar a câmera | Arrastar o dedo na tela            | Arrastar com o mouse | Analógico direito                         |
+| Usar / entrar  | Botão amarelo que aparece perto    | `E` ou `Enter`       | B (◯) ou X (▢)                            |
+| Menu           | Botão ☰ (canto superior direito)  | `Esc`                | Start; nos menus, direcional + A, B volta |
 
 **Vários jogadores:** cada criança tem o próprio perfil (nome, progresso, ajustes e lugar no mundo). O jogo salva sozinho e continua de onde parou. Renomear, remover e mudar o limite de tempo ficam na **Área dos pais** (segure o botão por 3 segundos).
 
@@ -117,7 +117,8 @@ As fronteiras são **garantidas pelo lint**: um `import` do domínio para a infr
 - [x] **Fase 1 (protótipo):** ilha 3D aberta, cidade, personagem animado e personalizável, missão do mercado com lista de figuras, moedas, estrelas e guarda-roupa
 - [x] **v0.2, sprint 1:** perfis no mesmo aparelho, salvamento automático da sessão, menu, ajustes sensoriais e de som, mapa e minimapa, progresso, limite de tempo com aviso previsível, música e efeitos suaves
 - [x] **v0.2, sprint 2:** 9 personagens animados (crianças, animais e robô) para escolher no cadastro e no guarda-roupa, com chapéus e acessórios que se ajustam a cada um
-- [ ] **v0.2, próximos sprints:** mercado 3D com caixa, padaria (CAA), ônibus, semáforo, estações de letras e números, mundo vivo (pessoas, carros, barcos, animais) e joystick Bluetooth
+- [x] **v0.2, sprint 3:** mundo com modelos 3D CC0 (casas, lojas, carros, árvores, flores), placas 3D, personagem não entra no mar e jogo com controle (gamepad)
+- [ ] **v0.2, próximos sprints:** mercado 3D com caixa, padaria (CAA), ônibus, semáforo, estações de letras e números e mundo vivo (pessoas, carros, barcos, animais)
 - [ ] **Fase 2:** missões do ônibus, do semáforo e da padaria (frases com CAA: **[eu quero] + [pão]**), painel de ajustes sensoriais, álbum de figurinhas, pictogramas ARASAAC, PWA offline
 - [ ] **Fase 3:** mundos Natureza, Casa (rotinas) e Emoções
 - [ ] **Fase 4:** painel para pais e terapeutas, fotos e figuras personalizadas, traduções
@@ -134,7 +135,7 @@ Quer ajudar numa dessas etapas? Veja as [issues](https://github.com/ismael-figue
 
 - **Código:** [GPL-3.0](LICENSE). Qualquer versão derivada também precisa continuar aberta.
 - **Arte, sons e textos do jogo:** [CC BY-NC-SA 4.0](LICENSE-ASSETS.md), sem uso comercial.
-- **Personagens 3D:** modelos CC0 de Quaternius (incluindo o RobotExpressive, de Tomás Laulhé). Lista completa em [CREDITS.md](CREDITS.md).
+- **Modelos 3D:** personagens, casas, carros e plantas CC0 de Quaternius e Kenney (incluindo o RobotExpressive, de Tomás Laulhé). Lista completa em [CREDITS.md](CREDITS.md).
 
 O Lilo World **apoia** a terapia e não a substitui. Combine com a família um tempo de tela e use o jogo junto com as metas definidas pelos profissionais que acompanham a criança.
 
