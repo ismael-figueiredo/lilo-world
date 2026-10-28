@@ -9,5 +9,10 @@ export interface Interactable {
   readonly markerPosition: THREE.Vector3;
   readonly radius: number;
   readonly icon: string;
+  /** What the action button says ("Entrar no mercado"). */
   readonly label: string;
+  /** Short name of the place, used on the map ("Mercado"). */
+  readonly name: string;
+  /** Places shown as one pin on the map (all the portals, for example). */
+  readonly mapGroup?: string;
 }

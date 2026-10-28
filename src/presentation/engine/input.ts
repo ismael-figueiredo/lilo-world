@@ -2,6 +2,9 @@ import { idleInput, keyboardInput, type MoveInput } from '@presentation/engine/m
 
 const BLOCKED_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
+const isTyping = (target: EventTarget | null): boolean =>
+  target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+
 /**
  * Collects input from keyboard, mouse and touch into one simple state.
  * Dragging on the 3D view turns the camera; the on-screen joystick moves.
@@ -55,6 +58,15 @@ export class Input {
     return queued;
   }
 
+  /** Forgets held keys and the joystick (when a panel opens or the player changes). */
+  reset(): void {
+    this.keys.clear();
+    this.joystick = idleInput;
+    this.jumpQueued = false;
+    this.actionQueued = false;
+    this.look = { x: 0, y: 0 };
+  }
+
   consumeLook(): { x: number; y: number } {
     const look = this.look;
     this.look = { x: 0, y: 0 };
@@ -72,6 +84,8 @@ export class Input {
   }
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
+    // Typing a name must never move the character or be blocked.
+    if (isTyping(event.target)) return;
     if (BLOCKED_KEYS.has(event.code)) event.preventDefault();
     if (event.repeat) return;
     this.keys.add(event.code);

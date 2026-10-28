@@ -5,6 +5,8 @@ import { WATER_LEVEL } from '@presentation/world/terrain-shape';
 export class Water {
   readonly mesh: THREE.Mesh;
   private readonly base: Float32Array;
+  /** 0..1: lower values make the waves calmer (reduced motion). */
+  motionScale = 1;
 
   constructor() {
     const geometry = new THREE.PlaneGeometry(800, 800, 100, 100);
@@ -33,7 +35,8 @@ export class Water {
       const z = this.base[i * 3 + 2] ?? 0;
       position.setY(
         i,
-        Math.sin(x * 0.07 + time * 0.9) * 0.14 + Math.cos(z * 0.09 + time * 0.7) * 0.12,
+        (Math.sin(x * 0.07 + time * 0.9) * 0.14 + Math.cos(z * 0.09 + time * 0.7) * 0.12) *
+          this.motionScale,
       );
     }
     position.needsUpdate = true;

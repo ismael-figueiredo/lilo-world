@@ -60,6 +60,8 @@ export class Portals {
         radius: 3.2,
         icon: entry.unlocked ? '✨' : '🔒',
         label: entry.world.name,
+        name: entry.world.name,
+        mapGroup: 'portals',
       });
     });
   }

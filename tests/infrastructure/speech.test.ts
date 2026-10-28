@@ -25,7 +25,7 @@ describe('WebSpeech', () => {
 
     expect(synth.cancel).toHaveBeenCalled();
     const utterance = synth.speak.mock.calls[0]?.[0];
-    expect(utterance).toMatchObject({ text: 'Olá', lang: 'pt-BR', rate: 0.9 });
+    expect(utterance).toMatchObject({ text: 'Olá', lang: 'pt-BR', rate: 0.92 });
   });
 
   it.each(['error', 'throw'] as const)('never fails when the browser %s', async (behavior) => {
@@ -34,6 +34,18 @@ describe('WebSpeech', () => {
       createUtterance,
     );
     await expect(speech.speak('Olá')).resolves.toBeUndefined();
+  });
+
+  it('uses the configured volume and speed, and stays quiet when the voice is off', async () => {
+    const synth = createSynth('end');
+    const speech = new WebSpeech(synth as unknown as SpeechSynthesis, createUtterance);
+    speech.configure({ enabled: true, volume: 0.5, rate: 0.75 });
+    await speech.speak('Oi');
+    expect(synth.speak.mock.calls[0]?.[0]).toMatchObject({ volume: 0.5, rate: 0.75 });
+
+    speech.configure({ enabled: false, volume: 1, rate: 1 });
+    await speech.speak('Oi de novo');
+    expect(synth.speak).toHaveBeenCalledTimes(1);
   });
 
   it('stops speaking', () => {
@@ -46,6 +58,7 @@ describe('WebSpeech', () => {
 describe('SilentSpeech', () => {
   it('does nothing quietly', async () => {
     const speech = new SilentSpeech();
+    speech.configure();
     await expect(speech.speak()).resolves.toBeUndefined();
     expect(() => {
       speech.stop();

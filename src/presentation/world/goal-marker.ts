@@ -6,6 +6,7 @@ export class GoalMarker {
   private readonly arrow = new THREE.Group();
   private readonly ring: THREE.Mesh;
   private baseY = 0;
+  motionScale = 1;
 
   constructor() {
     const gold = new THREE.MeshStandardMaterial({
@@ -47,9 +48,9 @@ export class GoalMarker {
 
   update(time: number): void {
     if (!this.group.visible) return;
-    this.arrow.position.y = this.baseY + Math.sin(time * 2.2) * 0.35;
-    this.arrow.rotation.y = time * 1.2;
-    const pulse = 1 + Math.sin(time * 2.2) * 0.12;
+    this.arrow.position.y = this.baseY + Math.sin(time * 2.2) * 0.35 * this.motionScale;
+    this.arrow.rotation.y = time * 1.2 * this.motionScale;
+    const pulse = 1 + Math.sin(time * 2.2) * 0.12 * this.motionScale;
     this.ring.scale.set(pulse, pulse, pulse);
   }
 }

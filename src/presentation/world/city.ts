@@ -130,6 +130,7 @@ export class City {
     markerHeight: number,
     icon: string,
     label: string,
+    name: string,
   ): void {
     this.places.push({
       id,
@@ -138,6 +139,7 @@ export class City {
       radius: 3.6,
       icon,
       label,
+      name,
     });
   }
 
@@ -166,7 +168,7 @@ export class City {
       true,
     );
     this.addSign(['🏠 Minha casa'], '#e8604c', -22, 6.2, home.z - 4.12, true, 4.2);
-    this.addPlace(CityPlace.home, -22, home.doorZ, 5.8, '👕', 'Guarda-roupa');
+    this.addPlace(CityPlace.home, -22, home.doorZ, 5.8, '🏠', 'Guarda-roupa', 'Minha casa');
 
     const market = this.addBuilding(
       shop({ width: 12, depth: 9, height: 5.5, wall: 0x7fd1ae, stripes: [0xe8504c, 0xffffff] }),
@@ -176,7 +178,7 @@ export class City {
       true,
     );
     this.addSign(['🍎 MERCADO'], '#2f9e6e', 18, 6.6, market.z - 4.62, true, 6);
-    this.addPlace(CityPlace.market, 18, market.doorZ, 6.2, '🛒', 'Entrar no mercado');
+    this.addPlace(CityPlace.market, 18, market.doorZ, 6.2, '🛒', 'Entrar no mercado', 'Mercado');
     for (const [dx, fruit] of [
       [-4.6, 0xe8433b],
       [4.6, 0xffd23f],
@@ -193,7 +195,7 @@ export class City {
       false,
     );
     this.addSign(['🍞 PADARIA'], '#a0643c', 20, 6.1, bakery.z + 4.12, false, 5);
-    this.addPlace(CityPlace.bakery, 20, bakery.doorZ, 6, '🥐', 'Padaria');
+    this.addPlace(CityPlace.bakery, 20, bakery.doorZ, 6, '🥐', 'Padaria', 'Padaria');
 
     const homes: readonly [number, boolean, number, number][] = [
       [-38, true, 0xcfe8ff, 0x4d6fd6],
@@ -227,6 +229,7 @@ export class City {
       radius: 3.4,
       icon: '🚌',
       label: 'Ponto de ônibus',
+      name: 'Ônibus',
     });
 
     const parkedBus = bus();

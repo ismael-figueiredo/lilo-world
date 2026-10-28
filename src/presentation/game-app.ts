@@ -1,74 +1,93 @@
 import * as THREE from 'three';
-import type { GameServices } from '@application/game-services';
-import { phrases } from '@application/use-cases/choose-mission-answer';
-import type { WardrobeEntry } from '@application/use-cases/get-wardrobe';
+import type { GameServices, PlayerServices } from '@application/game-services';
+import type { SoundEffect } from '@application/ports/audio';
 import type { WorldMap } from '@application/use-cases/get-world-map';
 import type { Goal } from '@application/use-cases/suggest-next-goal';
-import type { MissionAttempt } from '@domain/mission/mission-attempt';
+import { DEFAULT_AVATAR_ID, type PlayerProfile } from '@domain/profile/player-profile';
+import { defaultSettings, type Settings } from '@domain/settings/settings';
 import { Mascot } from '@presentation/actors/mascot';
 import { Player } from '@presentation/actors/player';
+import { MenuController } from '@presentation/controllers/menu-controller';
+import { MissionController, missionPlaces } from '@presentation/controllers/mission-controller';
+import { WardrobeController } from '@presentation/controllers/wardrobe-controller';
 import { CameraRig } from '@presentation/engine/camera-rig';
 import { Input } from '@presentation/engine/input';
 import { seededRandom } from '@presentation/engine/math';
 import { cameraRelative } from '@presentation/engine/movement';
 import { createRenderer, fitToContainer } from '@presentation/engine/renderer';
+import type { GameContext, Mode, PanelMode } from '@presentation/game-context';
 import { Controls } from '@presentation/ui/controls';
 import { Dialog } from '@presentation/ui/dialog';
 import { h } from '@presentation/ui/dom';
 import { Hud } from '@presentation/ui/hud';
-import { MissionPanel } from '@presentation/ui/mission-panel';
-import { StartScreen } from '@presentation/ui/start-screen';
-import { WardrobePanel } from '@presentation/ui/wardrobe-panel';
+import { Minimap } from '@presentation/ui/minimap';
+import { ProfileScreen } from '@presentation/ui/profile-screen';
+import { RestScreen } from '@presentation/ui/rest-screen';
 import { CityPlace } from '@presentation/world/city';
-import { GameWorld } from '@presentation/world/game-world';
 import { firstObstruction } from '@presentation/world/collision';
+import { GameWorld } from '@presentation/world/game-world';
 import { GoalMarker } from '@presentation/world/goal-marker';
 import type { Interactable } from '@presentation/world/interactable';
+import { captureMap } from '@presentation/world/map-snapshot';
 import { portalId } from '@presentation/world/portals';
 import '@presentation/ui/styles.css';
-
-type Mode = 'loading' | 'explore' | 'mission' | 'wardrobe';
 
 export interface GameAppOptions {
   readonly modelUrl: string;
   readonly seed?: number;
 }
 
-/** Where each mission happens in the open world. */
-const missionPlaces: Readonly<Record<string, string>> = { 'city-market': CityPlace.market };
+const AUTOSAVE_MS = 10_000;
+const TIME_CHECK_MS = 5_000;
+const EXTRA_TIME_MS = 5 * 60_000;
+const cameraSpeeds = { low: 0.55, normal: 1, high: 1.6 } as const;
 
 /**
  * Runs the 3D game. It only talks to the application layer through
  * GameServices, so rules (coins, hints, unlocks) stay out of rendering code.
  */
-export class GameApp {
-  private mode: Mode = 'loading';
+export class GameApp implements GameContext {
+  private currentMode: Mode = 'loading';
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(55, 1, 0.1, 1200);
   private readonly ui = h('div', { className: 'ui' });
-  private readonly hud = new Hud();
-  private readonly dialog = new Dialog();
+  private readonly hud = new Hud(() => {
+    if (this.currentMode === 'explore') this.menus.open();
+  });
+  readonly dialog = new Dialog();
   private readonly marker = new GoalMarker();
   private readonly mascot = new Mascot();
+  private readonly minimap = new Minimap(() => {
+    if (this.currentMode === 'explore') this.menus.openMap();
+  });
   private readonly controls: Controls;
-  private readonly missionPanel: MissionPanel;
-  private readonly wardrobePanel: WardrobePanel;
+  private readonly profileScreen: ProfileScreen;
+  private readonly restScreen: RestScreen;
+  private readonly missions: MissionController;
+  private readonly wardrobe: WardrobeController;
+  private readonly menus: MenuController;
 
-  private renderer?: THREE.WebGLRenderer;
-  private world?: GameWorld;
-  private player?: Player;
-  private rig?: CameraRig;
-  private input?: Input;
-  private attempt?: MissionAttempt;
-  private worldMap?: WorldMap;
+  private renderer: THREE.WebGLRenderer | undefined;
+  private gameWorld: GameWorld | undefined;
+  private character: Player | undefined;
+  private cameraRig: CameraRig | undefined;
+  private input: Input | undefined;
+  private activeProfile: PlayerProfile | undefined;
+  private playerServices: PlayerServices | undefined;
+  private currentSettings: Settings = defaultSettings;
+  private worldMap: WorldMap | undefined;
   private goal: Goal = { kind: 'explore' };
-  private busy = false;
+  private destination: Interactable | undefined;
   private lastTime = 0;
   private elapsed = 0;
+  private playedMs = 0;
+  private lastSave = 0;
+  private lastTimeCheck = 0;
+  private warnedLastMission = false;
 
   constructor(
     private readonly root: HTMLElement,
-    private readonly services: GameServices,
+    readonly services: GameServices,
     private readonly options: GameAppOptions,
   ) {
     this.controls = new Controls({
@@ -76,33 +95,177 @@ export class GameApp {
       onJump: () => this.input?.requestJump(),
       onAction: () => this.input?.requestAction(),
     });
-    this.missionPanel = new MissionPanel({
-      onChoose: (choiceId) => void this.choose(choiceId),
-      onExit: () => {
-        this.backToExploring();
+    this.profileScreen = new ProfileScreen({
+      onSelect: (profile) => void this.selectProfile(profile),
+      onCreate: (name) => void this.createProfile(name),
+      onRename: (profile, name) => void this.renameProfile(profile, name),
+      onDelete: (profile) => void this.deleteProfile(profile),
+    });
+    this.restScreen = new RestScreen({
+      onFinish: () => {
+        this.restScreen.close();
+        void this.switchPlayer();
       },
-      onReplay: () => {
-        if (this.attempt !== undefined) void this.openMission(this.attempt.mission.id);
+      onExtend: () => {
+        this.playedMs = Math.max(0, this.playedMs - EXTRA_TIME_MS);
+        this.warnedLastMission = false;
+        this.restScreen.close();
+        this.backToExploring();
       },
     });
-    this.wardrobePanel = new WardrobePanel({
-      onSelect: (entry) => void this.selectItem(entry),
-      onClose: () => {
-        this.backToExploring();
-      },
+    this.missions = new MissionController(this);
+    this.wardrobe = new WardrobeController(this);
+    this.menus = new MenuController(this, () => this.goalPlace()?.id);
+  }
+
+  // ---------- GameContext ----------
+
+  get player(): PlayerServices {
+    if (this.playerServices === undefined) throw new Error('No player selected');
+    return this.playerServices;
+  }
+
+  get profile(): PlayerProfile {
+    if (this.activeProfile === undefined) throw new Error('No player selected');
+    return this.activeProfile;
+  }
+
+  get settings(): Settings {
+    return this.currentSettings;
+  }
+
+  get world(): GameWorld {
+    if (this.gameWorld === undefined) throw new Error('World not ready');
+    return this.gameWorld;
+  }
+
+  get avatar(): Player {
+    if (this.character === undefined) throw new Error('Character not ready');
+    return this.character;
+  }
+
+  get rig(): CameraRig {
+    if (this.cameraRig === undefined) throw new Error('Camera not ready');
+    return this.cameraRig;
+  }
+
+  get mode(): Mode {
+    return this.currentMode;
+  }
+
+  enterPanel(mode: PanelMode): void {
+    this.currentMode = mode;
+    this.controls.setVisible(false);
+    this.controls.hideAction();
+    this.marker.group.visible = false;
+    this.minimap.setVisible(false);
+    if (this.input !== undefined) {
+      this.input.enabled = false;
+      this.input.reset();
+    }
+  }
+
+  backToExploring(): void {
+    this.services.speech.stop();
+    this.cameraRig?.clearFocus();
+    this.currentMode = 'explore';
+    this.controls.setVisible(true);
+    this.minimap.setVisible(this.currentSettings.showMinimap);
+    if (this.input !== undefined) {
+      this.input.reset();
+      this.input.enabled = true;
+    }
+    void this.refresh().then(() => {
+      if (this.destination === undefined) this.say(this.goalMessage());
     });
   }
 
+  say(message: string): void {
+    this.dialog.say(message);
+    void this.services.speech.speak(message);
+  }
+
+  sound(effect: SoundEffect): void {
+    this.services.audio.play(effect);
+  }
+
+  async refresh(): Promise<void> {
+    if (this.playerServices === undefined) return;
+    const player = this.playerServices;
+    const [progress, wardrobe, worldMap, goal] = await Promise.all([
+      player.getPlayerProgress.execute(),
+      player.getWardrobe.execute(),
+      player.getWorldMap.execute(),
+      player.suggestNextGoal.execute(),
+    ]);
+    this.hud.set(progress.coins.amount, progress.stars);
+    this.character?.dress(
+      progress.equipped,
+      wardrobe.entries.map((entry) => entry.item),
+    );
+    if (this.worldMap?.stars !== worldMap.stars) this.gameWorld?.showWorlds(worldMap.worlds);
+    this.worldMap = worldMap;
+    this.goal = goal;
+    this.showMarker();
+  }
+
+  applySettings(settings: Settings): void {
+    this.currentSettings = settings;
+    if (this.renderer !== undefined) {
+      this.renderer.domElement.style.filter = settings.softColors
+        ? 'saturate(0.68) brightness(1.03)'
+        : '';
+    }
+    this.root.classList.toggle('reduce-motion', settings.reducedMotion);
+    const motion = settings.reducedMotion ? 0.3 : 1;
+    this.gameWorld?.setMotionScale(motion);
+    this.mascot.motionScale = motion;
+    this.marker.motionScale = motion;
+    if (this.cameraRig !== undefined) {
+      this.cameraRig.sensitivity = cameraSpeeds[settings.cameraSensitivity];
+    }
+    this.minimap.setVisible(settings.showMinimap && this.currentMode === 'explore');
+  }
+
+  setDestination(place: Interactable | undefined): void {
+    this.destination = place;
+    this.showMarker();
+  }
+
+  async switchPlayer(): Promise<void> {
+    await this.saveSession();
+    this.services.speech.stop();
+    this.missions.close();
+    this.wardrobe.close();
+    this.menus.closeAll();
+    this.restScreen.close();
+    this.enterPanel('menu');
+    this.currentMode = 'profiles';
+    this.hud.setTimeLeft(undefined, false);
+    this.profileScreen.show(await this.services.listProfiles.execute());
+  }
+
+  // ---------- Start ----------
+
   async start(): Promise<void> {
-    const startScreen = new StartScreen();
     this.ui.append(
       this.hud.element,
+      this.minimap.element,
       this.dialog.element,
       this.controls.element,
-      this.missionPanel.element,
-      this.wardrobePanel.element,
+      this.missions.panel.element,
+      this.wardrobe.panel.element,
+      ...this.menus.elements,
+      this.restScreen.element,
     );
-    this.root.append(this.ui, startScreen.element);
+    this.root.append(this.ui, this.profileScreen.element);
+    this.ui.addEventListener(
+      'click',
+      (event) => {
+        if ((event.target as HTMLElement).closest('button') !== null) this.sound('tap');
+      },
+      true,
+    );
 
     try {
       const renderer = createRenderer(this.root);
@@ -114,45 +277,127 @@ export class GameApp {
       });
 
       const world = new GameWorld(this.scene, seededRandom(this.options.seed ?? 20261028));
-      this.world = world;
+      this.gameWorld = world;
       const player = await Player.load(this.options.modelUrl);
-      this.player = player;
+      this.character = player;
       player.placeAt(world.spawn, Math.PI / 2);
       this.mascot.placeNear(world.spawn);
       this.scene.add(player.root, this.mascot.root, this.marker.group);
 
-      this.rig = new CameraRig(
+      this.cameraRig = new CameraRig(
         this.camera,
         (x, z) => world.heightAt(x, z),
         (from, to) => firstObstruction(from, to, world.colliders),
       );
-      this.rig.yaw = world.spawnYaw;
-      this.rig.snapTo(player.position);
+      this.cameraRig.yaw = world.spawnYaw;
+      this.cameraRig.snapTo(player.position);
       this.input = new Input(renderer.domElement);
-      this.controls.setVisible(false);
+      this.enterPanel('menu');
+      this.currentMode = 'profiles';
 
-      await this.refresh();
       renderer.compile(this.scene, this.camera);
       renderer.setAnimationLoop((time) => {
         this.frame(time);
       });
-
-      await startScreen.waitForPlay();
-      this.mode = 'explore';
-      this.controls.setVisible(true);
-      this.say(`Oi! Eu sou o Lilo. ${this.goalMessage()}`);
+      this.listenToPage();
       if (import.meta.env.DEV) this.exposeDevTools();
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) this.services.speech.stop();
-      });
+
+      this.profileScreen.show(await this.services.listProfiles.execute());
     } catch (error) {
       console.error(error);
-      startScreen.fail('Não foi possível abrir o jogo. Tente recarregar a página.');
+      this.profileScreen.setLoading('Não foi possível abrir o jogo. Tente recarregar a página.');
     }
   }
 
+  // ---------- Profiles ----------
+
+  private async selectProfile(profile: PlayerProfile): Promise<void> {
+    const result = await this.services.selectProfile.execute(profile.id);
+    if (result.ok) await this.beginProfile(result.value, false);
+  }
+
+  private async createProfile(name: string): Promise<void> {
+    const result = await this.services.createProfile.execute(name, DEFAULT_AVATAR_ID);
+    if (result.ok) await this.beginProfile(result.value, true);
+  }
+
+  private async renameProfile(profile: PlayerProfile, name: string): Promise<void> {
+    await this.services.renameProfile.execute(profile.id, name);
+    this.profileScreen.show(await this.services.listProfiles.execute());
+  }
+
+  private async deleteProfile(profile: PlayerProfile): Promise<void> {
+    await this.services.deleteProfile.execute(profile.id);
+    this.profileScreen.show(await this.services.listProfiles.execute());
+  }
+
+  /** Loads one child's settings, progress and last position, then starts playing. */
+  private async beginProfile(profile: PlayerProfile, isNew: boolean): Promise<void> {
+    const renderer = this.renderer;
+    if (renderer === undefined) return;
+    this.activeProfile = profile;
+    this.playerServices = this.services.forPlayer(profile.id);
+    this.applySettings(await this.player.applySettings.execute());
+
+    const session = await this.player.loadSession.execute();
+    const world = this.world;
+    if (session !== undefined && world.isWalkable(session.x, session.z)) {
+      this.avatar.placeAt(
+        new THREE.Vector3(session.x, world.heightAt(session.x, session.z), session.z),
+        session.facing,
+      );
+      this.rig.yaw = session.cameraYaw;
+    } else {
+      this.avatar.placeAt(world.spawn, Math.PI / 2);
+      this.rig.yaw = world.spawnYaw;
+    }
+    this.rig.snapTo(this.avatar.position);
+    this.mascot.placeNear(this.avatar.position);
+
+    this.playedMs = 0;
+    this.warnedLastMission = false;
+    this.destination = undefined;
+    this.worldMap = undefined;
+    await this.refresh();
+
+    // The start screen still covers the game, so this extra frame is never seen.
+    const picture = captureMap(
+      renderer,
+      this.scene,
+      [this.avatar.root, this.mascot.root, this.marker.group],
+      (visible) => {
+        world.setCloudsVisible(visible);
+      },
+    );
+    this.menus.map.setPicture(picture);
+    this.minimap.setPicture(picture);
+
+    this.profileScreen.hide();
+    this.services.audio.startMusic();
+    this.backToExploringQuietly();
+    this.say(
+      isNew
+        ? `Oi, ${profile.name}! Eu sou o Lilo. ${this.goalMessage()}`
+        : `Que bom te ver, ${profile.name}! ${this.goalMessage()}`,
+    );
+  }
+
+  private backToExploringQuietly(): void {
+    this.cameraRig?.clearFocus();
+    this.currentMode = 'explore';
+    this.controls.setVisible(true);
+    this.minimap.setVisible(this.currentSettings.showMinimap);
+    if (this.input !== undefined) {
+      this.input.reset();
+      this.input.enabled = true;
+    }
+    this.showMarker();
+  }
+
+  // ---------- Loop ----------
+
   private frame(timeMs: number): void {
-    const { renderer, world, player, rig, input } = this;
+    const { renderer, gameWorld: world, character: player, cameraRig: rig, input } = this;
     if (
       renderer === undefined ||
       world === undefined ||
@@ -166,12 +411,15 @@ export class GameApp {
     this.lastTime = timeMs;
     this.elapsed += dt;
 
-    const exploring = this.mode === 'explore';
+    const exploring = this.currentMode === 'explore';
     const look = input.consumeLook();
     if (exploring) rig.rotate(look.x, look.y);
 
     const move = exploring ? input.move : { x: 0, y: 0, running: false };
-    if (exploring && input.consumeJump()) player.jump();
+    if (exploring && input.consumeJump() && player.isGrounded) {
+      player.jump();
+      this.sound('jump');
+    }
     player.update(dt, cameraRelative(move, rig.yaw), move.running, world);
 
     const cameraYaw = Math.atan2(
@@ -184,19 +432,46 @@ export class GameApp {
     rig.update(dt, player.position);
 
     if (exploring) {
-      const nearby = this.nearbyPlace(player.position);
-      if (nearby === undefined) this.controls.hideAction();
-      else this.controls.showAction(nearby.icon, nearby.label);
-      if (input.consumeAction() && nearby !== undefined) void this.use(nearby);
+      this.updateExploration(player.position, input);
+      const goal = this.goalPlace();
+      this.minimap.draw(
+        { x: player.position.x, z: player.position.z, facing: player.facing },
+        goal === undefined
+          ? undefined
+          : { x: goal.position.x, z: goal.position.z, icon: goal.icon },
+      );
+    }
+    if (this.activeProfile !== undefined && this.currentMode !== 'profiles') {
+      this.trackSession(dt);
     }
 
     renderer.render(this.scene, this.camera);
   }
 
+  private updateExploration(position: THREE.Vector3, input: Input): void {
+    const nearby = this.nearbyPlace(position);
+    if (nearby === undefined) this.controls.hideAction();
+    else this.controls.showAction(nearby.icon, nearby.label);
+
+    if (this.destination !== undefined) {
+      const reached =
+        Math.hypot(
+          this.destination.position.x - position.x,
+          this.destination.position.z - position.z,
+        ) < this.destination.radius;
+      if (reached) {
+        this.say(`Você chegou: ${this.destination.name}!`);
+        this.destination = undefined;
+        this.showMarker();
+      }
+    }
+    if (input.consumeAction() && nearby !== undefined) void this.use(nearby);
+  }
+
   private nearbyPlace(position: THREE.Vector3): Interactable | undefined {
     let closest: Interactable | undefined;
     let best = Infinity;
-    for (const place of this.world?.places ?? []) {
+    for (const place of this.gameWorld?.places ?? []) {
       const distance = Math.hypot(place.position.x - position.x, place.position.z - position.z);
       if (distance < place.radius && distance < best) {
         best = distance;
@@ -207,12 +482,17 @@ export class GameApp {
   }
 
   private async use(place: Interactable): Promise<void> {
-    if (place.id === CityPlace.market) {
-      await this.openMission('city-market');
+    const missionId = Object.entries(missionPlaces).find(
+      ([, placeId]) => placeId === place.id,
+    )?.[0];
+    if (missionId !== undefined) {
+      this.sound('open');
+      await this.missions.open(missionId);
       return;
     }
     if (place.id === CityPlace.home) {
-      await this.openWardrobe();
+      this.sound('open');
+      await this.wardrobe.open();
       return;
     }
     if (place.id === CityPlace.bakery) {
@@ -233,150 +513,24 @@ export class GameApp {
     }
   }
 
-  // ---------- Missions ----------
+  // ---------- Goal arrow ----------
 
-  private async openMission(missionId: string): Promise<void> {
-    const result = await this.services.startMission.execute(missionId);
-    if (!result.ok) {
-      this.say('Essa missão ainda não está pronta.');
-      return;
-    }
-    this.attempt = result.value;
-    this.enterPanelMode('mission');
-
-    const place = this.world?.places.find((p) => p.id === missionPlaces[missionId]);
-    if (place !== undefined && this.player !== undefined && this.rig !== undefined) {
-      this.player.placeAt(place.position, 0);
-      const { x, y, z } = place.position;
-      this.rig.setFocus(
-        new THREE.Vector3(x - 3, y + 3.4, z - 8),
-        new THREE.Vector3(x, y + 2.2, z + 3),
-      );
-    }
-    this.missionPanel.open(this.attempt);
-    const { mission } = this.attempt;
-    this.dialog.say(`${mission.introduction} ${this.attempt.currentStep?.prompt ?? ''}`);
-  }
-
-  private async choose(choiceId: string): Promise<void> {
-    if (this.busy || this.attempt === undefined) return;
-    this.busy = true;
-    try {
-      const result = await this.services.chooseMissionAnswer.execute(this.attempt, choiceId);
-      if (!result.ok) return;
-      this.attempt = result.value.attempt;
-      const { outcome } = result.value;
-
-      switch (outcome.kind) {
-        case 'hint':
-          this.missionPanel.showHint(outcome.step.targetId, outcome.hintLevel);
-          this.dialog.say(`${phrases.hint} ${outcome.step.prompt}`);
-          break;
-        case 'correct':
-          this.missionPanel.collect(choiceId, outcome.nextStep.targetId);
-          this.dialog.say(`${phrases.correct} ${outcome.nextStep.prompt}`);
-          this.player?.playEmote('Yes');
-          break;
-        case 'completed':
-          this.missionPanel.collect(choiceId);
-          this.missionPanel.celebrate(result.value.reward ?? { coins: 0, stars: 0 });
-          this.dialog.say(phrases.completed);
-          this.player?.playEmote('Dance');
-          await this.refresh();
-          break;
-      }
-    } finally {
-      this.busy = false;
-    }
-  }
-
-  // ---------- Wardrobe ----------
-
-  private async openWardrobe(): Promise<void> {
-    this.enterPanelMode('wardrobe');
-    const wardrobe = await this.services.getWardrobe.execute();
-    this.wardrobePanel.open(wardrobe);
-
-    if (this.player !== undefined && this.rig !== undefined) {
-      const { x, y, z } = this.player.position;
-      const cameraPosition = new THREE.Vector3(x - 0.6, y + 1.7, z - 4.2);
-      this.player.faceTowards(cameraPosition);
-      this.rig.setFocus(cameraPosition, new THREE.Vector3(x - 1.3, y + 1.1, z));
-      this.player.playEmote('Wave');
-    }
-    this.say('Escolha uma roupa!');
-  }
-
-  private async selectItem(entry: WardrobeEntry): Promise<void> {
-    if (!entry.owned && !entry.affordable) {
-      const { coins } = await this.services.getWardrobe.execute();
-      const missing = entry.item.price - coins;
-      this.say(`Faltam ${missing} moedas. Vamos ao mercado ganhar mais?`);
-      return;
-    }
-
-    const result = entry.owned
-      ? await this.services.toggleWardrobeItem.execute(entry.item.id)
-      : await this.services.buyWardrobeItem.execute(entry.item.id);
-    if (!result.ok) return;
-
-    await this.refresh();
-    this.wardrobePanel.show(await this.services.getWardrobe.execute());
-    this.player?.playEmote(entry.owned ? 'Yes' : 'ThumbsUp');
-    this.say(entry.owned ? entry.item.name : `${entry.item.name}! Ficou ótimo!`);
-  }
-
-  // ---------- Shared ----------
-
-  private enterPanelMode(mode: 'mission' | 'wardrobe'): void {
-    this.mode = mode;
-    this.controls.setVisible(false);
-    this.controls.hideAction();
-    this.marker.group.visible = false;
-    if (this.input !== undefined) this.input.enabled = false;
-  }
-
-  private backToExploring(): void {
-    this.missionPanel.close();
-    this.wardrobePanel.close();
-    this.services.speech.stop();
-    this.rig?.clearFocus();
-    this.mode = 'explore';
-    this.controls.setVisible(true);
-    if (this.input !== undefined) this.input.enabled = true;
-    void this.refresh().then(() => {
-      this.say(this.goalMessage());
-    });
-  }
-
-  /** Reloads progress and updates everything that depends on it. */
-  private async refresh(): Promise<void> {
-    const [progress, wardrobe, worldMap, goal] = await Promise.all([
-      this.services.getPlayerProgress.execute(),
-      this.services.getWardrobe.execute(),
-      this.services.getWorldMap.execute(),
-      this.services.suggestNextGoal.execute(),
-    ]);
-    this.hud.set(progress.coins.amount, progress.stars);
-    this.player?.dress(
-      progress.equipped,
-      wardrobe.entries.map((entry) => entry.item),
-    );
-
-    if (this.worldMap?.stars !== worldMap.stars) this.world?.showWorlds(worldMap.worlds);
-    this.worldMap = worldMap;
-
-    this.goal = goal;
+  private goalPlace(): Interactable | undefined {
+    if (this.destination !== undefined) return this.destination;
     const placeId =
-      goal.kind === 'mission'
-        ? missionPlaces[goal.missionId]
-        : goal.kind === 'wardrobe'
+      this.goal.kind === 'mission'
+        ? missionPlaces[this.goal.missionId]
+        : this.goal.kind === 'wardrobe'
           ? CityPlace.home
           : undefined;
-    const place = this.world?.places.find((p) => p.id === placeId);
+    return this.gameWorld?.places.find((p) => p.id === placeId);
+  }
+
+  private showMarker(): void {
+    const place = this.goalPlace();
     if (place === undefined) this.marker.hide();
     else this.marker.show(place.markerPosition, place.position);
-    if (this.mode === 'mission' || this.mode === 'wardrobe') this.marker.group.visible = false;
+    if (this.currentMode !== 'explore') this.marker.group.visible = false;
   }
 
   private goalMessage(): string {
@@ -392,25 +546,107 @@ export class GameApp {
     }
   }
 
+  // ---------- Session: autosave and time limit ----------
+
+  private trackSession(dt: number): void {
+    const playing = this.currentMode !== 'menu' && this.currentMode !== 'rest' && !document.hidden;
+    if (playing) this.playedMs += dt * 1000;
+
+    if (this.elapsed * 1000 - this.lastSave > AUTOSAVE_MS) {
+      this.lastSave = this.elapsed * 1000;
+      void this.saveSession();
+    }
+    if (this.elapsed * 1000 - this.lastTimeCheck > TIME_CHECK_MS) {
+      this.lastTimeCheck = this.elapsed * 1000;
+      void this.checkTime();
+    }
+  }
+
+  private async checkTime(): Promise<void> {
+    if (this.playerServices === undefined) return;
+    const status = await this.playerServices.checkSessionTime.execute(
+      this.playedMs,
+      this.missions.isRunning,
+    );
+    switch (status.kind) {
+      case 'free':
+        this.hud.setTimeLeft(undefined, false);
+        return;
+      case 'counting':
+        this.hud.setTimeLeft(status.minutesLeft, false);
+        return;
+      case 'last-mission':
+        this.hud.setTimeLeft(status.minutesLeft, true);
+        if (!this.warnedLastMission && this.currentMode === 'explore') {
+          this.warnedLastMission = true;
+          this.say('Falta pouco! Mais uma missão e depois vamos descansar.');
+        }
+        return;
+      case 'time-to-rest':
+        this.hud.setTimeLeft(0, true);
+        if (this.currentMode === 'explore') {
+          await this.saveSession();
+          this.enterPanel('rest');
+          this.restScreen.open(this.profile.name);
+          this.say(`Hora de descansar, ${this.profile.name}. Você brincou muito bem!`);
+        }
+        return;
+    }
+  }
+
+  private async saveSession(): Promise<void> {
+    if (this.playerServices === undefined || this.character === undefined) return;
+    const { position, facing } = this.character;
+    await this.playerServices.saveSession.execute({
+      x: position.x,
+      y: position.y,
+      z: position.z,
+      facing,
+      cameraYaw: this.cameraRig?.yaw ?? 0,
+    });
+  }
+
+  private listenToPage(): void {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.services.speech.stop();
+        void this.saveSession();
+      }
+    });
+    window.addEventListener('pagehide', () => {
+      void this.saveSession();
+    });
+    window.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      if (this.currentMode === 'explore') this.menus.open();
+      else if (this.currentMode === 'menu') {
+        this.menus.closeAll();
+        this.backToExploring();
+      } else if (this.currentMode === 'wardrobe') {
+        this.wardrobe.close();
+        this.backToExploring();
+      } else if (this.currentMode === 'mission') void this.missions.exit();
+    });
+  }
+
   /** Dev-only shortcuts for testing on a desktop (never included in production builds). */
   private exposeDevTools(): void {
     Object.assign(window, {
       lilo: {
         goTo: (placeId: string) => {
-          const place = this.world?.places.find((p) => p.id === placeId);
-          if (place !== undefined) this.player?.placeAt(place.position, 0);
+          const place = this.gameWorld?.places.find((p) => p.id === placeId);
+          if (place !== undefined) this.character?.placeAt(place.position, 0);
           return place !== undefined;
         },
         use: (placeId: string) => {
-          const place = this.world?.places.find((p) => p.id === placeId);
+          const place = this.gameWorld?.places.find((p) => p.id === placeId);
           if (place !== undefined) void this.use(place);
+        },
+        addPlayTime: (minutes: number) => {
+          this.playedMs += minutes * 60_000;
+          this.lastTimeCheck = 0;
         },
       },
     });
-  }
-
-  private say(message: string): void {
-    this.dialog.say(message);
-    void this.services.speech.speak(message);
   }
 }

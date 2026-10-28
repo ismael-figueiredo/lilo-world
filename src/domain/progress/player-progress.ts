@@ -4,6 +4,22 @@ import { Coins } from '@domain/reward/coins';
 import { noReward, type Reward } from '@domain/reward/reward';
 import { domainError, err, ok, type Result } from '@domain/shared/result';
 
+/** How a mission has gone so far. Used by the progress screen (and later by therapists). */
+export interface MissionStats {
+  readonly attempts: number;
+  readonly completions: number;
+  readonly mistakes: number;
+  /** Epoch milliseconds, 0 when never played. */
+  readonly lastPlayedAt: number;
+}
+
+export const emptyStats: MissionStats = {
+  attempts: 0,
+  completions: 0,
+  mistakes: 0,
+  lastPlayedAt: 0,
+};
+
 /** Plain, serializable shape used to store progress on the device. */
 export interface ProgressSnapshot {
   readonly coins: number;
@@ -11,55 +27,107 @@ export interface ProgressSnapshot {
   readonly ownedItemIds: readonly WardrobeItemId[];
   readonly equipped: Partial<Record<WardrobeSlot, WardrobeItemId>>;
   readonly completedMissionIds: readonly MissionId[];
+  readonly missionStats?: Readonly<Record<MissionId, MissionStats>>;
 }
+
+/** The result of one play of a mission. */
+export interface AttemptRecord {
+  readonly mistakes: number;
+  readonly at: number;
+}
+
+interface State {
+  readonly coins: Coins;
+  readonly stars: number;
+  readonly owned: ReadonlySet<WardrobeItemId>;
+  readonly equipped: Readonly<Partial<Record<WardrobeSlot, WardrobeItemId>>>;
+  readonly completed: ReadonlySet<MissionId>;
+  readonly stats: Readonly<Record<MissionId, MissionStats>>;
+}
+
+const wholeNumber = (value: unknown): number =>
+  typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 0;
 
 /** Everything the child has earned so far. Immutable: every change returns a new instance. */
 export class PlayerProgress {
-  private constructor(
-    readonly coins: Coins,
-    readonly stars: number,
-    private readonly ownedItemIds: ReadonlySet<WardrobeItemId>,
-    readonly equipped: Readonly<Partial<Record<WardrobeSlot, WardrobeItemId>>>,
-    private readonly completedMissionIds: ReadonlySet<MissionId>,
-  ) {}
+  private constructor(private readonly state: State) {}
 
   static createNew(): PlayerProgress {
-    return new PlayerProgress(Coins.zero, 0, new Set(), {}, new Set());
+    return new PlayerProgress({
+      coins: Coins.zero,
+      stars: 0,
+      owned: new Set(),
+      equipped: {},
+      completed: new Set(),
+      stats: {},
+    });
   }
 
   /** Rebuilds progress from stored data, discarding anything invalid instead of failing. */
   static fromSnapshot(snapshot: ProgressSnapshot): PlayerProgress {
     const coins = Coins.of(snapshot.coins);
-    const stars = Number.isInteger(snapshot.stars) && snapshot.stars > 0 ? snapshot.stars : 0;
     const owned = new Set(snapshot.ownedItemIds);
     const equipped = Object.fromEntries(
       Object.entries(snapshot.equipped).filter(([, id]) => owned.has(id)),
     );
-    return new PlayerProgress(
-      coins.ok ? coins.value : Coins.zero,
-      stars,
+    const stats = Object.fromEntries(
+      Object.entries(snapshot.missionStats ?? {}).map(([id, s]) => [
+        id,
+        {
+          attempts: wholeNumber(s.attempts),
+          completions: wholeNumber(s.completions),
+          mistakes: wholeNumber(s.mistakes),
+          lastPlayedAt: wholeNumber(s.lastPlayedAt),
+        },
+      ]),
+    );
+    return new PlayerProgress({
+      coins: coins.ok ? coins.value : Coins.zero,
+      stars: wholeNumber(snapshot.stars),
       owned,
       equipped,
-      new Set(snapshot.completedMissionIds),
-    );
+      completed: new Set(snapshot.completedMissionIds),
+      stats,
+    });
   }
 
   toSnapshot(): ProgressSnapshot {
     return {
-      coins: this.coins.amount,
-      stars: this.stars,
-      ownedItemIds: [...this.ownedItemIds],
-      equipped: { ...this.equipped },
-      completedMissionIds: [...this.completedMissionIds],
+      coins: this.state.coins.amount,
+      stars: this.state.stars,
+      ownedItemIds: [...this.state.owned],
+      equipped: { ...this.state.equipped },
+      completedMissionIds: [...this.state.completed],
+      missionStats: { ...this.state.stats },
     };
   }
 
+  get coins(): Coins {
+    return this.state.coins;
+  }
+
+  get stars(): number {
+    return this.state.stars;
+  }
+
+  get equipped(): Readonly<Partial<Record<WardrobeSlot, WardrobeItemId>>> {
+    return this.state.equipped;
+  }
+
+  get ownedCount(): number {
+    return this.state.owned.size;
+  }
+
   owns(itemId: WardrobeItemId): boolean {
-    return this.ownedItemIds.has(itemId);
+    return this.state.owned.has(itemId);
   }
 
   hasCompleted(missionId: MissionId): boolean {
-    return this.completedMissionIds.has(missionId);
+    return this.state.completed.has(missionId);
+  }
+
+  statsFor(missionId: MissionId): MissionStats {
+    return this.state.stats[missionId] ?? emptyStats;
   }
 
   /**
@@ -71,17 +139,24 @@ export class PlayerProgress {
     return { coins: mission.reward.coins, stars };
   }
 
-  completeMission(mission: Mission): { progress: PlayerProgress; reward: Reward } {
+  completeMission(
+    mission: Mission,
+    record: AttemptRecord = { mistakes: 0, at: 0 },
+  ): { progress: PlayerProgress; reward: Reward } {
     const reward = this.rewardFor(mission);
     const earned = Coins.of(reward.coins);
-    const progress = new PlayerProgress(
-      earned.ok ? this.coins.add(earned.value) : this.coins,
-      this.stars + reward.stars,
-      this.ownedItemIds,
-      this.equipped,
-      new Set([...this.completedMissionIds, mission.id]),
-    );
+    const progress = this.with({
+      coins: earned.ok ? this.state.coins.add(earned.value) : this.state.coins,
+      stars: this.state.stars + reward.stars,
+      completed: new Set([...this.state.completed, mission.id]),
+      stats: this.addStats(mission.id, record, true),
+    });
     return { progress, reward };
+  }
+
+  /** A mission left before the end still counts as practice, never as a failure. */
+  recordAttempt(missionId: MissionId, record: AttemptRecord): PlayerProgress {
+    return this.with({ stats: this.addStats(missionId, record, false) });
   }
 
   buy(item: WardrobeItem): Result<PlayerProgress> {
@@ -90,17 +165,10 @@ export class PlayerProgress {
     }
     const price = Coins.of(item.price);
     if (!price.ok) return price;
-    const remaining = this.coins.subtract(price.value);
+    const remaining = this.state.coins.subtract(price.value);
     if (!remaining.ok) return remaining;
-
     return ok(
-      new PlayerProgress(
-        remaining.value,
-        this.stars,
-        new Set([...this.ownedItemIds, item.id]),
-        this.equipped,
-        this.completedMissionIds,
-      ),
+      this.with({ coins: remaining.value, owned: new Set([...this.state.owned, item.id]) }),
     );
   }
 
@@ -108,27 +176,34 @@ export class PlayerProgress {
     if (!this.owns(item.id)) {
       return err(domainError('item-not-owned', `Item not owned: ${item.id}`));
     }
-    return ok(
-      new PlayerProgress(
-        this.coins,
-        this.stars,
-        this.ownedItemIds,
-        { ...this.equipped, [item.slot]: item.id },
-        this.completedMissionIds,
-      ),
-    );
+    return ok(this.with({ equipped: { ...this.state.equipped, [item.slot]: item.id } }));
   }
 
   unequip(slot: WardrobeSlot): PlayerProgress {
     const equipped = Object.fromEntries(
-      Object.entries(this.equipped).filter(([equippedSlot]) => equippedSlot !== slot),
+      Object.entries(this.state.equipped).filter(([equippedSlot]) => equippedSlot !== slot),
     );
-    return new PlayerProgress(
-      this.coins,
-      this.stars,
-      this.ownedItemIds,
-      equipped,
-      this.completedMissionIds,
-    );
+    return this.with({ equipped });
+  }
+
+  private with(changes: Partial<State>): PlayerProgress {
+    return new PlayerProgress({ ...this.state, ...changes });
+  }
+
+  private addStats(
+    missionId: MissionId,
+    record: AttemptRecord,
+    completed: boolean,
+  ): Record<MissionId, MissionStats> {
+    const current = this.statsFor(missionId);
+    return {
+      ...this.state.stats,
+      [missionId]: {
+        attempts: current.attempts + 1,
+        completions: current.completions + (completed ? 1 : 0),
+        mistakes: current.mistakes + Math.max(0, Math.floor(record.mistakes)),
+        lastPlayedAt: Math.max(current.lastPlayedAt, Math.floor(record.at)),
+      },
+    };
   }
 }

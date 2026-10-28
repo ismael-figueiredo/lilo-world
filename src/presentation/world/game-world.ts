@@ -65,6 +65,14 @@ export class GameWorld {
     return this.shape.isWalkable(x, z);
   }
 
+  setMotionScale(scale: number): void {
+    this.water.motionScale = scale;
+  }
+
+  setCloudsVisible(visible: boolean): void {
+    this.nature.setCloudsVisible(visible);
+  }
+
   showWorlds(entries: readonly WorldMapEntry[]): void {
     this.portals.show(entries);
     this.colliders = [...this.staticColliders, ...this.portals.colliders];

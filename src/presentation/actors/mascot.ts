@@ -11,6 +11,7 @@ export class Mascot {
   private readonly body = new THREE.Group();
   private readonly wings: THREE.Mesh[] = [];
   private readonly target = new THREE.Vector3();
+  motionScale = 1;
 
   constructor() {
     const orange = lowPoly(0xffa53d);
@@ -50,14 +51,14 @@ export class Mascot {
     const forwardZ = -Math.cos(cameraYaw);
     this.target.set(
       playerPosition.x + rightX * 1.5 + forwardX * 0.8,
-      playerPosition.y + 2.5 + Math.sin(time * 1.6) * 0.15,
+      playerPosition.y + 2.5 + Math.sin(time * 1.6) * 0.15 * this.motionScale,
       playerPosition.z + rightZ * 1.5 + forwardZ * 0.8,
     );
     this.root.position.lerp(this.target, damping(3, dt));
     // Looks back towards the camera, like a friend waiting for you.
     this.root.rotation.y = dampAngle(this.root.rotation.y, cameraYaw, 4, dt);
 
-    const flap = Math.sin(time * 9) * 0.6;
+    const flap = Math.sin(time * (this.motionScale < 1 ? 5 : 9)) * 0.6;
     const [left, right] = this.wings;
     if (left !== undefined) left.rotation.z = flap;
     if (right !== undefined) right.rotation.z = -flap;

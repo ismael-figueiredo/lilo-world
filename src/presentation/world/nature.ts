@@ -37,6 +37,10 @@ export class Nature {
     this.addClouds();
   }
 
+  setCloudsVisible(visible: boolean): void {
+    for (const cloud of this.clouds) cloud.visible = visible;
+  }
+
   update(dt: number): void {
     for (const cloud of this.clouds) {
       cloud.position.x += dt * 1.6;

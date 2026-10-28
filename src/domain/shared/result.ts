@@ -21,7 +21,8 @@ export type DomainErrorCode =
   | 'item-not-owned'
   | 'item-already-owned'
   | 'mission-already-finished'
-  | 'not-found';
+  | 'not-found'
+  | 'invalid-name';
 
 export interface DomainError {
   readonly code: DomainErrorCode;

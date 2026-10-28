@@ -1,3 +1,4 @@
+import type { Clock } from '@application/ports/clock';
 import type { ProgressRepository } from '@application/ports/progress-repository';
 import type { Speech } from '@application/ports/speech';
 import type { AttemptOutcome, MissionAttempt } from '@domain/mission/mission-attempt';
@@ -22,6 +23,7 @@ export class ChooseMissionAnswer {
   constructor(
     private readonly progress: ProgressRepository,
     private readonly speech: Speech,
+    private readonly clock: Clock,
   ) {}
 
   async execute(
@@ -41,7 +43,10 @@ export class ChooseMissionAnswer {
         return ok({ attempt, outcome });
       case 'completed': {
         const saved = await this.progress.load();
-        const { progress, reward } = saved.completeMission(attempt.mission);
+        const { progress, reward } = saved.completeMission(attempt.mission, {
+          mistakes: attempt.mistakes,
+          at: this.clock.now(),
+        });
         await this.progress.save(progress);
         void this.speech.speak(phrases.completed);
         return ok({ attempt, outcome, reward });

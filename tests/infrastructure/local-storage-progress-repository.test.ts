@@ -1,11 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { PlayerProgress } from '@domain/progress/player-progress';
-import {
-  LocalStorageProgressRepository,
-  PROGRESS_STORAGE_KEY,
-} from '@infrastructure/persistence/local-storage-progress-repository';
+import { LocalStorageProgressRepository } from '@infrastructure/persistence/local-storage-progress-repository';
 import { mission } from '../support/fixtures';
 import { MemoryStorage } from '../support/memory-storage';
+
+const PROGRESS_STORAGE_KEY = 'lilo-world:v2:test:progress';
 
 describe('LocalStorageProgressRepository', () => {
   let storage: MemoryStorage;
@@ -15,12 +14,12 @@ describe('LocalStorageProgressRepository', () => {
   });
 
   it('starts fresh when nothing is stored', async () => {
-    const progress = await new LocalStorageProgressRepository(storage).load();
+    const progress = await new LocalStorageProgressRepository(storage, PROGRESS_STORAGE_KEY).load();
     expect(progress.toSnapshot()).toEqual(PlayerProgress.createNew().toSnapshot());
   });
 
   it('saves and loads progress', async () => {
-    const repository = new LocalStorageProgressRepository(storage);
+    const repository = new LocalStorageProgressRepository(storage, PROGRESS_STORAGE_KEY);
     const progress = PlayerProgress.createNew().completeMission(mission).progress;
     await repository.save(progress);
     expect((await repository.load()).toSnapshot()).toEqual(progress.toSnapshot());
@@ -28,7 +27,7 @@ describe('LocalStorageProgressRepository', () => {
 
   it('starts fresh when stored data is corrupted', async () => {
     storage.setItem(PROGRESS_STORAGE_KEY, '{not json');
-    const progress = await new LocalStorageProgressRepository(storage).load();
+    const progress = await new LocalStorageProgressRepository(storage, PROGRESS_STORAGE_KEY).load();
     expect(progress.coins.amount).toBe(0);
   });
 
@@ -37,13 +36,14 @@ describe('LocalStorageProgressRepository', () => {
       PROGRESS_STORAGE_KEY,
       JSON.stringify({ coins: 'many', stars: 2, ownedItemIds: [1], equipped: [] }),
     );
-    const progress = await new LocalStorageProgressRepository(storage).load();
+    const progress = await new LocalStorageProgressRepository(storage, PROGRESS_STORAGE_KEY).load();
     expect(progress.toSnapshot()).toEqual({
       coins: 0,
       stars: 2,
       ownedItemIds: [],
       equipped: {},
       completedMissionIds: [],
+      missionStats: {},
     });
   });
 
@@ -51,12 +51,12 @@ describe('LocalStorageProgressRepository', () => {
     storage.setItem = () => {
       throw new Error('QuotaExceededError');
     };
-    const repository = new LocalStorageProgressRepository(storage);
+    const repository = new LocalStorageProgressRepository(storage, PROGRESS_STORAGE_KEY);
     await expect(repository.save(PlayerProgress.createNew())).resolves.toBeUndefined();
   });
 
   it('works without storage at all', async () => {
-    const repository = new LocalStorageProgressRepository(undefined);
+    const repository = new LocalStorageProgressRepository(undefined, PROGRESS_STORAGE_KEY);
     await repository.save(PlayerProgress.createNew());
     expect((await repository.load()).coins.amount).toBe(0);
   });

@@ -1,4 +1,7 @@
-import type { Speech } from '@application/ports/speech';
+import type { AudioPlayer, AudioVolumes, SoundEffect } from '@application/ports/audio';
+import type { Clock } from '@application/ports/clock';
+import type { IdGenerator } from '@application/ports/id-generator';
+import type { Speech, SpeechOptions } from '@application/ports/speech';
 import type { WardrobeItem } from '@domain/avatar/wardrobe-item';
 import type { Mission } from '@domain/mission/mission';
 import type { World } from '@domain/world/world';
@@ -69,5 +72,50 @@ export class FakeSpeech implements Speech {
 
   stop(): void {
     this.stopped += 1;
+  }
+
+  options: SpeechOptions | undefined;
+
+  configure(options: SpeechOptions): void {
+    this.options = options;
+  }
+}
+
+export class FakeAudio implements AudioPlayer {
+  readonly played: SoundEffect[] = [];
+  volumes: AudioVolumes | undefined;
+  musicOn = false;
+
+  play(effect: SoundEffect): void {
+    this.played.push(effect);
+  }
+
+  startMusic(): void {
+    this.musicOn = true;
+  }
+
+  stopMusic(): void {
+    this.musicOn = false;
+  }
+
+  setVolumes(volumes: AudioVolumes): void {
+    this.volumes = volumes;
+  }
+}
+
+export class FixedClock implements Clock {
+  constructor(public time = 1_000) {}
+
+  now(): number {
+    return this.time;
+  }
+}
+
+export class SequentialIds implements IdGenerator {
+  private count = 0;
+
+  next(): string {
+    this.count += 1;
+    return `id-${this.count}`;
   }
 }

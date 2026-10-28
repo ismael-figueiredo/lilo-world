@@ -12,6 +12,8 @@ export class CameraRig {
   yaw = 0;
   pitch = 0.38;
   distance = 7.5;
+  /** Multiplier from the comfort settings (slow / normal / fast camera). */
+  sensitivity = 1;
 
   private readonly target = new THREE.Vector3();
   private readonly lookTarget = new THREE.Vector3();
@@ -26,8 +28,8 @@ export class CameraRig {
   ) {}
 
   rotate(dx: number, dy: number): void {
-    this.yaw -= dx * 0.006;
-    this.pitch = clamp(this.pitch + dy * 0.004, MIN_PITCH, MAX_PITCH);
+    this.yaw -= dx * 0.006 * this.sensitivity;
+    this.pitch = clamp(this.pitch + dy * 0.004 * this.sensitivity, MIN_PITCH, MAX_PITCH);
   }
 
   /** Jumps straight to the follow position (used at start). */
@@ -40,6 +42,10 @@ export class CameraRig {
 
   setFocus(position: THREE.Vector3, lookAt: THREE.Vector3): void {
     this.focus = { position: position.clone(), lookAt: lookAt.clone() };
+  }
+
+  get isFocused(): boolean {
+    return this.focus !== null;
   }
 
   clearFocus(): void {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { arrowRotation, MAP_EXTENT, toMap } from '@presentation/world/map-projection';
 import { clamp, dampAngle, seededRandom, smoothstep } from '@presentation/engine/math';
 import { cameraRelative, joystickInput, keyboardInput } from '@presentation/engine/movement';
 import { box, circle, firstObstruction, resolveCollisions } from '@presentation/world/collision';
@@ -107,5 +108,18 @@ describe('firstObstruction', () => {
     expect(firstObstruction({ x: -6, y: 2, z: 0 }, { x: 6, y: 2, z: 0 }, [box(0, 0, 4, 4)])).toBe(
       1,
     );
+  });
+});
+
+describe('map projection', () => {
+  it('maps the island to 0..1 with north at the top', () => {
+    expect(toMap(0, 0)).toEqual({ u: 0.5, v: 0.5 });
+    expect(toMap(-MAP_EXTENT, -MAP_EXTENT)).toEqual({ u: 0, v: 0 });
+    expect(toMap(MAP_EXTENT, MAP_EXTENT)).toEqual({ u: 1, v: 1 });
+  });
+
+  it('turns the "you are here" arrow the way the player faces', () => {
+    expect(arrowRotation(0)).toBe(180);
+    expect(arrowRotation(Math.PI / 2)).toBeCloseTo(90);
   });
 });

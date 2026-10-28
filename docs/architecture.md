@@ -78,6 +78,10 @@ createServices({
 
 Os testes passam `InMemoryProgressRepository` e `FakeSpeech` no lugar das implementações reais. Um painel de terapeuta poderia passar um catálogo editável, e uma versão nativa poderia passar um armazenamento de arquivo, sem mexer em nenhuma regra.
 
+### Dados por criança
+
+`GameServices` tem os casos de uso globais (perfis) e `forPlayer(profileId)`, que devolve um `PlayerServices` com repositórios **escopados** àquele perfil (chaves `lilo-world:v2:<perfil>:progress|settings|session`). Os casos de uso não sabem que existem vários perfis: o escopo é decidido só no composition root. Na primeira execução, a migração move o progresso da v1 para um perfil "Jogador".
+
 Não há framework de injeção de dependência: os casos de uso recebem tudo pelo construtor, o que é explícito e fácil de seguir.
 
 ## Fluxo de uma missão

@@ -48,6 +48,11 @@ O plano completo do projeto está em [docs/plano-jogo-autismo.md](docs/plano-jog
 | Pular          | Botão ⤒                            | `Espaço`             |
 | Girar a câmera | Arrastar o dedo na tela            | Arrastar com o mouse |
 | Usar / entrar  | Botão amarelo que aparece perto    | `E` ou `Enter`       |
+| Menu           | Botão ☰ (canto superior direito)  | `Esc`                |
+
+**Vários jogadores:** cada criança tem o próprio perfil (nome, progresso, ajustes e lugar no mundo). O jogo salva sozinho e continua de onde parou. Renomear, remover e mudar o limite de tempo ficam na **Área dos pais** (segure o botão por 3 segundos).
+
+**Menu ☰:** mapa (toque num lugar e a seta mostra o caminho), meu progresso, ajustes (volumes, voz, cores suaves, reduzir movimento, câmera, minimapa, limite de tempo por sessão) e trocar jogador.
 
 **Primeira missão:** siga a seta até o 🍎 **Mercado**, entre e pegue os itens da lista de figuras. Com as moedas, vá até **🏠 Minha casa** e escolha cores, chapéus e acessórios no guarda-roupa. As estrelas abrem os portais para novos mundos.
 
@@ -110,6 +115,8 @@ As fronteiras são **garantidas pelo lint**: um `import` do domínio para a infr
 
 - [x] **Fase 0:** repositório, licenças, arquitetura e CI
 - [x] **Fase 1 (protótipo):** ilha 3D aberta, cidade, personagem animado e personalizável, missão do mercado com lista de figuras, moedas, estrelas e guarda-roupa
+- [x] **v0.2, sprint 1:** perfis no mesmo aparelho, salvamento automático da sessão, menu, ajustes sensoriais e de som, mapa e minimapa, progresso, limite de tempo com aviso previsível, música e efeitos suaves
+- [ ] **v0.2, próximos sprints:** avatares (crianças e animais), mercado 3D com caixa, padaria (CAA), ônibus, semáforo, estações de letras e números, mundo vivo (pessoas, carros, barcos, animais) e joystick Bluetooth
 - [ ] **Fase 2:** missões do ônibus, do semáforo e da padaria (frases com CAA: **[eu quero] + [pão]**), painel de ajustes sensoriais, álbum de figurinhas, pictogramas ARASAAC, PWA offline
 - [ ] **Fase 3:** mundos Natureza, Casa (rotinas) e Emoções
 - [ ] **Fase 4:** painel para pais e terapeutas, fotos e figuras personalizadas, traduções
