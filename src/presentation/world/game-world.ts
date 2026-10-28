@@ -7,6 +7,7 @@ import type { Collider } from '@presentation/world/collision';
 import type { Interactable } from '@presentation/world/interactable';
 import { lowPoly } from '@presentation/world/materials';
 import { Nature } from '@presentation/world/nature';
+import { EMOTIONS_GARDEN, EmotionsGarden } from '@presentation/world/emotions-garden';
 import { HOME_AREA, HomeArea } from '@presentation/world/home-area';
 import { NATURE_CAMP, NatureCamp } from '@presentation/world/nature-camp';
 import { SCHOOL_AREA, SchoolArea } from '@presentation/world/school-area';
@@ -35,6 +36,7 @@ export class GameWorld {
   private readonly camp: NatureCamp;
   private readonly home: HomeArea;
   private readonly school: SchoolArea;
+  private readonly emotions: EmotionsGarden;
   private readonly portals = new Portals();
   private readonly nature: Nature;
   private readonly staticColliders: Collider[];
@@ -44,6 +46,7 @@ export class GameWorld {
     this.camp = new NatureCamp(assets);
     this.home = new HomeArea(assets);
     this.school = new SchoolArea(assets);
+    this.emotions = new EmotionsGarden(assets);
     this.shape = new TerrainShape(random, {
       ...defaultTerrainOptions,
       flatAreas: [
@@ -52,6 +55,7 @@ export class GameWorld {
         { ...NATURE_CAMP, blend: 10 },
         { ...HOME_AREA, blend: 10 },
         { ...SCHOOL_AREA, blend: 10 },
+        { ...EMOTIONS_GARDEN, blend: 10 },
         { ...PORTAL_PLAZA, blend: 10 },
       ],
     });
@@ -65,6 +69,7 @@ export class GameWorld {
       this.camp.group,
       this.home.group,
       this.school.group,
+      this.emotions.group,
     );
     this.addPath(scene);
 
@@ -74,6 +79,7 @@ export class GameWorld {
         Math.hypot(x - NATURE_CAMP.x, z - NATURE_CAMP.z) < NATURE_CAMP.radius + 2 ||
         Math.hypot(x - HOME_AREA.x, z - HOME_AREA.z) < HOME_AREA.radius + 2 ||
         Math.hypot(x - SCHOOL_AREA.x, z - SCHOOL_AREA.z) < SCHOOL_AREA.radius + 2 ||
+        Math.hypot(x - EMOTIONS_GARDEN.x, z - EMOTIONS_GARDEN.z) < EMOTIONS_GARDEN.radius + 2 ||
         Math.hypot(x - PORTAL_PLAZA.x, z - PORTAL_PLAZA.z) < PORTAL_PLAZA.radius + 3 ||
         (Math.abs(x) < 5 && z < PATH.fromZ + 4 && z > PATH.toZ - 4),
     });
@@ -83,6 +89,7 @@ export class GameWorld {
       ...this.camp.colliders,
       ...this.home.colliders,
       ...this.school.colliders,
+      ...this.emotions.colliders,
       ...this.nature.colliders,
     ];
     this.colliders = this.staticColliders;
@@ -91,6 +98,7 @@ export class GameWorld {
       ...this.camp.places,
       ...this.home.places,
       ...this.school.places,
+      ...this.emotions.places,
     ];
   }
 
@@ -123,6 +131,7 @@ export class GameWorld {
       ...this.camp.places,
       ...this.home.places,
       ...this.school.places,
+      ...this.emotions.places,
       ...this.portals.places,
     ];
   }
@@ -131,6 +140,7 @@ export class GameWorld {
     this.water.update(time);
     this.city.update(time);
     this.camp.update(time);
+    this.emotions.update(time);
     this.portals.update(time);
     this.nature.update(dt);
     this.sky.follow(focus);

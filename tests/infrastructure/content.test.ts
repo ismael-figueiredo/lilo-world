@@ -45,6 +45,22 @@ describe('bundled content', () => {
     }
   });
 
+  it('never praises twice at the end (the game adds the praise)', () => {
+    const versions = missions.flatMap((mission) => [mission, ...(mission.variants ?? [])]);
+    for (const version of versions) {
+      expect(version.farewell ?? '', version.farewell).not.toMatch(/muito bem|você conseguiu/iu);
+    }
+  });
+
+  it('never shows the answer card itself as the question', () => {
+    for (const { mission, steps } of everyVersion) {
+      for (const step of steps) {
+        const answer = mission.choices.find((c) => c.id === step.targetId);
+        if (step.show !== undefined) expect(step.show, step.prompt).not.toBe(answer?.pictogram);
+      }
+    }
+  });
+
   it('charges one coin per thing bought at the market', () => {
     const market = missions.find((m) => m.id === 'city-market');
     expect(market?.variants?.length).toBeGreaterThanOrEqual(5);

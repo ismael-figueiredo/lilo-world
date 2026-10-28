@@ -34,6 +34,7 @@ import { GameWorld } from '@presentation/world/game-world';
 import { GoalMarker } from '@presentation/world/goal-marker';
 import type { Interactable } from '@presentation/world/interactable';
 import { captureMap } from '@presentation/world/map-snapshot';
+import { emotionsArrival, EmotionsPlace } from '@presentation/world/emotions-garden';
 import { homeArrival, HomePlace } from '@presentation/world/home-area';
 import { campArrival, NaturePlace } from '@presentation/world/nature-camp';
 import { schoolArrival, SchoolPlace } from '@presentation/world/school-area';
@@ -585,7 +586,8 @@ export class GameApp implements GameContext {
     if (
       place.id === NaturePlace.back ||
       place.id === HomePlace.back ||
-      place.id === SchoolPlace.back
+      place.id === SchoolPlace.back ||
+      place.id === EmotionsPlace.back
     ) {
       this.sound('open');
       await this.travel(
@@ -610,6 +612,10 @@ export class GameApp implements GameContext {
       this.sound('open');
       await this.travel(campArrival, Math.PI / 2);
       this.say('Bem-vindo à Natureza! Visite a fazenda, a horta e a reciclagem.');
+    } else if (portal.world.id === 'emotions') {
+      this.sound('open');
+      await this.travel(emotionsArrival, 0);
+      this.say('Bem-vindo ao Jardim das Emoções! Vamos conhecer o que sentimos.');
     } else if (portal.world.id === 'school') {
       this.sound('open');
       await this.travel(schoolArrival, 0);

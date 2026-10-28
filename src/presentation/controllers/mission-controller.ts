@@ -5,6 +5,7 @@ import type { GameContext } from '@presentation/game-context';
 import { MissionPanel } from '@presentation/ui/mission-panel';
 import { CITY, CityPlace, CROSSWALK } from '@presentation/world/city';
 import { CrossingTracker, type CrossingEvent } from '@presentation/world/crosswalk';
+import { EmotionsPlace } from '@presentation/world/emotions-garden';
 import { HomePlace } from '@presentation/world/home-area';
 import { NaturePlace } from '@presentation/world/nature-camp';
 import { SchoolPlace } from '@presentation/world/school-area';
@@ -24,6 +25,9 @@ export const missionPlaces: Readonly<Record<string, string>> = {
   'school-backpack': SchoolPlace.classroom,
   'school-talk': SchoolPlace.teacher,
   'school-turn': SchoolPlace.park,
+  'emotions-faces': EmotionsPlace.faces,
+  'emotions-stories': EmotionsPlace.stories,
+  'emotions-calm': EmotionsPlace.calm,
 };
 
 /** What the crosswalk task reports, as the mission's choice ids. */

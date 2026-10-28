@@ -36,7 +36,13 @@ export const worlds: readonly World[] = [
     missionIds: ['school-backpack', 'school-talk', 'school-turn'],
     color: 0xb08ee6,
   },
-  { id: 'emotions', name: 'Emoções', requiredStars: 12, missionIds: [], color: 0xf07a9a },
+  {
+    id: 'emotions',
+    name: 'Emoções',
+    requiredStars: 12,
+    missionIds: ['emotions-faces', 'emotions-stories', 'emotions-calm'],
+    color: 0xf07a9a,
+  },
 ];
 
 /** Things on the market shelves, with how the mascot names them ("a maçã"). */
@@ -277,6 +283,62 @@ function saying(
     introduction,
     steps: cards.map(([targetId, prompt]) => ({ targetId, prompt })),
     farewell,
+  };
+}
+
+/**
+ * Feelings, each with the face on its card and other faces of the same
+ * feeling. The question shows one of the other faces, so the child learns the
+ * feeling, not just to find the same picture.
+ */
+const feelings = {
+  happy: ['feliz', '😊', ['😄', '😁', '🥰']],
+  sad: ['triste', '😢', ['😭', '😞', '🥺']],
+  angry: ['bravo', '😠', ['😤', '😡', '😾']],
+  scared: ['com medo', '😨', ['😱', '😰', '🙀']],
+  surprised: ['surpreso', '😮', ['😲', '🤯', '😯']],
+} as const;
+
+type Feeling = keyof typeof feelings;
+
+function facesQuiz(id: string, asked: readonly (readonly [Feeling, number])[]): MissionVariant {
+  return {
+    id,
+    introduction: 'Vamos olhar os rostos. Cada rosto mostra um sentimento.',
+    steps: asked.map(([feeling, face], index) => ({
+      targetId: feeling,
+      prompt: `${index === 0 ? 'Olhe este rosto.' : 'E este rosto?'} Como ele está?`,
+      show: feelings[feeling][2][face] ?? feelings[feeling][1],
+    })),
+  };
+}
+
+/** Everyday moments and the feeling they usually bring. */
+const stories: readonly (readonly [string, string, Feeling])[] = [
+  ['Ganhei um presente', '🎁', 'happy'],
+  ['Meu amigo me deu um abraço', '🤗', 'happy'],
+  ['Meu sorvete caiu no chão', '🍦 ⬇️', 'sad'],
+  ['Meu amigo foi embora da festa', '👋 🎈', 'sad'],
+  ['Pegaram meu brinquedo sem pedir', '🧸 ✋', 'angry'],
+  ['Derrubaram minha torre de blocos', '🧱 💥', 'angry'],
+  ['Fez um trovão muito forte', '⛈️', 'scared'],
+  ['O quarto ficou escuro', '🌑', 'scared'],
+  ['Tinha uma festa surpresa para mim', '🎉', 'surprised'],
+  ['Saiu um coelho do chapéu do mágico', '🎩 🐰', 'surprised'],
+];
+
+function storiesQuiz(id: string, picked: readonly number[]): MissionVariant {
+  return {
+    id,
+    introduction: 'Vamos ouvir histórias e pensar no que sentimos.',
+    steps: picked.map((index, step) => {
+      const [moment, picture, feeling] = stories[index] ?? stories[0] ?? ['', '', 'happy'];
+      return {
+        targetId: feeling,
+        prompt: `${step === 0 ? '' : 'E agora: '}${moment}. Como eu fico?`,
+        show: picture,
+      };
+    }),
   };
 }
 
@@ -712,7 +774,7 @@ export const missions: readonly Mission[] = [
           { targetId: 'slide', prompt: 'Você está lá em cima. E agora?' },
           { targetId: 'back-line', prompt: 'Que legal! Para brincar de novo?' },
         ],
-        farewell: 'Você esperou a sua vez. Muito bem!',
+        farewell: 'Você esperou a sua vez!',
         result: '🛝',
       },
       {
@@ -728,6 +790,135 @@ export const missions: readonly Mission[] = [
         ],
         farewell: 'Você deu a vez. Que gentil!',
         result: '🤝',
+      },
+    ],
+    distractors: 0,
+    reward: { coins: 10, stars: 1 },
+  },
+  {
+    id: 'emotions-faces',
+    kind: 'quiz',
+    worldId: 'emotions',
+    title: 'Como ele está?',
+    introduction: 'Vamos olhar os rostos. Cada rosto mostra um sentimento.',
+    choices: Object.entries(feelings).map(([id, [label, pictogram]]) => ({ id, label, pictogram })),
+    steps: facesQuiz('first', [
+      ['happy', 0],
+      ['sad', 0],
+      ['angry', 0],
+    ]).steps,
+    variants: [
+      facesQuiz('a', [
+        ['happy', 0],
+        ['sad', 0],
+        ['angry', 0],
+      ]),
+      facesQuiz('b', [
+        ['scared', 0],
+        ['surprised', 0],
+        ['happy', 1],
+      ]),
+      facesQuiz('c', [
+        ['sad', 1],
+        ['scared', 1],
+        ['surprised', 1],
+      ]),
+      facesQuiz('d', [
+        ['angry', 1],
+        ['happy', 2],
+        ['sad', 2],
+      ]),
+      facesQuiz('e', [
+        ['surprised', 2],
+        ['angry', 2],
+        ['scared', 2],
+      ]),
+    ],
+    reward: { coins: 10, stars: 1 },
+    farewell: 'Você conhece os sentimentos!',
+    result: '💛',
+  },
+  {
+    id: 'emotions-stories',
+    kind: 'quiz',
+    worldId: 'emotions',
+    title: 'Histórias e sentimentos',
+    introduction: 'Vamos ouvir histórias e pensar no que sentimos.',
+    choices: Object.entries(feelings).map(([id, [label, pictogram]]) => ({ id, label, pictogram })),
+    steps: storiesQuiz('first', [0, 2, 6]).steps,
+    variants: [
+      storiesQuiz('a', [0, 2, 6]),
+      storiesQuiz('b', [8, 4, 3]),
+      storiesQuiz('c', [1, 7, 5]),
+      storiesQuiz('d', [9, 3, 4]),
+      storiesQuiz('e', [6, 0, 2]),
+    ],
+    reward: { coins: 10, stars: 1 },
+    farewell: 'Todo sentimento pode ser falado.',
+    result: '📖',
+  },
+  {
+    // A calming routine for big feelings, the same steps every time.
+    id: 'emotions-calm',
+    kind: 'sequence',
+    worldId: 'emotions',
+    title: 'Ficar calmo',
+    introduction: 'Às vezes o sentimento fica grande. Vamos nos acalmar.',
+    choices: [
+      { id: 'stop', label: 'parar', pictogram: '🛑' },
+      { id: 'breathe', label: 'respirar fundo', pictogram: '🌬️' },
+      { id: 'count', label: 'contar até 5', pictogram: '🖐️' },
+      { id: 'say', label: 'dizer como me sinto', pictogram: '🗣️' },
+      { id: 'corner', label: 'ir ao cantinho calmo', pictogram: '🛋️' },
+      { id: 'hug-toy', label: 'abraçar o ursinho', pictogram: '🧸' },
+      { id: 'ask-hug', label: 'pedir um abraço', pictogram: '🤗' },
+      { id: 'return', label: 'voltar a brincar', pictogram: '🙂' },
+    ],
+    steps: [
+      { targetId: 'stop', prompt: 'O que vem primeiro?' },
+      { targetId: 'breathe', prompt: 'Parei. E agora?' },
+      { targetId: 'count', prompt: 'Respirando devagar. E agora?' },
+      { targetId: 'say', prompt: 'Estou mais calmo. E agora?' },
+    ],
+    variants: [
+      {
+        id: 'stop-breathe',
+        title: 'Parar e respirar',
+        introduction: 'Fiquei bravo. Vamos nos acalmar juntos.',
+        steps: [
+          { targetId: 'stop', prompt: 'O que vem primeiro?' },
+          { targetId: 'breathe', prompt: 'Parei. E agora?' },
+          { targetId: 'count', prompt: 'Respirando devagar. E agora?' },
+          { targetId: 'say', prompt: 'Estou mais calmo. E agora?' },
+        ],
+        farewell: 'Você se acalmou!',
+        result: '😌',
+      },
+      {
+        id: 'calm-corner',
+        title: 'O cantinho calmo',
+        introduction: 'Fiquei com medo do barulho. Vamos ao lugar tranquilo.',
+        steps: [
+          { targetId: 'corner', prompt: 'O que vem primeiro?' },
+          { targetId: 'hug-toy', prompt: 'Cheguei ao cantinho. E agora?' },
+          { targetId: 'breathe', prompt: 'O ursinho está comigo. E agora?' },
+          { targetId: 'return', prompt: 'Já estou melhor. E agora?' },
+        ],
+        farewell: 'O cantinho calmo ajudou!',
+        result: '🧸',
+      },
+      {
+        id: 'sad-hug',
+        title: 'Quando fico triste',
+        introduction: 'Fiquei triste. Vamos cuidar desse sentimento.',
+        steps: [
+          { targetId: 'say', prompt: 'O que vem primeiro?' },
+          { targetId: 'ask-hug', prompt: 'Contei que estou triste. E agora?' },
+          { targetId: 'breathe', prompt: 'Que abraço bom. E agora?' },
+          { targetId: 'return', prompt: 'Estou melhor. E agora?' },
+        ],
+        farewell: 'Falar sobre o que sentimos ajuda!',
+        result: '🤗',
       },
     ],
     distractors: 0,

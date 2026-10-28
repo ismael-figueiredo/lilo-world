@@ -15,8 +15,9 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | 4c: missões sorteadas, receitas no mercado, bairro sul com praça    | ✅ feito   | `0d41a2d` |
 | 4d: mundo Natureza (acampamento, fazenda, horta, reciclagem)        | ✅ feito   | `3139b1f` |
 | 4e: mundo Casa (banheiro, quarto, cozinha)                          | ✅ feito   | `1ff1687` |
-| 4f: mundo Escola e Parque (mochila, falar na escola, esperar a vez) | ✅ feito   | —         |
-| 4g: mundo Emoções, mercado 3D por dentro, ônibus 3D                 | ⏭️ próximo | —         |
+| 4f: mundo Escola e Parque (mochila, falar na escola, esperar a vez) | ✅ feito   | `1c4509a` |
+| 4g: mundo Emoções (rostos, histórias, ficar calmo)                  | ✅ feito   | —         |
+| 4h: mercado 3D por dentro, ônibus 3D, mais estações                 | ⏭️ próximo | —         |
 | 5: mundo vivo                                                       | ⏳ depois  | —         |
 
 ## Sprint 3: mundo bonito, água e controle (feito)
@@ -102,12 +103,22 @@ Pendências pequenas: testar com controle físico (só a lógica tem teste); a �
 - `spokenSentence` (pura, testada): vírgulas onde se fala ("Bom dia, professora", "…, por favor"). A frase de CAA termina com a resposta da variante, não mais com o "Aqui está!" da padaria.
 - Agora as quatro áreas dão 13 estrelas: Emoções (12) abre. Falta o conteúdo dela.
 
-## Sprint 4g: próximos
+## Sprint 4g: mundo Emoções (feito)
 
-- **Emoções** (12 estrelas): reconhecer feliz, triste, bravo, com medo e surpreso (quiz com rostos e situações: "Ganhei um presente. Como eu fico?"), e "o que me acalma" (respirar, abraço, cantinho calmo).
+- O portal de Emoções (12 estrelas) leva com fade ao **Jardim das Emoções** no sudoeste (`src/presentation/world/emotions-garden.ts`, `EMOTIONS_GARDEN`): cinco rostos grandes em meio círculo, um pequeno teatro de histórias e o **cantinho calmo** (toldo, pufes, ursinho, luz que "respira" devagar), com portal de volta.
+- Missões (1 estrela cada, com variantes):
+  - **Como ele está?** (`emotions-faces`, quiz): feliz, triste, bravo, com medo, surpreso. A pergunta mostra outro rosto do mesmo sentimento (😭 → cartão 😢 triste), para generalizar.
+  - **Histórias e sentimentos** (`emotions-stories`, quiz): "Ganhei um presente 🎁", "Meu sorvete caiu", "Pegaram meu brinquedo sem pedir", "Fez um trovão"…
+  - **Ficar calmo** (`emotions-calm`, sequência): parar → respirar → contar até 5 → dizer como me sinto; ou o cantinho calmo com o ursinho; ou pedir um abraço quando triste.
+- Testes novos no conteúdo: a pergunta nunca mostra a própria figura do cartão certo; a despedida nunca repete o elogio que o jogo já diz.
+- Com os 5 mundos completos, a ilha dá 16 estrelas pelas missões (+9 das estações).
+
+## Sprint 4h: próximos
+
 - **Mercado 3D por dentro:** transição com fade para um interior com prateleiras de frutas 3D e um carrinho; no caixa, uma pessoa diz "Obrigado!".
 - **Ônibus em 3D:** o ônibus estacionado vem até o ponto durante a missão.
 - **Mais estações:** moedas-letra escondidas pela ilha (para o alfabeto) e placas palavra ↔ figura nas trilhas.
+- Revisão com terapeutas: textos, ordem das rotinas e cores das emoções.
 
 ## Sprint 5: mundo vivo
 
