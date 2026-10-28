@@ -2,6 +2,8 @@ import { createNoise2D, type NoiseFunction2D } from 'simplex-noise';
 import { smoothstep, type Random } from '@presentation/engine/math';
 
 export const WATER_LEVEL = 0;
+/** Land this close to the sea is wet: waves reach it, so the child stops on the sand above. */
+export const SHORE_MARGIN = 0.6;
 
 /** An area flattened for building (the city, a plaza, the portal hill). */
 export interface FlatArea {
@@ -69,8 +71,8 @@ export class TerrainShape {
     return height;
   }
 
-  /** The child can walk anywhere on land, but never into deep water. */
+  /** The child can walk anywhere on land, but never into the water (not even the edge). */
   isWalkable(x: number, z: number): boolean {
-    return this.heightAt(x, z) > WATER_LEVEL + 0.15;
+    return this.heightAt(x, z) > WATER_LEVEL + SHORE_MARGIN;
   }
 }

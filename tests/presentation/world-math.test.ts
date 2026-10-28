@@ -5,6 +5,7 @@ import { cameraRelative, joystickInput, keyboardInput } from '@presentation/engi
 import { box, circle, firstObstruction, resolveCollisions } from '@presentation/world/collision';
 import {
   defaultTerrainOptions,
+  SHORE_MARGIN,
   TerrainShape,
   WATER_LEVEL,
 } from '@presentation/world/terrain-shape';
@@ -47,6 +48,18 @@ describe('TerrainShape', () => {
     expect(shape.heightAt(400, 0)).toBeLessThan(WATER_LEVEL);
     expect(shape.isWalkable(400, 0)).toBe(false);
     expect(shape.isWalkable(0, 0)).toBe(true);
+  });
+
+  it('stops on the sand before the waves', () => {
+    // Walk out from the city to the sea and find the first non-walkable point.
+    let x = 0;
+    while (shape.isWalkable(x + 0.5, 0)) x += 0.5;
+    const edge = shape.heightAt(x + 0.5, 0);
+    expect(edge).toBeLessThanOrEqual(WATER_LEVEL + SHORE_MARGIN);
+    expect(edge).toBeGreaterThan(WATER_LEVEL - 0.5);
+    expect(shape.heightAt(x, 0)).toBeGreaterThan(WATER_LEVEL + SHORE_MARGIN);
+    // Waves in water.ts reach about 0.26 above the water level.
+    expect(SHORE_MARGIN).toBeGreaterThan(0.26);
   });
 });
 
