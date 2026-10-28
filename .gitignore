@@ -20,3 +20,6 @@ coverage/
 # Screenshots dropped in the project root while working
 /Captura de Tela*.png
 /Screenshot*.png
+
+# Downloaded sources for the asset pipeline (pnpm assets)
+assets-src/

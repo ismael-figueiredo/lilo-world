@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ApplySettings } from '@application/use-cases/apply-settings';
+import { ChangeAvatar } from '@application/use-cases/change-avatar';
+import { ListAvatars } from '@application/use-cases/list-avatars';
 import { CheckSessionTime } from '@application/use-cases/check-session-time';
 import { CreateProfile } from '@application/use-cases/create-profile';
 import { DeleteProfile } from '@application/use-cases/delete-profile';
@@ -175,5 +177,28 @@ describe('GetProgressSummary', () => {
         stats: { attempts: 1, completions: 1, mistakes: 2, lastPlayedAt: 9 },
       },
     ]);
+  });
+});
+
+describe('avatar use cases', () => {
+  it('lists avatars and changes the avatar of a profile', async () => {
+    const profiles = new InMemoryProfileRepository();
+    const catalog = new StaticContentCatalog(content);
+    await new CreateProfile(profiles, new SequentialIds(), new FixedClock()).execute(
+      'Ana',
+      'robot',
+    );
+
+    expect((await new ListAvatars(catalog).execute()).map((a) => a.id)).toEqual(['robot', 'bunny']);
+    const changed = await new ChangeAvatar(profiles, catalog).execute('id-1', 'bunny');
+    expect(changed.ok && changed.value.avatarId).toBe('bunny');
+    expect((await profiles.list())[0]?.avatarId).toBe('bunny');
+  });
+
+  it('rejects unknown avatars and profiles', async () => {
+    const profiles = new InMemoryProfileRepository();
+    const change = new ChangeAvatar(profiles, new StaticContentCatalog(content));
+    expect((await change.execute('id-1', 'dragon')).ok).toBe(false);
+    expect((await change.execute('missing', 'bunny')).ok).toBe(false);
   });
 });

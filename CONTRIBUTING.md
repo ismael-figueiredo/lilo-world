@@ -72,6 +72,14 @@ O ESLint (`eslint-plugin-boundaries` + `no-restricted-imports`) bloqueia imports
 3. **Interface:** missões de "escolher itens" já funcionam com o `MissionPanel`. Tipos novos (montar frase CAA, sequência, emoções) ganham um painel próprio em `src/presentation/ui/`.
 4. **Testes:** o teste `tests/infrastructure/content.test.ts` confere ids e passos automaticamente. Regras novas ganham testes de domínio.
 
+## Como adicionar um personagem
+
+1. Escolha um modelo glTF animado **CC0** (por exemplo, da Quaternius no [Poly Pizza](https://poly.pizza)) com animações de parado, andar, correr, pular, acenar e "sim".
+2. Adicione uma entrada em [scripts/avatars.json](scripts/avatars.json) com o link do `.glb`, os objetos a esconder (`hide`) e o nome original de cada animação.
+3. Rode `pnpm assets`. O script gera `public/models/avatars/<id>.glb`.
+4. Registre o personagem em `avatars` ([src/infrastructure/catalog/content.ts](src/infrastructure/catalog/content.ts)) e o ajuste 3D em [src/presentation/actors/avatar-rigs.ts](src/presentation/actors/avatar-rigs.ts). Use `fit` se o chapéu ou os óculos não encaixarem sozinhos.
+5. Gere a figura `public/avatars/<id>.png` (fundo transparente, 512×512) e registre a autoria em `CREDITS.md`.
+
 ### Checklist de acessibilidade e sensorial (obrigatório em PRs visuais)
 
 - [ ] Instruções com **uma ação por frase**, curtas e positivas ("Pegue a maçã"), nunca "Errado!"

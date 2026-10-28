@@ -1,12 +1,20 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { WardrobeItem, WardrobeItemId, WardrobeSlot } from '@domain/avatar/wardrobe-item';
-import { dampAngle } from '@presentation/engine/math';
+import type { AvatarRig } from '@presentation/actors/avatar-rigs';
 import { buildAccessory, type Anchor } from '@presentation/actors/wardrobe-meshes';
+import { dampAngle } from '@presentation/engine/math';
 import { resolveCollisions, type Collider } from '@presentation/world/collision';
 
 export type Emote = 'Wave' | 'Dance' | 'ThumbsUp' | 'Yes';
-type Motion = 'Idle' | 'Walking' | 'Running' | 'Jump';
+type Motion = 'idle' | 'walk' | 'run' | 'jump';
+
+/** Standard clip for each emote, with fallbacks for models that lack it. */
+const emoteClips: Record<Emote, readonly string[]> = {
+  Wave: ['wave'],
+  Yes: ['yes', 'wave'],
+  ThumbsUp: ['thumbs', 'yes'],
+  Dance: ['dance', 'wave'],
+};
 
 export interface Ground {
   heightAt(x: number, z: number): number;
@@ -14,20 +22,16 @@ export interface Ground {
   readonly colliders: readonly Collider[];
 }
 
-const HEIGHT = 1.9;
 const RADIUS = 0.45;
 const WALK_SPEED = 3.8;
 const RUN_SPEED = 7.5;
 const JUMP_SPEED = 7.2;
 const GRAVITY = 21;
-/** Bright starting colors, before the child picks their own. */
-const DEFAULT_BODY = 0xffc93c;
-const DEFAULT_TRIM = 0xdfe6ee;
 
 /**
- * The child's character: an animated robot (CC0 model by Quaternius) with
- * swappable colors and accessories. Movement is kinematic and forgiving: it
- * climbs any hill, never falls into the sea and never "dies".
+ * The child's character: any animated avatar (CC0 models by Quaternius) with
+ * colors and accessories. Movement is kinematic and forgiving: it climbs any
+ * hill, never falls into the sea and never "dies".
  */
 export class Player {
   readonly root = new THREE.Group();
@@ -43,13 +47,48 @@ export class Player {
   private readonly anchors: Record<Anchor, THREE.Object3D>;
   private readonly headWidth: number;
   private readonly worn = new Map<WardrobeSlot, THREE.Object3D>();
+  private readonly bodyMaterial: THREE.MeshStandardMaterial | undefined;
+  private readonly trimMaterial: THREE.MeshStandardMaterial | undefined;
+  private readonly defaultBody: number | undefined;
+  private readonly defaultTrim: number | undefined;
 
-  private constructor(
+  constructor(
     model: THREE.Object3D,
     animations: readonly THREE.AnimationClip[],
-    private readonly bodyMaterial: THREE.MeshStandardMaterial | undefined,
-    private readonly trimMaterial: THREE.MeshStandardMaterial | undefined,
+    readonly avatarId: string,
+    rig: AvatarRig,
   ) {
+    // Bones must have up-to-date matrices before skinned meshes can be measured.
+    model.updateMatrixWorld(true);
+    const size = new THREE.Box3().setFromObject(model, true).getSize(new THREE.Vector3());
+    model.scale.setScalar(rig.height / Math.max(0.001, size.y));
+    model.updateMatrixWorld(true);
+    model.position.y -= new THREE.Box3().setFromObject(model, true).min.y;
+
+    const materials = new Map<string, THREE.MeshStandardMaterial>();
+    model.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      object.castShadow = true;
+      object.receiveShadow = true;
+      object.frustumCulled = false;
+      const list = (
+        Array.isArray(object.material) ? object.material : [object.material]
+      ) as THREE.MeshStandardMaterial[];
+      for (const material of list) {
+        material.flatShading = rig.flatShading;
+        material.roughness = 0.6;
+        material.metalness = 0;
+        material.needsUpdate = true;
+        materials.set(material.name, material);
+      }
+    });
+    this.bodyMaterial =
+      rig.bodyMaterial === undefined ? undefined : materials.get(rig.bodyMaterial);
+    this.trimMaterial =
+      rig.trimMaterial === undefined ? undefined : materials.get(rig.trimMaterial);
+    this.defaultBody = rig.defaultBody ?? this.bodyMaterial?.color.getHex();
+    this.defaultTrim = rig.defaultTrim ?? this.trimMaterial?.color.getHex();
+
     this.root.add(model);
     this.mixer = new THREE.AnimationMixer(model);
     for (const clip of animations) this.actions.set(clip.name, this.mixer.clipAction(clip));
@@ -57,33 +96,10 @@ export class Player {
       this.emote = null;
     });
 
-    const { anchors, headWidth } = createAnchors(this.root, model);
+    const { anchors, headWidth } = createAnchors(this.root, model, rig);
     this.anchors = anchors;
     this.headWidth = headWidth;
-    this.play('Idle', 0);
-  }
-
-  static async load(url: string): Promise<Player> {
-    const gltf = await new GLTFLoader().loadAsync(url);
-    const model = gltf.scene;
-
-    const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
-    model.scale.setScalar(HEIGHT / size.y);
-
-    const materials = new Map<string, THREE.MeshStandardMaterial>();
-    model.traverse((object) => {
-      if (object instanceof THREE.Mesh) {
-        object.castShadow = true;
-        object.receiveShadow = true;
-        const material = object.material as THREE.MeshStandardMaterial;
-        material.flatShading = true;
-        material.roughness = 0.55;
-        material.metalness = 0;
-        material.needsUpdate = true;
-        materials.set(material.name, material);
-      }
-    });
-    return new Player(model, gltf.animations, materials.get('Main'), materials.get('Grey'));
+    this.play('idle', 0);
   }
 
   get position(): THREE.Vector3 {
@@ -108,9 +124,10 @@ export class Player {
   }
 
   playEmote(emote: Emote): void {
-    if (!this.actions.has(emote)) return;
+    const clip = emoteClips[emote].find((name) => this.actions.has(name));
+    if (clip === undefined) return;
     this.emote = emote;
-    this.play(emote, 0.2, true);
+    this.play(clip, 0.2, true);
   }
 
   faceTowards(target: THREE.Vector3): void {
@@ -141,8 +158,10 @@ export class Player {
   ): void {
     const itemIn = (slot: WardrobeSlot) => items.find((item) => item.id === equipped[slot]);
 
-    this.bodyMaterial?.color.setHex(itemIn('body')?.color ?? DEFAULT_BODY);
-    this.trimMaterial?.color.setHex(itemIn('trim')?.color ?? DEFAULT_TRIM);
+    const body = itemIn('body')?.color ?? this.defaultBody;
+    if (body !== undefined) this.bodyMaterial?.color.setHex(body);
+    const trim = itemIn('trim')?.color ?? this.defaultTrim;
+    if (trim !== undefined) this.trimMaterial?.color.setHex(trim);
 
     for (const slot of ['hat', 'accessory'] as const) {
       this.worn.get(slot)?.removeFromParent();
@@ -154,6 +173,11 @@ export class Player {
       this.anchors[model.anchor].add(model.object);
       this.worn.set(slot, model.object);
     }
+  }
+
+  dispose(): void {
+    this.mixer.stopAllAction();
+    this.root.removeFromParent();
   }
 
   private moveHorizontally(
@@ -196,15 +220,15 @@ export class Player {
 
   private animate(): void {
     if (!this.grounded) {
-      this.play('Jump', 0.12, true);
+      this.play('jump', 0.12, true);
       return;
     }
     if (this.emote !== null) return;
-    const motion: Motion = this.speed > 5.2 ? 'Running' : this.speed > 0.3 ? 'Walking' : 'Idle';
+    const motion: Motion = this.speed > 5.2 ? 'run' : this.speed > 0.3 ? 'walk' : 'idle';
     this.play(motion, 0.25);
-    if (this.current !== undefined && motion !== 'Idle') {
+    if (this.current !== undefined && motion !== 'idle') {
       this.current.timeScale =
-        motion === 'Running' ? this.speed / RUN_SPEED + 0.2 : this.speed / WALK_SPEED;
+        motion === 'run' ? this.speed / RUN_SPEED + 0.2 : this.speed / WALK_SPEED;
     }
   }
 
@@ -226,30 +250,82 @@ export class Player {
 }
 
 /**
+ * Bounding box of the vertices that move mostly with one bone (for skinned
+ * models), or of the meshes attached under it (for rigid-part models).
+ */
+function boneBox(model: THREE.Object3D, bone: THREE.Object3D | undefined): THREE.Box3 {
+  const box = new THREE.Box3();
+  if (bone === undefined) return box;
+  const point = new THREE.Vector3();
+
+  model.traverse((object) => {
+    if (!(object instanceof THREE.SkinnedMesh)) return;
+    const index = object.skeleton.bones.indexOf(bone as THREE.Bone);
+    if (index < 0) return;
+    const geometry = object.geometry as THREE.BufferGeometry;
+    const skinIndex = geometry.getAttribute('skinIndex');
+    const skinWeight = geometry.getAttribute('skinWeight');
+    for (let i = 0; i < geometry.getAttribute('position').count; i += 1) {
+      let weight = 0;
+      for (let k = 0; k < 4; k += 1) {
+        if (skinIndex.getComponent(i, k) === index) weight += skinWeight.getComponent(i, k);
+      }
+      if (weight < 0.5) continue;
+      object.getVertexPosition(i, point);
+      box.expandByPoint(point.applyMatrix4(object.matrixWorld));
+    }
+  });
+
+  if (box.isEmpty()) {
+    bone.traverse((child) => {
+      if (child instanceof THREE.Mesh) box.expandByObject(child);
+    });
+  }
+  return box;
+}
+
+/**
  * Creates empty objects glued to the head and torso bones, measured in the
- * rest pose, so accessories follow every animation with no manual math.
+ * rest pose, so accessories follow every animation and fit every avatar.
  */
 function createAnchors(
   root: THREE.Object3D,
   model: THREE.Object3D,
+  rig: AvatarRig,
 ): { anchors: Record<Anchor, THREE.Object3D>; headWidth: number } {
   // The root is still unplaced (identity), so world coordinates equal root coordinates.
   root.updateMatrixWorld(true);
   let headBone: THREE.Object3D | undefined;
   let torsoBone: THREE.Object3D | undefined;
-  let headMesh: THREE.Object3D | undefined;
-  let torsoMesh: THREE.Object3D | undefined;
   model.traverse((object) => {
     if (object instanceof THREE.Bone && object.name === 'Head') headBone ??= object;
     if (object instanceof THREE.Bone && object.name === 'Torso') torsoBone ??= object;
-    if (object instanceof THREE.Mesh && object.name.startsWith('Head')) headMesh ??= object;
-    if (object instanceof THREE.Mesh && object.name.startsWith('Torso')) torsoMesh ??= object;
   });
 
-  const head = new THREE.Box3().setFromObject(headMesh ?? model);
+  const whole = new THREE.Box3().setFromObject(model);
+  const wholeSize = whole.getSize(new THREE.Vector3());
+  let head = boneBox(model, headBone);
+  if (head.isEmpty()) {
+    head = new THREE.Box3(
+      new THREE.Vector3(whole.min.x, whole.max.y - wholeSize.y * 0.35, whole.min.z),
+      whole.max.clone(),
+    );
+  }
+  // Long ears or antennae belong to the head bone too; a head is about as tall as it is wide.
+  const headWidthGuess = Math.max(head.max.x - head.min.x, (head.max.z - head.min.z) * 0.9);
+  head.max.y = Math.min(head.max.y, head.min.y + headWidthGuess * 1.1);
+  let torso = boneBox(model, torsoBone);
+  if (torso.isEmpty()) torso = whole.clone();
+
+  if (rig.fit !== undefined) {
+    const halfWidth = (rig.fit.headWidth * rig.height) / 2;
+    const center = head.getCenter(new THREE.Vector3());
+    const eyes = rig.fit.eyes * rig.height;
+    head.min.set(center.x - halfWidth, eyes - (rig.fit.headTop * rig.height - eyes), head.min.z);
+    head.max.set(center.x + halfWidth, rig.fit.headTop * rig.height, head.max.z);
+  }
   const headSize = head.getSize(new THREE.Vector3());
   const headCenter = head.getCenter(new THREE.Vector3());
-  const torso = new THREE.Box3().setFromObject(torsoMesh ?? model);
   const torsoCenter = torso.getCenter(new THREE.Vector3());
 
   const anchorAt = (
@@ -261,12 +337,12 @@ function createAnchors(
     root.add(anchor);
     anchor.updateMatrixWorld();
     // `attach` keeps the world transform, so the anchor sits exactly where measured.
-    parent?.attach(anchor);
+    (parent ?? model).attach(anchor);
     return anchor;
   };
 
   return {
-    headWidth: headSize.x,
+    headWidth: Math.max(headSize.x, headSize.z * 0.9),
     anchors: {
       'head-top': anchorAt(headBone, new THREE.Vector3(headCenter.x, head.max.y, headCenter.z)),
       face: anchorAt(

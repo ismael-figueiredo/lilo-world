@@ -10,6 +10,7 @@ import type { SettingsRepository } from '@application/ports/settings-repository'
 import type { Speech } from '@application/ports/speech';
 import { ApplySettings } from '@application/use-cases/apply-settings';
 import { BuyWardrobeItem } from '@application/use-cases/buy-wardrobe-item';
+import { ChangeAvatar } from '@application/use-cases/change-avatar';
 import { CheckSessionTime } from '@application/use-cases/check-session-time';
 import { ChooseMissionAnswer } from '@application/use-cases/choose-mission-answer';
 import { CreateProfile } from '@application/use-cases/create-profile';
@@ -21,6 +22,7 @@ import { GetSettings } from '@application/use-cases/get-settings';
 import { GetWardrobe } from '@application/use-cases/get-wardrobe';
 import { GetWorldMap } from '@application/use-cases/get-world-map';
 import { LeaveMission } from '@application/use-cases/leave-mission';
+import { ListAvatars } from '@application/use-cases/list-avatars';
 import { ListProfiles } from '@application/use-cases/list-profiles';
 import { LoadSession } from '@application/use-cases/load-session';
 import { RenameProfile } from '@application/use-cases/rename-profile';
@@ -97,6 +99,8 @@ export function createServices(adapters: Adapters): GameServices {
     renameProfile: new RenameProfile(profiles),
     deleteProfile: new DeleteProfile(profiles),
     getActiveProfile: new GetActiveProfile(profiles),
+    listAvatars: new ListAvatars(catalog),
+    changeAvatar: new ChangeAvatar(profiles, catalog),
     speech,
     audio,
     forPlayer(profileId) {

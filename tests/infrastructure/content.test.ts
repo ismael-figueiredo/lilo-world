@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { missions, wardrobeItems, worlds } from '@infrastructure/catalog/content';
+import { DEFAULT_AVATAR_ID } from '@domain/profile/player-profile';
+import { avatars, missions, wardrobeItems, worlds } from '@infrastructure/catalog/content';
 
 /** Guards the bundled content against typos that would break a mission. */
 describe('bundled content', () => {
@@ -33,5 +34,12 @@ describe('bundled content', () => {
 
   it('opens the first world from the start', () => {
     expect(worlds[0]?.requiredStars).toBe(0);
+  });
+});
+
+describe('bundled avatars', () => {
+  it('has unique ids, starting with the default avatar', () => {
+    expect(new Set(avatars.map((a) => a.id)).size).toBe(avatars.length);
+    expect(avatars[0]?.id).toBe(DEFAULT_AVATAR_ID);
   });
 });

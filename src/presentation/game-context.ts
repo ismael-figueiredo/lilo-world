@@ -34,4 +34,7 @@ export interface GameContext {
   /** A place chosen on the map; the golden arrow points there until it is reached. */
   setDestination(place: Interactable | undefined): void;
   switchPlayer(): Promise<void>;
+  /** Swaps the 3D character and remembers the choice for this child. */
+  changeAvatar(avatarId: string): Promise<void>;
+  avatarPicture(avatarId: string): string;
 }

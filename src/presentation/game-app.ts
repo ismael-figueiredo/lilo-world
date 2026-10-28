@@ -6,7 +6,9 @@ import type { Goal } from '@application/use-cases/suggest-next-goal';
 import { DEFAULT_AVATAR_ID, type PlayerProfile } from '@domain/profile/player-profile';
 import { defaultSettings, type Settings } from '@domain/settings/settings';
 import { Mascot } from '@presentation/actors/mascot';
-import { Player } from '@presentation/actors/player';
+import { AvatarLibrary } from '@presentation/actors/avatar-library';
+import { avatarPictureUrl } from '@presentation/actors/avatar-rigs';
+import type { Player } from '@presentation/actors/player';
 import { MenuController } from '@presentation/controllers/menu-controller';
 import { MissionController, missionPlaces } from '@presentation/controllers/mission-controller';
 import { WardrobeController } from '@presentation/controllers/wardrobe-controller';
@@ -33,7 +35,8 @@ import { portalId } from '@presentation/world/portals';
 import '@presentation/ui/styles.css';
 
 export interface GameAppOptions {
-  readonly modelUrl: string;
+  /** Where public assets are served from (Vite's BASE_URL). */
+  readonly baseUrl: string;
   readonly seed?: number;
 }
 
@@ -66,6 +69,7 @@ export class GameApp implements GameContext {
   private readonly missions: MissionController;
   private readonly wardrobe: WardrobeController;
   private readonly menus: MenuController;
+  private readonly avatars: AvatarLibrary;
 
   private renderer: THREE.WebGLRenderer | undefined;
   private gameWorld: GameWorld | undefined;
@@ -97,7 +101,10 @@ export class GameApp implements GameContext {
     });
     this.profileScreen = new ProfileScreen({
       onSelect: (profile) => void this.selectProfile(profile),
-      onCreate: (name) => void this.createProfile(name),
+      onCreate: (name, avatarId) => void this.createProfile(name, avatarId),
+      onPreviewAvatar: (avatarId) => {
+        this.avatars.preload(avatarId);
+      },
       onRename: (profile, name) => void this.renameProfile(profile, name),
       onDelete: (profile) => void this.deleteProfile(profile),
     });
@@ -113,6 +120,7 @@ export class GameApp implements GameContext {
         this.backToExploring();
       },
     });
+    this.avatars = new AvatarLibrary(options.baseUrl);
     this.missions = new MissionController(this);
     this.wardrobe = new WardrobeController(this);
     this.menus = new MenuController(this, () => this.goalPlace()?.id);
@@ -245,6 +253,31 @@ export class GameApp implements GameContext {
     this.profileScreen.show(await this.services.listProfiles.execute());
   }
 
+  async changeAvatar(avatarId: string): Promise<void> {
+    const result = await this.services.changeAvatar.execute(this.profile.id, avatarId);
+    if (!result.ok) return;
+    this.activeProfile = result.value;
+    await this.useAvatar(avatarId);
+    await this.refresh();
+  }
+
+  avatarPicture(avatarId: string): string {
+    return avatarPictureUrl(this.options.baseUrl, avatarId);
+  }
+
+  /** Replaces the 3D character in place (same spot, same direction). */
+  private async useAvatar(avatarId: string): Promise<void> {
+    if (this.character?.avatarId === avatarId) return;
+    const next = await this.avatars.create(avatarId);
+    const previous = this.character;
+    if (previous !== undefined) {
+      next.placeAt(previous.position, previous.facing);
+      previous.dispose();
+    }
+    this.scene.add(next.root);
+    this.character = next;
+  }
+
   // ---------- Start ----------
 
   async start(): Promise<void> {
@@ -278,7 +311,7 @@ export class GameApp implements GameContext {
 
       const world = new GameWorld(this.scene, seededRandom(this.options.seed ?? 20261028));
       this.gameWorld = world;
-      const player = await Player.load(this.options.modelUrl);
+      const player = await this.avatars.create(DEFAULT_AVATAR_ID);
       this.character = player;
       player.placeAt(world.spawn, Math.PI / 2);
       this.mascot.placeNear(world.spawn);
@@ -302,6 +335,9 @@ export class GameApp implements GameContext {
       this.listenToPage();
       if (import.meta.env.DEV) this.exposeDevTools();
 
+      this.profileScreen.setAvatars(await this.services.listAvatars.execute(), (id) =>
+        this.avatarPicture(id),
+      );
       this.profileScreen.show(await this.services.listProfiles.execute());
     } catch (error) {
       console.error(error);
@@ -316,8 +352,8 @@ export class GameApp implements GameContext {
     if (result.ok) await this.beginProfile(result.value, false);
   }
 
-  private async createProfile(name: string): Promise<void> {
-    const result = await this.services.createProfile.execute(name, DEFAULT_AVATAR_ID);
+  private async createProfile(name: string, avatarId: string): Promise<void> {
+    const result = await this.services.createProfile.execute(name, avatarId);
     if (result.ok) await this.beginProfile(result.value, true);
   }
 
@@ -337,6 +373,8 @@ export class GameApp implements GameContext {
     if (renderer === undefined) return;
     this.activeProfile = profile;
     this.playerServices = this.services.forPlayer(profile.id);
+    this.profileScreen.setLoading(`Preparando ${profile.name}…`);
+    await this.useAvatar(profile.avatarId);
     this.applySettings(await this.player.applySettings.execute());
 
     const session = await this.player.loadSession.execute();

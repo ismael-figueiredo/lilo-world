@@ -1,0 +1,141 @@
+{
+  "$comment": "Avatar sources. All models are CC0 1.0 (see CREDITS.md). Run `pnpm assets` to rebuild public/models/avatars.",
+  "avatars": [
+    {
+      "id": "robot",
+      "source": "https://cdn.jsdelivr.net/gh/mrdoob/three.js@r170/examples/models/gltf/RobotExpressive/RobotExpressive.glb",
+      "author": "Tomás Laulhé (Quaternius), modifications by Don McCurdy",
+      "hide": [],
+      "animations": {
+        "idle": "Idle",
+        "walk": "Walking",
+        "run": "Running",
+        "jump": "Jump",
+        "wave": "Wave",
+        "yes": "Yes",
+        "dance": "Dance",
+        "thumbs": "ThumbsUp"
+      }
+    },
+    {
+      "id": "anne",
+      "source": "https://static.poly.pizza/1cc2232d-b43e-4fc0-b97f-134b4a528bf8.glb",
+      "page": "https://poly.pizza/m/tZYaOQ4l94",
+      "author": "Quaternius",
+      "hide": ["Weapon_DoubleAxe"],
+      "animations": {
+        "idle": "Idle",
+        "walk": "Walk",
+        "run": "Run",
+        "jump": "Jump",
+        "wave": "Wave",
+        "yes": "Yes"
+      }
+    },
+    {
+      "id": "lis",
+      "source": "https://static.poly.pizza/5c3f2a86-c030-49aa-8a4c-86a7a1220801.glb",
+      "page": "https://poly.pizza/m/gjuwleUT1U",
+      "author": "Quaternius",
+      "hide": ["Pistol"],
+      "animations": {
+        "idle": "Idle",
+        "walk": "Walk",
+        "run": "Run",
+        "jump": "Jump",
+        "wave": "Wave",
+        "yes": "Yes"
+      }
+    },
+    {
+      "id": "sam",
+      "source": "https://static.poly.pizza/2d0ad9ee-2e86-4b0c-b20e-cfc8c80c8c78.glb",
+      "page": "https://poly.pizza/m/UcLErL2W37",
+      "author": "Quaternius",
+      "hide": ["Axe"],
+      "animations": {
+        "idle": "Idle",
+        "walk": "Walk",
+        "run": "Run",
+        "jump": "Jump",
+        "wave": "Wave",
+        "yes": "Yes"
+      }
+    },
+    {
+      "id": "shaun",
+      "source": "https://static.poly.pizza/c8ecc219-6a19-4fd1-ae1a-6ceeda529eaf.glb",
+      "page": "https://poly.pizza/m/eJFT9MxzOM",
+      "author": "Quaternius",
+      "hide": ["WoodenBat_Saw"],
+      "animations": {
+        "idle": "Idle",
+        "walk": "Walk",
+        "run": "Run",
+        "jump": "Jump",
+        "wave": "Wave",
+        "yes": "Yes"
+      }
+    },
+    {
+      "id": "bunny-pigtails",
+      "source": "https://static.poly.pizza/b8e8819d-4d05-4ded-a89a-d43723524139.glb",
+      "page": "https://poly.pizza/m/SwKX8OIlw8",
+      "author": "Quaternius",
+      "hide": [],
+      "animations": {
+        "idle": "Idle",
+        "walk": "Walk",
+        "run": "Run",
+        "jump": "Jump",
+        "wave": "Wave",
+        "yes": "Yes"
+      }
+    },
+    {
+      "id": "bunny-cyan",
+      "source": "https://static.poly.pizza/f3524651-9296-4a8e-ba27-460fb974237c.glb",
+      "page": "https://poly.pizza/m/RPZ9gxcFL3",
+      "author": "Quaternius",
+      "hide": [],
+      "animations": {
+        "idle": "Idle",
+        "walk": "Walk",
+        "run": "Run",
+        "jump": "Jump",
+        "wave": "Wave",
+        "yes": "Yes"
+      }
+    },
+    {
+      "id": "panda",
+      "source": "https://static.poly.pizza/fb175c69-6c26-452a-87fe-16a1a9aa99a7.glb",
+      "page": "https://poly.pizza/m/q1uJ28Hs8T",
+      "author": "Quaternius",
+      "hide": [],
+      "animations": {
+        "idle": "Idle",
+        "walk": "Walk",
+        "run": "Run",
+        "jump": "Jump",
+        "wave": "Wave",
+        "yes": "Yes"
+      }
+    },
+    {
+      "id": "frog",
+      "source": "https://static.poly.pizza/9018566d-c4e9-4f20-9c99-964622a6e674.glb",
+      "page": "https://poly.pizza/m/37wofOCOzG",
+      "author": "Quaternius",
+      "hide": [],
+      "animations": {
+        "idle": "Idle",
+        "walk": "Walk",
+        "run": "Run",
+        "jump": "Jump",
+        "wave": "Wave",
+        "yes": "Yes"
+      }
+    }
+  ]
+}

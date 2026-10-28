@@ -1,3 +1,4 @@
+import type { AvatarDefinition } from '@domain/avatar/avatar';
 import type { WardrobeItem } from '@domain/avatar/wardrobe-item';
 import type { Mission } from '@domain/mission/mission';
 import type { World } from '@domain/world/world';
@@ -88,4 +89,17 @@ export const wardrobeItems: readonly WardrobeItem[] = [
     price: 15,
     color: 0x5b6cff,
   },
+];
+
+/** Characters to play as (3D models by Quaternius, CC0). The first one is the default. */
+export const avatars: readonly AvatarDefinition[] = [
+  { id: 'robot', name: 'Robô', kind: 'robot', recolorable: true },
+  { id: 'anne', name: 'Ana', kind: 'kid', recolorable: false },
+  { id: 'lis', name: 'Lis', kind: 'kid', recolorable: false },
+  { id: 'sam', name: 'Sam', kind: 'kid', recolorable: false },
+  { id: 'shaun', name: 'Téo', kind: 'kid', recolorable: false },
+  { id: 'bunny-pigtails', name: 'Coelhinha', kind: 'animal', recolorable: false },
+  { id: 'bunny-cyan', name: 'Coelho', kind: 'animal', recolorable: false },
+  { id: 'panda', name: 'Panda', kind: 'animal', recolorable: false },
+  { id: 'frog', name: 'Sapo', kind: 'animal', recolorable: true },
 ];

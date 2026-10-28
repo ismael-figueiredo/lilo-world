@@ -58,6 +58,10 @@ export const content: GameContent = {
   worlds,
   missions: [mission],
   wardrobeItems: [hat, otherHat, expensiveShirt],
+  avatars: [
+    { id: 'robot', name: 'Robô', kind: 'robot', recolorable: true },
+    { id: 'bunny', name: 'Coelho', kind: 'animal', recolorable: false },
+  ],
 };
 
 /** Records what the mascot would say. */

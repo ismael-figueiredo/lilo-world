@@ -23,7 +23,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "check": "pnpm lint && pnpm typecheck && pnpm test:coverage",
-    "prepare": "husky"
+    "prepare": "husky",
+    "assets": "node scripts/optimize-avatars.mjs"
   },
   "lint-staged": {
     "*.{ts,js}": [
@@ -36,6 +37,9 @@
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
     "@eslint/js": "^10.0.1",
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
     "@types/node": "^22.20.5",
     "@types/three": "^0.186.0",
     "@vitest/coverage-v8": "^5.0.5",
