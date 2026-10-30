@@ -1,4 +1,9 @@
-import type { ActivityBuilder, ActivityOption, Picture } from '@domain/activity/activity';
+import type {
+  ActivityBuilder,
+  ActivityContext,
+  ActivityOption,
+  Picture,
+} from '@domain/activity/activity';
 import { firstLetter, type Word } from '@domain/language/word';
 import { pick, randomInt, shuffled, type Random } from '@domain/shared/random';
 
@@ -7,6 +12,10 @@ const COUNTABLE: readonly Picture[] = ['🍎', '⭐', '🐟', '🌸', '🚗', '�
   pictogram,
 }));
 const COIN: Picture = { pictogram: '🪙' };
+
+/** Highest quantity of a round's first question, and how far below the top others may go. */
+const RAMP_START = 3;
+const RAMP_SPREAD = 2;
 
 /** Things a child buys, for the coin activities. */
 const SHOP_ITEMS: readonly (Picture & { readonly name: string })[] = [
@@ -22,6 +31,13 @@ const SHOP_ITEMS: readonly (Picture & { readonly name: string })[] = [
 
 /** Groups of five, which are easy to see and count (as on a hand). */
 const groupsOf = (count: number): readonly number[] => (count > 5 ? [5, count - 5] : [count]);
+
+/** Quantities grow along a round, in small steps: never from 1 straight to the top. */
+function steppedAmount({ random, progress = 1 }: ActivityContext, max: number): number {
+  const start = Math.min(RAMP_START, max);
+  const top = Math.round(start + (max - start) * progress);
+  return randomInt(random, Math.max(1, top - RAMP_SPREAD), top);
+}
 
 const numberOption = (value: number): ActivityOption => ({
   id: String(value),
@@ -138,8 +154,9 @@ export const readWord =
 
 export const countObjects =
   ({ max }: { max: number }): ActivityBuilder =>
-  ({ random }) => {
-    const answer = randomInt(random, 1, max);
+  (context) => {
+    const { random } = context;
+    const answer = steppedAmount(context, max);
     return {
       prompt: { text: 'Quantos tem? Conte comigo.' },
       stimulus: { kind: 'objects', picture: pick(random, COUNTABLE), groups: groupsOf(answer) },
@@ -155,8 +172,9 @@ export const countObjects =
 /** Objects first: moving each one while counting comes before reading a number. */
 export const carryObjects =
   ({ max }: { max: number }): ActivityBuilder =>
-  ({ random }) => {
-    const goal = randomInt(random, 1, max);
+  (context) => {
+    const { random } = context;
+    const goal = steppedAmount(context, max);
     return {
       prompt: { text: `Leve ${goal} para a cesta.` },
       stimulus: { kind: 'none' },
@@ -193,8 +211,9 @@ export const addObjects =
 
 export const payCoins =
   ({ max }: { max: number }): ActivityBuilder =>
-  ({ random }) => {
-    const price = randomInt(random, 1, max);
+  (context) => {
+    const { random } = context;
+    const price = steppedAmount(context, max);
     const item = pick(random, SHOP_ITEMS);
     const coins = (count: number) => `${count} ${count === 1 ? 'moeda' : 'moedas'}`;
     return {

@@ -91,6 +91,47 @@ describe('nothing on screen gives the answer', () => {
   });
 });
 
+describe('questions in small steps', () => {
+  const answersOf = (id: string, seed: number): number[] => {
+    const skill = skillNamed(id);
+    const ctx = context(seed);
+    let round = ActivityRound.start({ station: skill.station, level: 1, skills: [skill] }, ctx);
+    const answers = [Number(answerOf(round.item.interaction))];
+    for (let i = 1; i < ROUND_LENGTH; i += 1) {
+      round = round.answer(answerOf(round.item.interaction), ctx).round;
+      answers.push(Number(answerOf(round.item.interaction)));
+    }
+    return answers;
+  };
+
+  it.each(['math.carry.5', 'math.count.5'])('%s starts small and may reach the top', (id) => {
+    for (let seed = 1; seed < 40; seed += 1) {
+      const [first = 0] = answersOf(id, seed);
+      expect(first).toBeLessThanOrEqual(3);
+    }
+    const lasts = Array.from({ length: 40 }, (_, seed) => answersOf(id, seed).at(-1));
+    expect(lasts).toContain(5);
+  });
+
+  it('never jumps by more than 3 from a question to the next one', () => {
+    for (let seed = 1; seed < 40; seed += 1) {
+      const answers = answersOf('math.carry.5', seed);
+      answers.slice(1).forEach((answer, index) => {
+        expect(Math.abs(answer - (answers[index] ?? 0))).toBeLessThanOrEqual(3);
+      });
+    }
+  });
+
+  it('never asks for the same answer twice in a row', () => {
+    for (let seed = 1; seed < 40; seed += 1) {
+      const answers = answersOf('math.count.5', seed);
+      answers.slice(1).forEach((answer, index) => {
+        expect(answer).not.toBe(answers[index]);
+      });
+    }
+  });
+});
+
 describe('activities', () => {
   it('always has exactly one right answer among distinct options', () => {
     const ctx = context(1);

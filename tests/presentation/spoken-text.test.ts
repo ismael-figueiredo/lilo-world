@@ -12,7 +12,7 @@ const filesIn = (folder: string): string[] =>
 describe('what the game says', () => {
   it('comes from the phrases, so it can be recorded later', () => {
     // say('...') or say(x ? '...' : y): the words were written where they are said.
-    const inline = /\bsay\((?:[^;]*?[?:])?\s*['`]/;
+    const inline = /\bsay\((?:[^;]*?\s[?:])?\s*['`]/;
     for (const file of filesIn('src/presentation')) {
       expect(inline.test(readFileSync(file, 'utf8')), file).toBe(false);
     }

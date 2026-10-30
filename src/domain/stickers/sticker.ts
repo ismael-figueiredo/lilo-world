@@ -11,13 +11,13 @@ export interface Sticker {
 const skillStickers: Readonly<Record<Station, readonly [string, string][]>> = {
   letters: [
     ['Primeiras letras', '🔤'],
-    ['Leitor de letras', '📖'],
-    ['Leitor de palavras', '📚'],
+    ['Conhece as letras', '📖'],
+    ['Letras das palavras', '📚'],
   ],
   numbers: [
+    ['Primeiros números', '🔢'],
     ['Conta até 5', '🖐️'],
     ['Conta até 10', '🔟'],
-    ['Faz somas', '➕'],
   ],
   coins: [
     ['Primeiras compras', '🪙'],
@@ -26,7 +26,11 @@ const skillStickers: Readonly<Record<Station, readonly [string, string][]>> = {
   ],
 };
 
-/** The sticker earned by reaching a level of a skill (levels start at 1; level 1 is free). */
+/**
+ * The sticker of a level: the first is for a first right answer, the others for
+ * reaching that level, which means the level before it was done well. Names say
+ * what the child already did, never what comes next.
+ */
 export const stickerId = (skill: Station, level: number): StickerId => `${skill}-${level}`;
 
 /** Every sticker of the album, in the order they are shown. Level 1 is where everyone starts. */

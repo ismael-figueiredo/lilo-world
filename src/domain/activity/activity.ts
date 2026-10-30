@@ -75,6 +75,8 @@ export interface ActivityItem {
 export interface ActivityContext {
   readonly random: Random;
   readonly words: readonly Word[];
+  /** How far the round has gone, 0 to 1. Without it, the whole range is used. */
+  readonly progress?: number;
 }
 
 /** Makes a new item for a skill. Pure: same random, same item. */

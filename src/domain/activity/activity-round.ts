@@ -78,6 +78,9 @@ const newItem = (config: RoundConfig, context: ActivityContext): ActivityItem =>
   return { ...skill.activity(context), skillId: skill.id };
 };
 
+const progressOf = (asked: number, length: number): number =>
+  length > 1 ? Math.min(asked / (length - 1), 1) : 1;
+
 /**
  * One round of questions. A wrong answer never leaves the child trying the
  * others until something works: the game shows the answer, the next question
@@ -92,10 +95,11 @@ export class ActivityRound {
       ...config,
       level: Math.min(Math.max(1, Math.floor(config.level)), MAX_LEVEL),
     };
-    const item = newItem(safeConfig, context);
+    const length = config.length ?? ROUND_LENGTH;
+    const item = newItem(safeConfig, { ...context, progress: progressOf(0, length) });
     return new ActivityRound({
       config: safeConfig,
-      length: config.length ?? ROUND_LENGTH,
+      length,
       item,
       asked: 0,
       score: 0,
@@ -208,7 +212,7 @@ export class ActivityRound {
 
     const next =
       retry === undefined
-        ? this.newQuestion(context)
+        ? this.newQuestion({ ...context, progress: progressOf(asked, length) })
         : { ...retry.item, interaction: reshuffled(retry.item.interaction, context) };
     const round = new ActivityRound({
       ...this.state,
@@ -235,11 +239,14 @@ export class ActivityRound {
     };
   }
 
-  /** A question different from the last ones, whenever the content allows it. */
+  /** A question unlike the last ones, with a new answer, whenever the content allows it. */
   private newQuestion(context: ActivityContext): ActivityItem {
-    const { config, recent } = this.state;
+    const { config, recent, item: last } = this.state;
+    const lastAnswer = answerOf(last.interaction);
+    const isNew = (candidate: ActivityItem) =>
+      !recent.includes(keyOf(candidate)) && answerOf(candidate.interaction) !== lastAnswer;
     let item = newItem(config, context);
-    for (let tries = 0; tries < 12 && recent.includes(keyOf(item)); tries += 1) {
+    for (let tries = 0; tries < 12 && !isNew(item); tries += 1) {
       item = newItem(config, context);
     }
     return item;
