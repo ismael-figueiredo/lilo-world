@@ -41,15 +41,15 @@ O plano completo do projeto está em [docs/plano-jogo-autismo.md](docs/plano-jog
 
 ## Como jogar
 
-| Ação           | Tablet / celular                   | Computador           | Controle (USB ou Bluetooth)         |
-| -------------- | ---------------------------------- | -------------------- | ----------------------------------- |
-| Andar          | Joystick (canto inferior esquerdo) | `W A S D` ou setas   | Analógico esquerdo ou direcional    |
-| Correr         | Empurrar o joystick até a borda    | `Shift`              | Analógico até a borda, ou R1 / R2   |
-| Usar / entrar  | Botão amarelo que aparece perto    | `E` ou `Enter`       | ✕ (A)                               |
-| Pular          | Botão ⤒                            | `Espaço`             | ▢ (X), ou ✕ longe de qualquer lugar |
-| Girar a câmera | Arrastar o dedo na tela            | Arrastar com o mouse | Analógico direito                   |
-| Menu           | Botão ☰ (canto superior direito)  | `Esc`                | Options (Start)                     |
-| Nos painéis    | Tocar                              | Clicar               | Direcional, ✕ escolhe, ◯ volta      |
+| Ação           | Tablet / celular                   | Computador           | Controle (USB ou Bluetooth)       |
+| -------------- | ---------------------------------- | -------------------- | --------------------------------- |
+| Andar          | Joystick (canto inferior esquerdo) | `W A S D` ou setas   | Analógico esquerdo ou direcional  |
+| Correr         | Empurrar o joystick até a borda    | `Shift`              | Analógico até a borda, ou R1 / R2 |
+| Usar / entrar  | Botão amarelo que aparece perto    | `E` ou `Enter`       | ▢ (X)                             |
+| Pular          | Botão ⤒                            | `Espaço`             | ✕ (A)                             |
+| Girar a câmera | Arrastar o dedo na tela            | Arrastar com o mouse | Analógico direito                 |
+| Menu           | Botão ☰ (canto superior direito)  | `Esc`                | △ ou Options (Y ou Start)         |
+| Nos painéis    | Tocar                              | Clicar               | Direcional, ▢ escolhe, ◯ volta    |
 
 **Vários jogadores:** cada criança tem o próprio perfil (nome, progresso, ajustes e lugar no mundo). O jogo salva sozinho e continua de onde parou. Renomear, remover e mudar o limite de tempo ficam na **Área dos pais** (segure o botão por 3 segundos).
 

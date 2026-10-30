@@ -28,12 +28,13 @@ export interface PadFrame {
   readonly move: MoveInput;
   /** Right stick, each axis in [-1, 1] (right and down are positive, like a mouse drag). */
   readonly look: { readonly x: number; readonly y: number };
-  /** ✕: uses what is nearby or confirms; jumps when there is nothing to use. */
-  readonly primary: boolean;
-  /** ▢: always jumps. */
+  /** ▢: uses what is nearby and chooses in panels. */
+  readonly select: boolean;
+  /** ✕: jumps, and only that. */
   readonly jump: boolean;
   /** ◯: goes back in panels. */
   readonly back: boolean;
+  /** △ or Options. */
   readonly menu: boolean;
   /** Direction pressed this frame, for moving the focus in panels. */
   readonly navigate: PadDirection | undefined;
@@ -107,10 +108,10 @@ export function readPad(previous: PadState, current: PadState): PadFrame {
   return {
     move,
     look: stickToLook(rx, ry),
-    primary: went(PadButton.a),
-    jump: went(PadButton.x),
+    select: went(PadButton.x),
+    jump: went(PadButton.a),
     back: went(PadButton.b),
-    menu: went(PadButton.start),
+    menu: went(PadButton.y) || went(PadButton.start),
     navigate:
       direction !== undefined && direction !== directionOf(previous) ? direction : undefined,
   };
@@ -120,7 +121,7 @@ const emptyPad: PadState = { axes: [], pressed: [] };
 
 /** True when the child is using the controller this frame. */
 export const padIsActive = (frame: PadFrame): boolean =>
-  frame.primary ||
+  frame.select ||
   frame.jump ||
   frame.back ||
   frame.menu ||
@@ -133,9 +134,27 @@ export type PadStyle = 'playstation' | 'xbox';
 export const padStyleOf = (id: string): PadStyle =>
   /xbox|xinput|045e/iu.test(id) ? 'xbox' : 'playstation';
 
-export const padGlyphs: Readonly<Record<PadStyle, { confirm: string; back: string }>> = {
-  playstation: { confirm: '✕', back: '◯' },
-  xbox: { confirm: 'A', back: 'B' },
+export type PadRole = 'select' | 'jump' | 'back' | 'menu';
+
+export interface PadGlyph {
+  readonly symbol: string;
+  readonly color: string;
+}
+
+/** Each button as it looks on the controller, with its own color. */
+export const padGlyphs: Readonly<Record<PadStyle, Readonly<Record<PadRole, PadGlyph>>>> = {
+  playstation: {
+    select: { symbol: '▢', color: '#e0559e' },
+    jump: { symbol: '✕', color: '#2f6fe0' },
+    back: { symbol: '◯', color: '#e03a2f' },
+    menu: { symbol: '△', color: '#16a36b' },
+  },
+  xbox: {
+    select: { symbol: 'X', color: '#7fb0ff' },
+    jump: { symbol: 'A', color: '#4ed39a' },
+    back: { symbol: 'B', color: '#ff6b5e' },
+    menu: { symbol: 'Y', color: '#ffd23f' },
+  },
 };
 
 /** Reads the first connected controller (USB or Bluetooth) once per frame. */

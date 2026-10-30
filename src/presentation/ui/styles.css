@@ -1082,8 +1082,12 @@ button {
   border-radius: 50%;
   background: var(--ink);
   color: #fff;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   font-weight: 900;
+  line-height: 1;
+  text-shadow:
+    0 0 1px #fff,
+    0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .pad-hints {
@@ -1110,10 +1114,19 @@ button {
   display: grid;
   width: 34px;
   height: 34px;
-  font-size: 1.1rem;
+  font-size: 1.3rem;
 }
 
-.is-pad .ui.has-panel .pad-hints {
+.is-pad .pad-hints {
+  display: flex;
+}
+
+.pad-hints__item--panel,
+.ui.has-panel .pad-hints__item--world {
+  display: none;
+}
+
+.ui.has-panel .pad-hints__item--panel {
   display: flex;
 }
 

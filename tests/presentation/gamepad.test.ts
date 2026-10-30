@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   PadButton,
+  padGlyphs,
   padIsActive,
   padStyleOf,
   readPad,
@@ -40,15 +41,24 @@ describe('gamepad mapping', () => {
   });
 
   it('counts buttons only on the frame they are pressed', () => {
-    expect(readPad(pad(), pad([], [PadButton.a])).primary).toBe(true);
-    expect(readPad(pad([], [PadButton.a]), pad([], [PadButton.a])).primary).toBe(false);
+    expect(readPad(pad(), pad([], [PadButton.x])).select).toBe(true);
+    expect(readPad(pad([], [PadButton.x]), pad([], [PadButton.x])).select).toBe(false);
   });
 
-  it('maps cross to the main action, square to jump, circle to back, options to menu', () => {
-    expect(readPad(pad(), pad([], [PadButton.a])).jump).toBe(false);
-    expect(readPad(pad(), pad([], [PadButton.x])).jump).toBe(true);
+  it('gives each button one job: square chooses, cross jumps, circle goes back', () => {
+    const square = readPad(pad(), pad([], [PadButton.x]));
+    expect(square.select && !square.jump).toBe(true);
+    const cross = readPad(pad(), pad([], [PadButton.a]));
+    expect(cross.jump && !cross.select).toBe(true);
     expect(readPad(pad(), pad([], [PadButton.b])).back).toBe(true);
+    expect(readPad(pad(), pad([], [PadButton.y])).menu).toBe(true);
     expect(readPad(pad(), pad([], [PadButton.start])).menu).toBe(true);
+  });
+
+  it('shows PlayStation symbols in their own colors', () => {
+    const { select, jump, back, menu } = padGlyphs.playstation;
+    expect([select.symbol, jump.symbol, back.symbol, menu.symbol]).toEqual(['▢', '✕', '◯', '△']);
+    expect(new Set([select.color, jump.color, back.color, menu.color]).size).toBe(4);
   });
 
   it('knows when the child is using the controller', () => {

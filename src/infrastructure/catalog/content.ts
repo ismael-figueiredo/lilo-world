@@ -176,14 +176,15 @@ const clothes = {
 
 type Clothing = keyof typeof clothes;
 
-const weather: Readonly<Record<string, readonly [string, string, Clothing]>> = {
-  cold: ['Está frio', '🥶 ❄️', 'coat'],
-  rain: ['Está chovendo', '🌧️', 'umbrella'],
-  hot: ['Está calor', '🥵 ☀️', 'shorts'],
-  sunny: ['O sol está forte', '😎 ☀️', 'cap'],
-  windy: ['Está ventando e frio', '🌬️', 'scarf'],
-  beach: ['Vamos à praia', '🏖️', 'sandals'],
-  puddle: ['Tem muita lama lá fora', '🌧️ 🟫', 'boots'],
+/** The first clothing is the one shown after a mistake; all of them are right. */
+const weather: Readonly<Record<string, readonly [string, string, readonly Clothing[]]>> = {
+  cold: ['Está frio', '🥶 ❄️', ['coat', 'scarf', 'boots']],
+  rain: ['Está chovendo', '🌧️', ['umbrella', 'boots', 'coat']],
+  hot: ['Está calor', '🥵 ☀️', ['shorts', 'sandals', 'cap', 'sunglasses']],
+  sunny: ['O sol está forte', '😎 ☀️', ['cap', 'sunglasses', 'shorts', 'sandals']],
+  windy: ['Está ventando e frio', '🌬️', ['scarf', 'coat']],
+  beach: ['Vamos à praia', '🏖️', ['sandals', 'shorts', 'cap', 'sunglasses']],
+  puddle: ['Tem muita lama lá fora', '🌧️ 🟫', ['boots']],
 };
 
 function dressing(id: string, days: readonly string[]): MissionVariant {
@@ -191,10 +192,11 @@ function dressing(id: string, days: readonly string[]): MissionVariant {
     id,
     introduction: 'Vamos nos vestir! Olhe o tempo lá fora.',
     steps: days.map((day, index) => {
-      const [sentence, picture, answer] = weather[day] ?? ['Está frio', '❄️', 'coat'];
+      const [sentence, picture, fits] = weather[day] ?? ['Está frio', '❄️', ['coat']];
       return {
-        targetId: answer,
-        prompt: `${index === 0 ? '' : 'E agora: '}${sentence}. O que vamos usar?`,
+        targetId: fits[0] ?? 'coat',
+        accepts: fits.slice(1),
+        prompt: `${index === 0 ? '' : 'E agora: '}${sentence}. O que serve?`,
         show: picture,
       };
     }),
@@ -299,18 +301,18 @@ function facesQuiz(id: string, asked: readonly (readonly [Feeling, number])[]): 
   };
 }
 
-/** Everyday moments and the feeling they usually bring. */
-const stories: readonly (readonly [string, string, Feeling])[] = [
-  ['Ganhei um presente', '🎁', 'happy'],
+/** Everyday moments. People feel them in different ways, so every listed feeling is right. */
+const stories: readonly (readonly [string, string, Feeling, ...Feeling[]])[] = [
+  ['Ganhei um presente', '🎁', 'happy', 'surprised'],
   ['Meu amigo me deu um abraço', '🤗', 'happy'],
-  ['Meu sorvete caiu no chão', '🍦 ⬇️', 'sad'],
+  ['Meu sorvete caiu no chão', '🍦 ⬇️', 'sad', 'angry'],
   ['Meu amigo foi embora da festa', '👋 🎈', 'sad'],
-  ['Pegaram meu brinquedo sem pedir', '🧸 ✋', 'angry'],
-  ['Derrubaram minha torre de blocos', '🧱 💥', 'angry'],
-  ['Fez um trovão muito forte', '⛈️', 'scared'],
+  ['Pegaram meu brinquedo sem pedir', '🧸 ✋', 'angry', 'sad'],
+  ['Derrubaram minha torre de blocos', '🧱 💥', 'angry', 'sad'],
+  ['Fez um trovão muito forte', '⛈️', 'scared', 'surprised'],
   ['O quarto ficou escuro', '🌑', 'scared'],
-  ['Tinha uma festa surpresa para mim', '🎉', 'surprised'],
-  ['Saiu um coelho do chapéu do mágico', '🎩 🐰', 'surprised'],
+  ['Tinha uma festa surpresa para mim', '🎉', 'surprised', 'happy'],
+  ['Saiu um coelho do chapéu do mágico', '🎩 🐰', 'surprised', 'happy'],
 ];
 
 function storiesQuiz(id: string, picked: readonly number[]): MissionVariant {
@@ -318,9 +320,10 @@ function storiesQuiz(id: string, picked: readonly number[]): MissionVariant {
     id,
     introduction: 'Vamos ouvir histórias e pensar no que sentimos.',
     steps: picked.map((index, step) => {
-      const [moment, picture, feeling] = stories[index] ?? stories[0] ?? ['', '', 'happy'];
+      const [moment, picture, feeling, ...others] = stories[index] ?? ['', '', 'happy'];
       return {
         targetId: feeling,
+        accepts: others,
         prompt: `${step === 0 ? '' : 'E agora: '}${moment}. Como eu fico?`,
         show: picture,
       };
@@ -586,7 +589,7 @@ export const missions: readonly Mission[] = [
       dressing('b', ['sunny', 'windy', 'rain']),
       dressing('c', ['beach', 'cold', 'puddle']),
       dressing('d', ['hot', 'puddle', 'windy']),
-      dressing('e', ['rain', 'beach', 'sunny']),
+      dressing('e', ['rain', 'beach', 'windy']),
     ],
     distractors: 2,
     reward: { coins: 10, stars: 1 },

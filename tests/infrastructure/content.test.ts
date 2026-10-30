@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { prepareMission } from '@domain/mission/prepare-mission';
 import { DEFAULT_AVATAR_ID } from '@domain/profile/player-profile';
+import { seededRandom } from '@domain/shared/random';
 import { avatars, missions, wardrobeItems, worlds } from '@infrastructure/catalog/content';
 import pictograms from '@infrastructure/catalog/pictograms.json';
 import { withPictograms } from '@infrastructure/catalog/static-content-catalog';
@@ -28,8 +30,38 @@ describe('bundled content', () => {
   it('asks only for choices that exist, in every variant', () => {
     for (const { mission, steps } of everyVersion) {
       const choiceIds = new Set(mission.choices.map((c) => c.id));
-      for (const step of steps) expect(choiceIds.has(step.targetId), step.targetId).toBe(true);
+      for (const step of steps) {
+        for (const id of [step.targetId, ...(step.accepts ?? [])]) {
+          expect(choiceIds.has(id), id).toBe(true);
+        }
+      }
     }
+  });
+
+  it('accepts everything that fits and always leaves cards that clearly do not', () => {
+    const quizzes = ['home-dressing', 'emotions-stories'];
+    for (const mission of missions.filter((m) => quizzes.includes(m.id))) {
+      const random = seededRandom(17);
+      for (let play = 0; play < 60; play += 1) {
+        const played = prepareMission(mission, random);
+        const shelf = played.choices.map((c) => c.id);
+        for (const step of played.steps) {
+          const right = [step.targetId, ...(step.accepts ?? [])];
+          const wrong = shelf.filter((id) => !right.includes(id));
+          expect(wrong.length, step.prompt).toBeGreaterThanOrEqual(2);
+        }
+      }
+    }
+  });
+
+  it('takes any summer clothes when the sun is strong', () => {
+    const dressing = missions.find((m) => m.id === 'home-dressing');
+    const sunny = dressing?.variants
+      ?.flatMap((v) => v.steps)
+      .find((step) => step.prompt.includes('sol está forte'));
+    expect([sunny?.targetId, ...(sunny?.accepts ?? [])].sort()).toEqual(
+      ['cap', 'sandals', 'shorts', 'sunglasses'].sort(),
+    );
   });
 
   it('keeps missions short (1 to 3 minutes), in every variant', () => {

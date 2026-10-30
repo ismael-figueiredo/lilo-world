@@ -18,13 +18,17 @@ export const phrases = {
   correct: 'Isso!',
   completed: 'Você conseguiu! Muito bem!',
   model: 'Olhe, é esta:',
+  modelOption: 'Olhe, esta serve:',
 } as const;
 
 /** What is said when the answer is shown. In the street, it is the instruction again. */
 export function modelSentence(attempt: MissionAttempt, step: MissionStep): string {
   if (attempt.mission.kind === 'world-task') return step.prompt;
   const answer = attempt.mission.choices.find((choice) => choice.id === step.targetId);
-  return `${phrases.model} ${answer?.label ?? ''}.`;
+  // With several right answers the card shown is one that works, not the only one.
+  const intro =
+    step.accepts === undefined || step.accepts.length === 0 ? phrases.model : phrases.modelOption;
+  return `${intro} ${answer?.label ?? ''}.`;
 }
 
 /** After a right card: praise and the next instruction. A sentence card says its word. */

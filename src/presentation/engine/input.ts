@@ -53,13 +53,13 @@ export class Input {
     return this.pad !== idleInput ? this.pad : keyboardInput(this.keys);
   }
 
-  /** Feeds one frame of the controller. ✕ uses `canUse` things, otherwise it jumps. */
-  applyPad(frame: PadFrame, dt: number, canUse: boolean): void {
+  /** Feeds one frame of the controller. */
+  applyPad(frame: PadFrame, dt: number): void {
     this.pad = frame.move;
     this.look.x += frame.look.x * PAD_LOOK_SPEED * dt;
     this.look.y += frame.look.y * PAD_LOOK_SPEED * dt;
-    if (frame.jump || (frame.primary && !canUse)) this.jumpQueued = true;
-    if (frame.primary && canUse) this.actionQueued = true;
+    if (frame.jump) this.jumpQueued = true;
+    if (frame.select) this.actionQueued = true;
   }
 
   setJoystick(input: MoveInput): void {

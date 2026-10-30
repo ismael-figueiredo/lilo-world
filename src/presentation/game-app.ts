@@ -457,6 +457,7 @@ export class GameApp implements GameContext {
   }
 
   private backToExploringQuietly(): void {
+    this.ui.classList.remove('has-panel');
     this.cameraRig?.clearFocus();
     this.currentMode = 'explore';
     this.controls.setVisible(true);
@@ -532,16 +533,14 @@ export class GameApp implements GameContext {
     if (pad === undefined) return;
     if (padIsActive(pad)) this.showPadControls(true);
     if (exploring) {
-      const position = this.character?.position;
-      const canUse = position !== undefined && this.nearbyPlace(position) !== undefined;
-      input.applyPad(pad, dt, canUse);
+      input.applyPad(pad, dt);
       if (pad.menu) this.goBack();
       return;
     }
     if (!document.body.classList.contains('is-pad')) return;
     this.padFocus.keep();
     if (pad.navigate !== undefined) this.padFocus.move(pad.navigate);
-    if (pad.primary) this.padFocus.press();
+    if (pad.select) this.padFocus.press();
     if (pad.back || pad.menu) this.goBack();
   }
 

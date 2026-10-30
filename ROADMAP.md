@@ -131,11 +131,12 @@ Depois do teste com controle e do uso real do jogo, a direção mudou: menos tel
 
 ### Etapa 1 (feita)
 
-- **Controle:** ✕ usa o que está perto ou pula, ▢ pula, ◯ volta, Options abre o menu; funciona também na tela de perfis. `PadFocus` (`ui/pad-focus.ts`) mantém o foco perto da última escolha. Dicas de botões na tela (`ui/pad-hints.ts`) e joystick escondido.
+- **Controle:** um botão, uma função: ▢ usa e escolhe, ✕ pula, ◯ volta, △ ou Options abre o menu, com os símbolos nas cores do PlayStation (`padGlyphs`). Funciona também na tela de perfis. `PadFocus` (`ui/pad-focus.ts`) mantém o foco perto da última escolha. Dicas de botões na tela (`ui/pad-hints.ts`) e joystick escondido.
 - **Rua:** listras paralelas à rua e 7 faixas (`CROSSINGS`, `zebraBars`). `RoadSafety` (`world/road-safety.ts`, testado) leva a criança de volta ao último ponto seguro; atravessar direito e usar um lugar dá +2 moedas (`RewardSafeTrip`).
 - **Ensino:** `ChallengeSession` agora tem rodadas de 5 perguntas; subir de nível exige 4 de 5 de primeira. Depois de um erro só a certa fica ativa, vem pergunta nova e a errada volta depois sem valer ponto. `MissionAttempt` segue a mesma regra (`model`), e no quiz a pergunta errada volta no fim.
 - **Sem entregar a resposta:** cartões de lista, CAA e estações sem palavra embaixo; contagem em grupos de 5; o caixa pede para contar o carrinho.
 - **CAA:** a padaria aceita qualquer lanche (`MissionStep.accepts`), a frase vem da escolha da criança e o botão "Falar" lê. Escola com perguntas de situação.
+- **Respostas sem ambiguidade:** quando mais de uma opção serve (roupa para o sol, sentimentos em histórias), todas valem (`MissionStep.accepts`) e sempre há cartões claramente errados. Um teste garante isso.
 - **ARASAAC:** 48 pictogramas revisados em `src/infrastructure/catalog/pictograms.json`, baixados por `pnpm assets`.
 
 Ficou de fora: emoções e frases de ação seguem com emoji (as figuras achadas não serviam ou não foram revisadas), e as prateleiras 3D do mercado também. Em sequências e perguntas a palavra continua embaixo da figura, porque a figura sozinha não explica a ação. Falta testar com controle físico.
