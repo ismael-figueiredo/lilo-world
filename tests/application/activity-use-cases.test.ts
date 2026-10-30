@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { AnswerActivity, activityPhrases } from '@application/use-cases/answer-activity';
+import { phrases } from '@application/phrases';
+import { AnswerActivity } from '@application/use-cases/answer-activity';
 import { GetAlbum } from '@application/use-cases/get-album';
 import { StartActivity } from '@application/use-cases/start-activity';
 import { answerOf } from '@domain/activity/activity';
@@ -51,12 +52,12 @@ describe('activity use cases', () => {
     const first = await right(session);
     expect(first.reward).toEqual({ coins: 1, stars: 1 });
     expect(first.sticker?.id).toBe(stickerId('letters', 1));
-    expect(speech.spoken.at(-1)).toContain(activityPhrases.sticker);
+    expect(speech.spoken.at(-1)).toContain(phrases.sticker);
 
     const second = await right(first.round);
     expect(second.reward).toEqual({ coins: 1, stars: 0 });
     // Praise only: the next question is said when its cards are on the screen.
-    expect(speech.spoken.at(-1)).toBe(activityPhrases.correct);
+    expect(speech.spoken.at(-1)).toBe(phrases.correct);
     expect(second.sticker).toBeUndefined();
 
     const saved = await progress.load();
@@ -74,7 +75,7 @@ describe('activity use cases', () => {
     }
     expect(last.outcome).toMatchObject({ summary: { score: ROUND_LENGTH, reachedLevel: 2 } });
     expect(last.sticker?.id).toBe(stickerId('coins', 2));
-    expect(speech.spoken.at(-1)).toContain(activityPhrases.levelUp);
+    expect(speech.spoken.at(-1)).toContain(phrases.levelUp);
     const saved = await progress.load();
     expect(saved.levelOf('coins')).toBe(2);
     expect(saved.stars).toBe(2);

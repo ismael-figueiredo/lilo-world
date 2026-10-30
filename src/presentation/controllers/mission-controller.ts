@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { modelSentence, phrases, stepSentence } from '@application/use-cases/choose-mission-answer';
+import { phrases } from '@application/phrases';
+import { modelSentence, stepSentence } from '@application/use-cases/choose-mission-answer';
 import type { MissionAttempt } from '@domain/mission/mission-attempt';
 import type { GameContext } from '@presentation/game-context';
 import { MissionPanel } from '@presentation/ui/mission-panel';
@@ -76,7 +77,7 @@ export class MissionController {
   async open(missionId: string): Promise<void> {
     const result = await this.ctx.player.startMission.execute(missionId);
     if (!result.ok) {
-      this.ctx.say('Essa missão ainda não está pronta.');
+      this.ctx.say(phrases.missionNotReady);
       return;
     }
     this.attempt = result.value;
@@ -89,7 +90,9 @@ export class MissionController {
       // Face the other sidewalk, where the walking figure can be seen.
       this.ctx.rig.yaw = this.ctx.avatar.position.z - CITY.z >= 0 ? 0 : Math.PI;
       this.panel.open(this.attempt);
-      this.ctx.dialog.say(`${mission.introduction} ${this.attempt.currentStep?.prompt ?? ''}`);
+      this.ctx.dialog.say(
+        phrases.missionStart(mission.introduction, this.attempt.currentStep?.prompt ?? ''),
+      );
       return;
     }
 
@@ -97,7 +100,9 @@ export class MissionController {
     if (mission.id === MARKET_MISSION) {
       await this.goInside(this.attempt);
       this.panel.open(this.attempt);
-      this.ctx.dialog.say(`${mission.introduction} ${this.attempt.currentStep?.prompt ?? ''}`);
+      this.ctx.dialog.say(
+        phrases.missionStart(mission.introduction, this.attempt.currentStep?.prompt ?? ''),
+      );
       return;
     }
     const place = this.ctx.world.places.find((p) => p.id === missionPlaces[missionId]);
@@ -117,7 +122,9 @@ export class MissionController {
       );
     }
     this.panel.open(this.attempt);
-    this.ctx.dialog.say(`${mission.introduction} ${this.attempt.currentStep?.prompt ?? ''}`);
+    this.ctx.dialog.say(
+      phrases.missionStart(mission.introduction, this.attempt.currentStep?.prompt ?? ''),
+    );
   }
 
   /** Closes the mission (leaving early is recorded as practice, never as failure). */
@@ -250,10 +257,9 @@ export class MissionController {
             // The child says it: the game speaks only when the button is pressed,
             // as a communication device would.
             const sentence = this.panel.sentence(this.attempt);
-            this.ctx.dialog.say('Pronto! Agora é só falar.');
+            this.ctx.dialog.say(phrases.sentenceReady);
             if (!(await this.panel.waitForSpeak(sentence))) return;
-            const answer = mission.farewell === undefined ? '' : ` ${mission.farewell}`;
-            this.ctx.say(`${sentence}.${answer}`);
+            this.ctx.say(phrases.sentenceSaid(sentence, mission.farewell));
           }
           this.ctx.sound(reward.stars > 0 ? 'star' : 'coin');
           this.panel.celebrate(reward, mission.result, this.ctx.restIsDue);
@@ -262,10 +268,7 @@ export class MissionController {
             this.cashier?.playEmote('Wave');
           }
           if (mission.kind !== 'build-sentence') {
-            const { farewell } = mission;
-            this.ctx.dialog.say(
-              farewell === undefined ? phrases.completed : `${farewell} ${phrases.completed}`,
-            );
+            this.ctx.dialog.say(phrases.missionDone(mission.farewell));
           }
           this.ctx.avatar.playEmote('Dance');
           await this.ctx.refresh();

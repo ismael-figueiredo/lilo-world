@@ -1,3 +1,4 @@
+import { phrases } from '@application/phrases';
 import type { PlannedActivity } from '@domain/curriculum/session-plan';
 import type { Station } from '@domain/curriculum/skill';
 import type { GameContext } from '@presentation/game-context';
@@ -59,7 +60,7 @@ export class SessionController {
   open(): void {
     if (this.steps.length === 0 || this.steps.every((step) => step.done)) {
       this.ctx.backToExploring();
-      this.ctx.say('Você já fez tudo de hoje. Pode brincar à vontade!');
+      this.ctx.say(phrases.dayAllDone);
       return;
     }
     this.heading = undefined;
@@ -67,7 +68,7 @@ export class SessionController {
     this.ctx.enterPanel('session');
     const finished = this.steps.filter((step) => step.done).length;
     this.board.show(this.view(), finished === PAUSE_AFTER - 1 || finished === PAUSE_AFTER);
-    this.ctx.say(finished === 0 ? 'Por onde vamos começar?' : 'O que vem agora?');
+    this.ctx.say(finished === 0 ? phrases.dayStart : phrases.dayNext);
   }
 
   /** Not now: the child goes exploring, and the plan stays in the menu. */
@@ -114,7 +115,7 @@ export class SessionController {
     }
     this.ctx.setDestination(place);
     this.ctx.backToExploring();
-    this.ctx.say(`Vamos até ${stationLooks[station].name}! Siga a seta.`);
+    this.ctx.say(phrases.goToStation(stationLooks[station].name));
   }
 
   private ended(step: Step, finished: boolean): void {
@@ -139,7 +140,7 @@ export class SessionController {
       this.view().filter((step) => step.done),
       SESSION_COINS,
     );
-    this.ctx.say('Hoje você fez tudo isso! Até a próxima.');
+    this.ctx.say(phrases.dayEnd);
   }
 
   private leave(): void {

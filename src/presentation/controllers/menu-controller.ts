@@ -1,3 +1,4 @@
+import { phrases } from '@application/phrases';
 import type { Settings } from '@domain/settings/settings';
 import type { GameContext } from '@presentation/game-context';
 import { MapPanel } from '@presentation/ui/map-panel';
@@ -99,9 +100,7 @@ export class MenuController {
     this.ctx.setDestination(place);
     this.ctx.backToExploring();
     this.ctx.say(
-      place.mapGroup === 'portals'
-        ? 'Vamos aos portais! Siga a seta amarela.'
-        : `Vamos para: ${place.name}! Siga a seta amarela.`,
+      place.mapGroup === 'portals' ? phrases.goToPortals : phrases.goToPlace(place.name),
     );
   }
 
@@ -113,6 +112,6 @@ export class MenuController {
     this.ctx.applySettings(settings);
     this.settingsPanel.render(settings);
     if (preview === 'effects') this.ctx.sound('coin');
-    if (preview === 'voice') this.ctx.say('Oi! Assim está bom?');
+    if (preview === 'voice') this.ctx.say(phrases.voicePreview);
   }
 }

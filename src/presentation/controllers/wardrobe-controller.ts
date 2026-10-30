@@ -1,3 +1,4 @@
+import { phrases } from '@application/phrases';
 import * as THREE from 'three';
 import type { WardrobeEntry } from '@application/use-cases/get-wardrobe';
 import type { AvatarDefinition } from '@domain/avatar/avatar';
@@ -25,7 +26,7 @@ export class WardrobeController {
     this.panel.open(await this.view());
     this.frameCharacter();
     this.ctx.avatar.playEmote('Wave');
-    this.ctx.say('Escolha um personagem e uma roupa!');
+    this.ctx.say(phrases.wardrobeOpen);
   }
 
   close(): void {
@@ -60,7 +61,7 @@ export class WardrobeController {
       this.frameCharacter();
       this.ctx.avatar.playEmote('Wave');
       this.ctx.sound('correct');
-      this.ctx.say(`Oi! Agora você é: ${avatar.name}!`);
+      this.ctx.say(phrases.avatarChanged(avatar.name));
       this.panel.show(await this.view());
     } finally {
       this.busy = false;
@@ -70,7 +71,7 @@ export class WardrobeController {
   private async select(entry: WardrobeEntry): Promise<void> {
     if (!entry.owned && !entry.affordable) {
       const { coins } = await this.ctx.player.getWardrobe.execute();
-      this.ctx.say(`Faltam ${entry.item.price - coins} moedas. Vamos ao mercado ganhar mais?`);
+      this.ctx.say(phrases.coinsMissing(entry.item.price - coins));
       return;
     }
 
@@ -83,6 +84,6 @@ export class WardrobeController {
     await this.ctx.refresh();
     this.panel.show(await this.view());
     this.ctx.avatar.playEmote(entry.owned ? 'Yes' : 'ThumbsUp');
-    this.ctx.say(entry.owned ? entry.item.name : `${entry.item.name}! Ficou ótimo!`);
+    this.ctx.say(entry.owned ? entry.item.name : phrases.itemWorn(entry.item.name));
   }
 }

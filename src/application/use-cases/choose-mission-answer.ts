@@ -1,3 +1,4 @@
+import { phrases } from '@application/phrases';
 import type { Clock } from '@application/ports/clock';
 import type { ProgressRepository } from '@application/ports/progress-repository';
 import type { Speech } from '@application/ports/speech';
@@ -12,14 +13,6 @@ export interface ChooseMissionAnswerResult {
   /** Present only when this answer finished the mission. */
   readonly reward?: Reward;
 }
-
-/** Short, warm phrases. A wrong answer is never called "wrong". */
-export const phrases = {
-  correct: 'Isso!',
-  completed: 'Você conseguiu! Muito bem!',
-  model: 'Olhe, é esta:',
-  modelOption: 'Olhe, esta serve:',
-} as const;
 
 /** What is said when the answer is shown. In the street, it is the instruction again. */
 export function modelSentence(attempt: MissionAttempt, step: MissionStep): string {
@@ -71,9 +64,7 @@ export class ChooseMissionAnswer {
         const { farewell } = attempt.mission;
         // A sentence is spoken only when the child presses "Falar".
         if (!silent) {
-          void this.speech.speak(
-            farewell === undefined ? phrases.completed : `${farewell} ${phrases.completed}`,
-          );
+          void this.speech.speak(phrases.missionDone(farewell));
         }
         return ok({ attempt, outcome, reward });
       }

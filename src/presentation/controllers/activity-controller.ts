@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { activityPhrases } from '@application/use-cases/answer-activity';
+import { phrases } from '@application/phrases';
 import { writtenOf, type Spoken } from '@domain/activity/activity';
 import type { ActivityRound } from '@domain/activity/activity-round';
 import type { PlannedActivity } from '@domain/curriculum/session-plan';
@@ -186,10 +186,10 @@ export class ActivityController {
       this.ctx.sound(result.reward.stars > 0 ? 'star' : firstTry ? 'correct' : 'tap');
       const praise =
         result.sticker !== undefined
-          ? activityPhrases.sticker
+          ? phrases.sticker
           : firstTry
-            ? `${activityPhrases.correct} 🪙 +${result.reward.coins}`
-            : activityPhrases.practiced;
+            ? `${phrases.correct} 🪙 +${result.reward.coins}`
+            : phrases.practiced;
       this.panel.celebrate(praise, result.sticker);
       if (firstTry) this.ctx.avatar.playEmote('Yes');
       await this.ctx.refresh();
@@ -204,8 +204,8 @@ export class ActivityController {
         if (outcome.summary.reachedLevel !== undefined) this.ctx.avatar.playEmote('Dance');
         this.ctx.dialog.say(
           outcome.summary.shortened === true
-            ? 'Por hoje está ótimo!'
-            : `Você acertou ${outcome.summary.score} de ${outcome.summary.total}.`,
+            ? phrases.roundShort
+            : phrases.roundScore(outcome.summary.score, outcome.summary.total),
         );
         return;
       }

@@ -1,3 +1,4 @@
+import { phrases } from '@application/phrases';
 import type { Clock } from '@application/ports/clock';
 import type { ContentCatalog } from '@application/ports/content-catalog';
 import type { ProgressRepository } from '@application/ports/progress-repository';
@@ -14,14 +15,6 @@ export interface AnswerActivityResult {
   /** A sticker earned with this answer (first right answer, or a new level). */
   readonly sticker?: Sticker;
 }
-
-/** Warm and short. A wrong answer is never called "wrong". */
-export const activityPhrases = {
-  correct: 'Isso!',
-  levelUp: 'Você subiu de nível!',
-  sticker: 'Ganhou uma figurinha!',
-  practiced: 'Agora você viu como é.',
-} as const;
 
 export class AnswerActivity {
   constructor(
@@ -59,9 +52,9 @@ export class AnswerActivity {
 
     const earned = albumStickers.find((s) => s.id === sticker);
     const praise = [
-      outcome.kind === 'correct' ? activityPhrases.correct : activityPhrases.practiced,
-      reachedLevel === undefined ? '' : activityPhrases.levelUp,
-      earned === undefined ? '' : activityPhrases.sticker,
+      outcome.kind === 'correct' ? phrases.correct : phrases.practiced,
+      reachedLevel === undefined ? '' : phrases.levelUp,
+      earned === undefined ? '' : phrases.sticker,
     ]
       .filter(Boolean)
       .join(' ');

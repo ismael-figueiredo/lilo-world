@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { ChooseMissionAnswer, phrases } from '@application/use-cases/choose-mission-answer';
+import { phrases } from '@application/phrases';
+import { ChooseMissionAnswer } from '@application/use-cases/choose-mission-answer';
 import { StartMission } from '@application/use-cases/start-mission';
 import { MissionAttempt } from '@domain/mission/mission-attempt';
 import { StaticContentCatalog } from '@infrastructure/catalog/static-content-catalog';

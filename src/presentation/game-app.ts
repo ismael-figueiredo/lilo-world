@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { phrases } from '@application/phrases';
 import type { GameServices, PlayerServices } from '@application/game-services';
 import type { SoundEffect } from '@application/ports/audio';
 import type { WorldMap } from '@application/use-cases/get-world-map';
@@ -91,7 +92,7 @@ export class GameApp implements GameContext {
   private readonly gamepad = new GamepadReader((connected) => {
     this.input?.reset();
     this.showPadControls(connected);
-    this.say(connected ? '🎮 Controle conectado!' : 'O controle desligou.');
+    this.say(connected ? phrases.padConnected : phrases.padDisconnected);
   });
   private readonly padFocus: PadFocus;
   private readonly padHints = new PadHints();
@@ -468,7 +469,7 @@ export class GameApp implements GameContext {
     this.profileScreen.hide();
     this.services.audio.startMusic();
     this.backToExploringQuietly();
-    this.say(isNew ? `Oi, ${profile.name}! Eu sou o Lilo.` : `Que bom te ver, ${profile.name}!`);
+    this.say(isNew ? phrases.hello(profile.name) : phrases.welcomeBack(profile.name));
     await this.day.start();
   }
 
@@ -602,11 +603,7 @@ export class GameApp implements GameContext {
     if (this.elapsed - this.lastRoadWarning > ROAD_WARNING_GAP) {
       this.lastRoadWarning = this.elapsed;
       this.sound('hint');
-      this.say(
-        event === 'red-light'
-          ? 'O boneco está vermelho. Vamos esperar na calçada.'
-          : 'A rua é dos carros. Ande na calçada e atravesse na faixa.',
-      );
+      this.say(event === 'red-light' ? phrases.redLight : phrases.keepToSidewalk);
     }
     await this.transition(() => {
       this.character?.placeAt(
@@ -643,7 +640,7 @@ export class GameApp implements GameContext {
           this.destination.position.z - position.z,
         ) < this.destination.radius;
       if (reached) {
-        this.say(`Você chegou: ${this.destination.name}!`);
+        this.say(phrases.arrived(this.destination.name));
         this.destination = undefined;
         this.showMarker();
       }
@@ -703,26 +700,25 @@ export class GameApp implements GameContext {
     const portal = this.worldMap?.worlds.find((entry) => portalId(entry.world.id) === place.id);
     if (portal === undefined) return;
     if (!portal.unlocked) {
-      const plural = portal.starsMissing === 1 ? 'estrela' : 'estrelas';
-      this.say(`Ganhe mais ${portal.starsMissing} ${plural} para abrir ${portal.world.name}.`);
+      this.say(phrases.starsMissing(portal.starsMissing, portal.world.name));
     } else if (portal.world.id === 'nature') {
       this.sound('open');
       await this.travel(campArrival, Math.PI / 2);
-      this.say('Bem-vindo à Natureza! Visite a fazenda, a horta e a reciclagem.');
+      this.say(phrases.welcomeNature);
     } else if (portal.world.id === 'emotions') {
       this.sound('open');
       await this.travel(emotionsArrival, 0);
-      this.say('Bem-vindo ao Jardim das Emoções! Vamos conhecer o que sentimos.');
+      this.say(phrases.welcomeEmotions);
     } else if (portal.world.id === 'school') {
       this.sound('open');
       await this.travel(schoolArrival, 0);
-      this.say('Bem-vindo à Escola! Visite a sala de aula, a professora e o parque.');
+      this.say(phrases.welcomeSchool);
     } else if (portal.world.id === 'home') {
       this.sound('open');
       await this.travel(homeArrival, 0);
-      this.say('Bem-vindo à Casa! Vamos cuidar das nossas rotinas.');
+      this.say(phrases.welcomeHome);
     } else {
-      this.say(`${portal.world.name} ainda está sendo construído!`);
+      this.say(phrases.worldNotReady(portal.world.name));
     }
   }
 
@@ -782,9 +778,7 @@ export class GameApp implements GameContext {
         const placeId = missionPlaces[this.goal.missionId];
         const name =
           this.gameWorld?.places.find((p) => p.id === placeId)?.name ?? 'a próxima missão';
-        return this.goal.isNew
-          ? `Vamos para: ${name}? Siga a seta amarela!`
-          : `Que tal voltar em: ${name} e ganhar mais moedas?`;
+        return this.goal.isNew ? phrases.goToMission(name) : phrases.backToMission(name);
       }
       case 'wardrobe':
         return 'Você tem moedas! Vamos ao guarda-roupa na sua casa?';
@@ -826,7 +820,7 @@ export class GameApp implements GameContext {
         this.hud.setTimeLeft(status.minutesLeft, true);
         if (!this.warnedLastMission && this.currentMode === 'explore') {
           this.warnedLastMission = true;
-          this.say('Falta pouco! Mais uma missão e depois vamos descansar.');
+          this.say(phrases.lastMission);
         }
         return;
       case 'time-to-rest':
@@ -837,7 +831,7 @@ export class GameApp implements GameContext {
           this.services.audio.stopMusic();
           this.enterPanel('rest');
           this.restScreen.open(this.profile.name);
-          this.say(`Hora de descansar, ${this.profile.name}. Você brincou muito bem!`);
+          this.say(phrases.rest(this.profile.name));
         }
         return;
     }
