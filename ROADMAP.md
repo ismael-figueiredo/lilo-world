@@ -16,8 +16,9 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | 4d: mundo Natureza (acampamento, fazenda, horta, reciclagem)        | ✅ feito   | `3139b1f` |
 | 4e: mundo Casa (banheiro, quarto, cozinha)                          | ✅ feito   | `1ff1687` |
 | 4f: mundo Escola e Parque (mochila, falar na escola, esperar a vez) | ✅ feito   | `1c4509a` |
-| 4g: mundo Emoções (rostos, histórias, ficar calmo)                  | ✅ feito   | —         |
-| 4h: mercado 3D por dentro, ônibus 3D, mais estações                 | ⏭️ próximo | —         |
+| 4g: mundo Emoções (rostos, histórias, ficar calmo)                  | ✅ feito   | `7d69f80` |
+| 4h: mercado 3D por dentro                                           | ✅ feito   | —         |
+| 4i: ônibus 3D, mais estações                                        | ⏭️ próximo | —         |
 | 5: mundo vivo                                                       | ⏳ depois  | —         |
 
 ## Sprint 3: mundo bonito, água e controle (feito)
@@ -113,9 +114,17 @@ Pendências pequenas: testar com controle físico (só a lógica tem teste); a �
 - Testes novos no conteúdo: a pergunta nunca mostra a própria figura do cartão certo; a despedida nunca repete o elogio que o jogo já diz.
 - Com os 5 mundos completos, a ilha dá 16 estrelas pelas missões (+9 das estações).
 
-## Sprint 4h: próximos
+## Sprint 4h: mercado 3D por dentro (feito)
 
-- **Mercado 3D por dentro:** transição com fade para um interior com prateleiras de frutas 3D e um carrinho; no caixa, uma pessoa diz "Obrigado!".
+- A missão do mercado acontece dentro da loja (`src/presentation/world/market-interior.ts`): sala com piso xadrez, prateleiras, carrinho e caixa. Ela fica além do mar (`MARKET_INTERIOR`, sem nada em volta) e a criança chega atrás de um fade (`GameContext.transition`).
+- Os cartões continuam no painel (toque e controle iguais). As prateleiras mostram os itens sorteados; um acerto faz o item voar para o carrinho, e o item pedido balança na prateleira. No passo de pagar, a câmera vai até o balcão.
+- O caixa é um personagem do jogo (`GameContext.createCharacter`, `lis`, ou `sam` se a criança joga com `lis`), atualizado em `MissionController.tick`, e acena no fim.
+- `CameraRig.setFocus(position, lookAt, snap)`: `snap` pula direto para a vista; usar só atrás de um fade.
+- A saída volta à porta do mercado, com a câmera do lado da rua. O mascote agora diz o nome do lugar da próxima missão (antes dizia sempre "mercado").
+- Limite: a criança não anda dentro da loja; escolhe pelos cartões. Para andar seria preciso ensinar a `GameWorld.heightAt`/`isWalkable` sobre o piso interno.
+
+## Sprint 4i: próximos
+
 - **Ônibus em 3D:** o ônibus estacionado vem até o ponto durante a missão.
 - **Mais estações:** moedas-letra escondidas pela ilha (para o alfabeto) e placas palavra ↔ figura nas trilhas.
 - Revisão com terapeutas: textos, ordem das rotinas e cores das emoções.

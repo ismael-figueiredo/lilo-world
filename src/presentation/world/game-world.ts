@@ -9,6 +9,7 @@ import { lowPoly } from '@presentation/world/materials';
 import { Nature } from '@presentation/world/nature';
 import { EMOTIONS_GARDEN, EmotionsGarden } from '@presentation/world/emotions-garden';
 import { HOME_AREA, HomeArea } from '@presentation/world/home-area';
+import { MARKET_INTERIOR, MarketInterior } from '@presentation/world/market-interior';
 import { NATURE_CAMP, NatureCamp } from '@presentation/world/nature-camp';
 import { SCHOOL_AREA, SchoolArea } from '@presentation/world/school-area';
 import { PORTAL_PLAZA, Portals } from '@presentation/world/portals';
@@ -37,6 +38,8 @@ export class GameWorld {
   private readonly home: HomeArea;
   private readonly school: SchoolArea;
   private readonly emotions: EmotionsGarden;
+  /** Inside the market, far beyond the sea. */
+  readonly market: MarketInterior;
   private readonly portals = new Portals();
   private readonly nature: Nature;
   private readonly staticColliders: Collider[];
@@ -60,6 +63,7 @@ export class GameWorld {
       ],
     });
     this.sky = new Sky(scene);
+    this.market = new MarketInterior(this.shape.heightAt(MARKET_INTERIOR.x, MARKET_INTERIOR.z));
 
     scene.add(createTerrainMesh(this.shape, random));
     scene.add(
@@ -70,6 +74,7 @@ export class GameWorld {
       this.home.group,
       this.school.group,
       this.emotions.group,
+      this.market.group,
     );
     this.addPath(scene);
 
@@ -141,6 +146,7 @@ export class GameWorld {
     this.city.update(time);
     this.camp.update(time);
     this.emotions.update(time);
+    this.market.update(time, dt);
     this.portals.update(time);
     this.nature.update(dt);
     this.sky.follow(focus);

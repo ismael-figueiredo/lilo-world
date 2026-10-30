@@ -38,4 +38,8 @@ export interface GameContext {
   /** Swaps the 3D character and remembers the choice for this child. */
   changeAvatar(avatarId: string): Promise<void>;
   avatarPicture(avatarId: string): string;
+  /** Runs `change` behind a short fade, e.g. to step into a building. */
+  transition(change: () => void): Promise<void>;
+  /** Adds another character to the scene, e.g. the market's cashier. */
+  createCharacter(avatarId: string): Promise<Player>;
 }

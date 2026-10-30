@@ -40,8 +40,14 @@ export class CameraRig {
     this.camera.lookAt(this.lookTarget);
   }
 
-  setFocus(position: THREE.Vector3, lookAt: THREE.Vector3): void {
+  /** Glides to a fixed view; `snap` jumps there at once (only behind a fade). */
+  setFocus(position: THREE.Vector3, lookAt: THREE.Vector3, snap = false): void {
     this.focus = { position: position.clone(), lookAt: lookAt.clone() };
+    if (snap) {
+      this.camera.position.copy(position);
+      this.lookTarget.copy(lookAt);
+      this.camera.lookAt(this.lookTarget);
+    }
   }
 
   get isFocused(): boolean {

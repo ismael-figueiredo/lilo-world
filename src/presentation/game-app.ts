@@ -501,6 +501,7 @@ export class GameApp implements GameContext {
           : { x: goal.position.x, z: goal.position.z, icon: goal.icon },
       );
     }
+    this.missions.tick(dt);
     if (this.activeProfile !== undefined && this.currentMode !== 'profiles') {
       this.trackSession(dt);
     }
@@ -631,18 +632,32 @@ export class GameApp implements GameContext {
 
   /** Moves the child far away behind a short, gentle fade (never a sudden cut). */
   private async travel(to: THREE.Vector3, yaw: number): Promise<void> {
+    await this.transition(() => {
+      this.character?.placeAt(to, yaw + Math.PI);
+      if (this.cameraRig !== undefined && this.character !== undefined) {
+        this.cameraRig.yaw = yaw;
+        this.cameraRig.snapTo(this.character.position);
+      }
+    });
+  }
+
+  /** Runs `change` while a short, gentle fade covers the screen (never a sudden cut). */
+  async transition(change: () => void): Promise<void> {
     const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
     this.fade.classList.add('is-on');
     this.input?.reset();
     await wait(450);
-    this.character?.placeAt(to, yaw + Math.PI);
-    if (this.cameraRig !== undefined && this.character !== undefined) {
-      this.cameraRig.yaw = yaw;
-      this.cameraRig.snapTo(this.character.position);
-    }
-    this.mascot.placeNear(to);
+    change();
+    if (this.character !== undefined) this.mascot.placeNear(this.character.position);
     await wait(150);
     this.fade.classList.remove('is-on');
+  }
+
+  /** Another character in the scene (the cashier, for example). */
+  async createCharacter(avatarId: string): Promise<Player> {
+    const character = await this.avatars.create(avatarId);
+    this.scene.add(character.root);
+    return character;
   }
 
   // ---------- Goal arrow ----------
@@ -667,10 +682,14 @@ export class GameApp implements GameContext {
 
   private goalMessage(): string {
     switch (this.goal.kind) {
-      case 'mission':
+      case 'mission': {
+        const placeId = missionPlaces[this.goal.missionId];
+        const name =
+          this.gameWorld?.places.find((p) => p.id === placeId)?.name ?? 'a próxima missão';
         return this.goal.isNew
-          ? 'Vamos ao mercado? Siga a seta amarela!'
-          : 'Que tal ir ao mercado de novo e ganhar mais moedas?';
+          ? `Vamos para: ${name}? Siga a seta amarela!`
+          : `Que tal voltar em: ${name} e ganhar mais moedas?`;
+      }
       case 'wardrobe':
         return 'Você tem moedas! Vamos ao guarda-roupa na sua casa?';
       case 'explore':

@@ -125,7 +125,8 @@ As fronteiras são **garantidas pelo lint**: um `import` do domínio para a infr
 - [x] **v0.2, sprint 4e:** mundo Casa: escovar os dentes e lavar as mãos, escolher a roupa para o tempo e pôr a mesa
 - [x] **v0.2, sprint 4f:** mundo Escola e Parque: arrumar a mochila, falar na escola com CAA (bom dia, pedir ajuda, pedir para ir ao banheiro) e esperar a vez no parque
 - [x] **v0.2, sprint 4g:** mundo Emoções: reconhecer sentimentos em rostos e histórias e rotinas para ficar calmo (cantinho calmo)
-- [ ] **v0.2, próximos sprints:** mercado 3D por dentro, ônibus em 3D, mais estações e mundo vivo (pessoas, carros, barcos, animais)
+- [x] **v0.2, sprint 4h:** mercado 3D por dentro: prateleiras com os itens do dia, carrinho e caixa
+- [ ] **v0.2, próximos sprints:** ônibus em 3D, mais estações e mundo vivo (pessoas, carros, barcos, animais)
 - [ ] **Fase 2:** missões do ônibus, do semáforo e da padaria (frases com CAA: **[eu quero] + [pão]**), painel de ajustes sensoriais, álbum de figurinhas, pictogramas ARASAAC, PWA offline
 - [ ] **Fase 4:** painel para pais e terapeutas, fotos e figuras personalizadas, traduções
 

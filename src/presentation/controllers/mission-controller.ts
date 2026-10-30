@@ -3,6 +3,7 @@ import { phrases } from '@application/use-cases/choose-mission-answer';
 import type { MissionAttempt } from '@domain/mission/mission-attempt';
 import type { GameContext } from '@presentation/game-context';
 import { MissionPanel } from '@presentation/ui/mission-panel';
+import type { Player } from '@presentation/actors/player';
 import { CITY, CityPlace, CROSSWALK } from '@presentation/world/city';
 import { CrossingTracker, type CrossingEvent } from '@presentation/world/crosswalk';
 import { EmotionsPlace } from '@presentation/world/emotions-garden';
@@ -30,6 +31,10 @@ export const missionPlaces: Readonly<Record<string, string>> = {
   'emotions-calm': EmotionsPlace.calm,
 };
 
+/** The mission played inside the market, and who works at the cashier. */
+const MARKET_MISSION = 'city-market';
+const CASHIER_AVATAR = 'lis';
+
 /** What the crosswalk task reports, as the mission's choice ids. */
 const crossingChoices: Readonly<Record<CrossingEvent, string>> = {
   waited: 'wait-green',
@@ -44,6 +49,9 @@ export class MissionController {
   private attempt: MissionAttempt | undefined;
   private busy = false;
   private crossing: CrossingTracker | undefined;
+  /** True while the mission is played inside the market. */
+  private indoors = false;
+  private cashier: Player | undefined;
 
   constructor(private readonly ctx: GameContext) {
     this.panel = new MissionPanel({
@@ -79,6 +87,12 @@ export class MissionController {
     }
 
     this.ctx.enterPanel('mission');
+    if (mission.id === MARKET_MISSION) {
+      await this.goInside(this.attempt);
+      this.panel.open(this.attempt);
+      this.ctx.dialog.say(`${mission.introduction} ${this.attempt.currentStep?.prompt ?? ''}`);
+      return;
+    }
     const place = this.ctx.world.places.find((p) => p.id === missionPlaces[missionId]);
     if (place !== undefined) {
       this.ctx.avatar.placeAt(place.position, 0);
@@ -105,6 +119,11 @@ export class MissionController {
     this.attempt = undefined;
     this.crossing = undefined;
     this.panel.close();
+    if (this.indoors) {
+      await this.ctx.transition(() => {
+        this.goOutside();
+      });
+    }
     if (attempt !== undefined) await this.ctx.player.leaveMission.execute(attempt);
     this.ctx.backToExploring();
   }
@@ -114,6 +133,57 @@ export class MissionController {
     this.attempt = undefined;
     this.crossing = undefined;
     this.panel.close();
+    if (this.indoors) this.goOutside();
+  }
+
+  /** Every frame: keeps the cashier breathing and waving. */
+  tick(dt: number): void {
+    this.cashier?.update(dt, { x: 0, z: 0 }, false, this.ctx.world);
+  }
+
+  /** Into the market: today's groceries on the shelves, the cart, the cashier. */
+  private async goInside(attempt: MissionAttempt): Promise<void> {
+    const market = this.ctx.world.market;
+    this.cashier ??= await this.ctx.createCharacter(
+      this.ctx.avatar.avatarId === CASHIER_AVATAR ? 'sam' : CASHIER_AVATAR,
+    );
+    const cashier = this.cashier;
+    await this.ctx.transition(() => {
+      market.stock(attempt.mission.choices.filter((choice) => choice.group === undefined));
+      this.ctx.avatar.placeAt(market.shopperSpot, Math.PI);
+      cashier.placeAt(market.cashierSpot, -Math.PI / 2);
+      const view = market.shelfCamera;
+      this.ctx.rig.setFocus(view.position, view.lookAt, true);
+      this.indoors = true;
+    });
+    market.hint(attempt.currentStep?.targetId);
+  }
+
+  /** Back at the market's door, with the camera behind the child again. */
+  private goOutside(): void {
+    this.indoors = false;
+    const door = this.ctx.world.places.find((p) => p.id === CityPlace.market);
+    if (door === undefined) return;
+    // The building is behind the door: the camera stays on the street side.
+    const towardStreet = door.position.z > CITY.z ? Math.PI : 0;
+    this.ctx.avatar.placeAt(door.position, towardStreet);
+    this.ctx.rig.clearFocus();
+    this.ctx.rig.yaw = towardStreet;
+    this.ctx.rig.snapTo(door.position);
+  }
+
+  /** Inside the market the 3D shelf follows the panel: picks fly to the cart. */
+  private showIndoors(choiceId: string, nextTargetId: string | undefined): void {
+    if (!this.indoors || this.attempt === undefined) return;
+    const market = this.ctx.world.market;
+    market.collect(choiceId);
+    market.hint(nextTargetId);
+    const next = this.attempt.mission.choices.find((choice) => choice.id === nextTargetId);
+    if (next?.group === 'cashier') {
+      this.ctx.avatar.placeAt(market.checkoutSpot, Math.PI / 2);
+      const view = market.checkoutCamera;
+      this.ctx.rig.setFocus(view.position, view.lookAt);
+    }
   }
 
   /** Every frame while exploring: follows tasks played in the 3D world. */
@@ -143,11 +213,13 @@ export class MissionController {
         case 'hint':
           this.ctx.sound('hint');
           this.panel.showHint(outcome.step.targetId, outcome.hintLevel);
+          if (this.indoors) this.ctx.world.market.hint(outcome.step.targetId);
           this.ctx.dialog.say(`${phrases.hint} ${outcome.step.prompt}`);
           break;
         case 'correct':
           this.ctx.sound('correct');
           this.panel.collect(choiceId, outcome.nextStep.targetId);
+          this.showIndoors(choiceId, outcome.nextStep.targetId);
           this.ctx.dialog.say(`${phrases.correct} ${outcome.nextStep.prompt}`);
           this.ctx.avatar.playEmote('Yes');
           break;
@@ -161,6 +233,10 @@ export class MissionController {
           this.ctx.sound(reward.stars > 0 ? 'star' : 'coin');
           this.panel.collect(choiceId);
           this.panel.celebrate(reward, mission.result);
+          if (this.indoors) {
+            this.showIndoors(choiceId, undefined);
+            this.cashier?.playEmote('Wave');
+          }
           if (mission.kind === 'build-sentence') {
             // The game says the child's request aloud, as an AAC device would.
             // Then the answer of whoever was asked (the baker, the teacher…).
