@@ -140,8 +140,8 @@ type Bin = keyof typeof bins;
 const trash: readonly (readonly [string, string, Bin])[] = [
   ['a caixa', '📦', 'paper'],
   ['o jornal', '📰', 'paper'],
-  ['a garrafa de plástico', '🧴', 'plastic'],
-  ['o pote de vidro', '🫙', 'glass'],
+  ['a garrafa', '🧴', 'plastic'],
+  ['o pote', '🫙', 'glass'],
   ['a lata', '🥫', 'metal'],
   ['a casca de banana', '🍌', 'food'],
   ['o miolo da maçã', '🍎', 'food'],
@@ -311,7 +311,7 @@ const stories: readonly (readonly [string, string, Feeling, ...Feeling[]])[] = [
   ['Derrubaram minha torre de blocos', '🧱 💥', 'angry', 'sad'],
   ['Fez um trovão muito forte', '⛈️', 'scared', 'surprised'],
   ['O quarto ficou escuro', '🌑', 'scared'],
-  ['Tinha uma festa surpresa para mim', '🎉', 'surprised', 'happy'],
+  ['Abri a porta e todo mundo gritou parabéns', '🎉', 'surprised', 'happy'],
   ['Saiu um coelho do chapéu do mágico', '🎩 🐰', 'surprised', 'happy'],
 ];
 
@@ -411,7 +411,7 @@ export const missions: readonly Mission[] = [
       { id: 'stop-button', label: 'apertar o botão', pictogram: '🔔' },
     ],
     steps: [
-      { targetId: 'wait', prompt: 'Primeiro, esperamos no ponto.' },
+      { targetId: 'wait', prompt: 'O que vem primeiro?' },
       { targetId: 'board', prompt: 'O ônibus chegou. Agora?' },
       { targetId: 'sit', prompt: 'Entramos. E depois?' },
       { targetId: 'stop-button', prompt: 'Chegando. O que fazemos?' },
@@ -433,7 +433,7 @@ export const missions: readonly Mission[] = [
         steps: [
           { targetId: 'wait', prompt: 'O que vem primeiro?' },
           { targetId: 'board', prompt: 'O ônibus chegou. Agora?' },
-          { targetId: 'card', prompt: 'Entramos. O que fazemos com o cartão?' },
+          { targetId: 'card', prompt: 'Entramos. E agora?' },
           { targetId: 'sit', prompt: 'Pronto! E agora?' },
           { targetId: 'stop-button', prompt: 'Chegando. O que fazemos?' },
         ],
@@ -665,7 +665,7 @@ export const missions: readonly Mission[] = [
     variants: [
       saying(
         'greet-teacher',
-        'Você chegou na escola! Vamos dar bom dia para a professora.',
+        'Você chegou na escola e viu a professora. Monte a frase.',
         [
           ['hello', 'O que a gente diz ao chegar?'],
           ['teacher', 'Para quem você está falando?'],
@@ -683,7 +683,7 @@ export const missions: readonly Mission[] = [
       ),
       saying(
         'help',
-        'A tarefa está difícil. Vamos pedir ajuda.',
+        'A tarefa está difícil. Monte a frase.',
         [
           ['i-need', 'Como você começa a pedir?'],
           ['help', 'Do que você precisa?'],
@@ -693,7 +693,7 @@ export const missions: readonly Mission[] = [
       ),
       saying(
         'bathroom',
-        'Você quer ir ao banheiro. Vamos pedir.',
+        'Você está apertado. Vamos pedir.',
         [
           ['can-i', 'Como você começa a pedir?'],
           ['bathroom', 'O que você quer fazer?'],
@@ -713,7 +713,7 @@ export const missions: readonly Mission[] = [
       ),
       saying(
         'play',
-        'Você quer brincar com um amigo. Vamos convidar.',
+        'Seu amigo está sozinho com a bola. Vamos convidar.',
         [
           ['can-i', 'Como você começa a pedir?'],
           ['play', 'O que você quer fazer?'],

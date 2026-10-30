@@ -95,6 +95,28 @@ describe('bundled content', () => {
     }
   });
 
+  it('never names the answer in a quiz question', () => {
+    const plain = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+    const stems = (text: string) =>
+      plain(text)
+        .split(/[^a-z]+/)
+        .filter((word) => word.length > 3)
+        .map((word) => word.slice(0, 5));
+    for (const mission of missions.filter((m) => m.kind === 'quiz')) {
+      const variants = [mission, ...(mission.variants ?? [])];
+      for (const step of variants.flatMap((v) => v.steps)) {
+        const asked = stems(step.prompt);
+        for (const id of [step.targetId, ...(step.accepts ?? [])]) {
+          const label = mission.choices.find((c) => c.id === id)?.label ?? '';
+          expect(
+            asked.filter((s) => stems(label).includes(s)),
+            step.prompt,
+          ).toEqual([]);
+        }
+      }
+    }
+  });
+
   it('charges one coin per thing bought at the market', () => {
     const market = missions.find((m) => m.id === 'city-market');
     expect(market?.variants?.length).toBeGreaterThanOrEqual(5);
