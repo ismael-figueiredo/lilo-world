@@ -71,7 +71,12 @@ export const findLetter =
   ({ random }) => {
     const letter = pick(random, ALPHABET);
     return {
-      prompt: { text: `Onde está a letra ${letter}?` },
+      // The name is heard: writing the letter would turn this into matching shapes.
+      prompt: {
+        text: `Onde está a letra ${letter}?`,
+        written: 'Onde está a letra?',
+        needsVoice: true,
+      },
       stimulus: { kind: 'none' },
       interaction: {
         kind: 'tap',
@@ -90,8 +95,8 @@ export const wordFirstLetter =
     const letter = firstLetter(chosen.text);
     const name = chosen.text.toLowerCase();
     return {
-      prompt: { text: `Com qual letra começa ${name}?` },
-      // Only the picture: the written word would show the answer.
+      // Only the picture, here and in the question: the written word would show the answer.
+      prompt: { text: `Com qual letra começa ${name}?`, written: 'Com qual letra começa?' },
       stimulus: { kind: 'picture', picture: wordPicture(chosen) },
       interaction: {
         kind: 'tap',

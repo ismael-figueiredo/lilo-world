@@ -234,8 +234,8 @@ export class GameApp implements GameContext {
     });
   }
 
-  say(message: string): void {
-    this.dialog.say(message);
+  say(message: string, written = message): void {
+    this.dialog.say(written);
     void this.services.speech.speak(message);
   }
 

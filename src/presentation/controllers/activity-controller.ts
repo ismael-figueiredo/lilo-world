@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { activityPhrases } from '@application/use-cases/answer-activity';
+import { writtenOf, type Spoken } from '@domain/activity/activity';
 import type { ActivityRound } from '@domain/activity/activity-round';
 import type { PlannedActivity } from '@domain/curriculum/session-plan';
 import type { Station } from '@domain/curriculum/skill';
@@ -48,8 +49,9 @@ export class ActivityController {
       onRepeat: () => {
         const round = this.round;
         if (round === undefined) return;
-        this.ctx.say(round.isModeling ? round.item.teach.text : round.item.prompt.text);
+        this.ask(round.isModeling ? round.item.teach : round.item.prompt);
       },
+      written: (spoken) => this.written(spoken),
     });
     // Any move of the child means they are working: the help can wait.
     for (const type of ['pointerdown', 'keydown']) {
@@ -64,7 +66,7 @@ export class ActivityController {
     this.plan = undefined;
     const round = await this.ctx.player.startActivity.execute(station);
     this.begin(station, round);
-    this.ctx.dialog.say(round.item.prompt.text);
+    this.ctx.dialog.say(this.written(round.item.prompt));
     this.watchForHelp();
   }
 
@@ -75,7 +77,7 @@ export class ActivityController {
     this.begin(activity.skill.station, round);
     if (activity.isNew) this.demonstrate();
     else {
-      this.ctx.say(round.item.prompt.text);
+      this.ask(round.item.prompt);
       this.watchForHelp();
     }
   }
@@ -92,6 +94,14 @@ export class ActivityController {
     this.round = undefined;
     this.plan = undefined;
     this.panel.close();
+  }
+
+  private written(spoken: Spoken): string {
+    return writtenOf(spoken, this.ctx.settings.voiceEnabled);
+  }
+
+  private ask(spoken: Spoken): void {
+    this.ctx.say(spoken.text, this.written(spoken));
   }
 
   private begin(station: Station, round: ActivityRound): void {
@@ -132,7 +142,7 @@ export class ActivityController {
     const secondOfNew = this.plan?.activity.isNew === true && round.asked === 1;
     if (!secondOfNew) {
       later(REPEAT_AFTER_MS, () => {
-        this.ctx.say(round.item.prompt.text);
+        this.ask(round.item.prompt);
       });
     }
     later(secondOfNew ? SHOW_SOON_MS : SHOW_AFTER_MS, () => {
@@ -201,7 +211,7 @@ export class ActivityController {
       }
       this.panel.render(result.round);
       // Said now, with the new answers on screen, so voice and picture go together.
-      this.ctx.say(result.round.item.prompt.text);
+      this.ask(result.round.item.prompt);
     } finally {
       this.busy = false;
       this.watchForHelp();

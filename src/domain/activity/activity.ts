@@ -5,7 +5,17 @@ import type { Random } from '@domain/shared/random';
 export interface Spoken {
   readonly text: string;
   readonly clip?: string;
+  /** Put on screen instead of `text`, when writing it would give the answer away. */
+  readonly written?: string;
+  /** Only the voice can ask this: with the voice off the whole text must be written. */
+  readonly needsVoice?: boolean;
 }
+
+/** What to write for something said. Heard and read must never give the answer together. */
+export const writtenOf = (spoken: Spoken, voiceEnabled: boolean): string =>
+  spoken.written === undefined || (spoken.needsVoice === true && !voiceEnabled)
+    ? spoken.text
+    : spoken.written;
 
 /** Same shape as a mission card: the pictogram when there is one, otherwise the emoji. */
 export interface Picture {

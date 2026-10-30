@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { answerOf, type ActivityContext, type ActivityItem } from '@domain/activity/activity';
+import {
+  answerOf,
+  writtenOf,
+  type ActivityContext,
+  type ActivityItem,
+} from '@domain/activity/activity';
 import { ActivityRound, ROUND_LENGTH } from '@domain/activity/activity-round';
 import { MAX_LEVEL, skillsAt, stations, type Station } from '@domain/curriculum/skill';
 import { firstLetter, word, type Word } from '@domain/language/word';
@@ -36,6 +41,55 @@ const wrongAnswer = (activity: ActivityItem): string => {
     ? (interaction.options.find((o) => o.id !== interaction.answerId)?.id ?? '')
     : String(interaction.goal === 1 ? 2 : 1);
 };
+
+/** Words on screen, as written: "A" is a letter, the "a" of a sentence is not. */
+const tokens = (text: string): readonly string[] => text.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+
+describe('nothing on screen gives the answer', () => {
+  const answers = wordBank.map((w) => w.text.toLowerCase());
+
+  it('never writes an answer shown among the options', () => {
+    const ctx = context(2);
+    for (const skill of curriculum) {
+      for (let i = 0; i < 80; i += 1) {
+        const { prompt, interaction } = item(skill.id, ctx);
+        if (interaction.kind !== 'tap') continue;
+        const right = interaction.options.find((o) => o.id === interaction.answerId);
+        expect(tokens(writtenOf(prompt, true)), skill.id).not.toContain(right?.text);
+      }
+    }
+  });
+
+  it('never writes the word a picture stands for', () => {
+    const ctx = context(3);
+    for (const skill of curriculum) {
+      for (let i = 0; i < 80; i += 1) {
+        const { prompt, stimulus } = item(skill.id, ctx);
+        if (stimulus.kind !== 'picture') continue;
+        for (const shown of [prompt.written, writtenOf(prompt, false)]) {
+          const written = tokens(shown ?? '').map((t) => t.toLowerCase());
+          expect(
+            written.filter((t) => answers.includes(t)),
+            skill.id,
+          ).toEqual([]);
+        }
+      }
+    }
+  });
+
+  it('says the word out loud, and only the voice says it', () => {
+    const { prompt, stimulus } = item('pt.letter.first');
+    expect(stimulus.kind).toBe('picture');
+    expect(prompt.text).toMatch(/^Com qual letra começa \S+\?$/);
+    expect(prompt.written).toBe('Com qual letra começa?');
+  });
+
+  it('writes the question in full when the voice is off and only it could ask', () => {
+    const { prompt } = item('pt.letter.find');
+    expect(writtenOf(prompt, true)).toBe('Onde está a letra?');
+    expect(writtenOf(prompt, false)).toBe(prompt.text);
+  });
+});
 
 describe('activities', () => {
   it('always has exactly one right answer among distinct options', () => {

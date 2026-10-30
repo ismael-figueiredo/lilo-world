@@ -40,7 +40,8 @@ export interface GameContext {
   readonly session: SessionController;
   enterPanel(mode: PanelMode): void;
   backToExploring(): void;
-  say(message: string): void;
+  /** Says `message` and writes it, or `written` when the two must differ. */
+  say(message: string, written?: string): void;
   sound(effect: SoundEffect): void;
   /** Reloads progress and updates everything that depends on it. */
   refresh(): Promise<void>;

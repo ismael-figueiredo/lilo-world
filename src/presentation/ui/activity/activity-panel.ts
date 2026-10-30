@@ -1,5 +1,5 @@
 import type { ActivityRound, RoundSummary } from '@domain/activity/activity-round';
-import type { Interaction } from '@domain/activity/activity';
+import type { Interaction, Spoken } from '@domain/activity/activity';
 import { MAX_LEVEL } from '@domain/curriculum/skill';
 import type { Sticker } from '@domain/stickers/sticker';
 import { dragInteraction } from '@presentation/ui/activity/interactions/drag';
@@ -15,6 +15,8 @@ export interface ActivityPanelCallbacks {
   onAgain(): void;
   onExit(): void;
   onRepeat(): void;
+  /** What to put on screen for something the game says. */
+  written(spoken: Spoken): string;
 }
 
 /** What the round's end offers: going on here, or the next thing of the day. */
@@ -112,7 +114,7 @@ export class ActivityPanel {
     const stimulus = renderStimulus(item.stimulus);
     this.show.replaceChildren(...(stimulus === null ? [] : [stimulus]));
     this.show.classList.toggle('is-hidden', item.stimulus.kind === 'none');
-    this.question.textContent = item.prompt.text;
+    this.question.textContent = this.callbacks.written(item.prompt);
     this.view = viewOf(item.interaction, (answerId) => {
       this.callbacks.onChoose(answerId);
     });
