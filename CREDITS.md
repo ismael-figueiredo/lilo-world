@@ -62,13 +62,13 @@ O terreno, o mar, as ruas, o ônibus, postes, bancos, semáforo, fonte, portais,
 | [three.js](https://threejs.org)                              | MIT     |
 | [simplex-noise](https://github.com/jwagner/simplex-noise.js) | MIT     |
 
-## Pictogramas (planejado: Fase 2)
+## Pictogramas
 
-Os pictogramas de comunicação aumentativa virão do **ARASAAC**. Quando forem adicionados, este crédito é obrigatório em todo lugar onde aparecerem:
+Os cartões das missões usam pictogramas do **ARASAAC**, escolhidos um a um em `src/infrastructure/catalog/pictograms.json` e baixados por `pnpm assets`:
 
 > Os símbolos pictográficos utilizados são propriedade do Governo de Aragão e foram criados por Sergio Palao para o ARASAAC (https://arasaac.org), que os distribui sob Licença Creative Commons BY-NC-SA.
 
-Até lá, o protótipo usa os emojis do sistema operacional como figuras provisórias.
+Os cartões ainda sem pictograma revisado usam os emojis do sistema operacional.
 
 ## Inspirações
 

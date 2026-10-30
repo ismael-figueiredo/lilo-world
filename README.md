@@ -35,20 +35,21 @@ O plano completo do projeto está em [docs/plano-jogo-autismo.md](docs/plano-jog
 | Comunicação visual primeiro | Pictogramas e voz antes do texto; o texto é sempre curto                  |
 | Previsibilidade             | Toda missão segue **pedido → ação → comemoração**                         |
 | Uma instrução por vez       | O mascote Lilo diz só o próximo passo e uma seta dourada mostra o caminho |
-| Errar não pune              | Sem "game over" e sem som de erro: a dica só fica mais clara              |
+| Errar não pune              | Sem "game over": o jogo mostra a resposta e vem uma pergunta nova         |
 | A criança escolhe           | Mundo aberto: ela decide para onde ir e o que vestir                      |
 | Ajustável ao sensorial      | Movimentos suaves; o jogo respeita "reduzir movimento" do aparelho        |
 
 ## Como jogar
 
-| Ação           | Tablet / celular                   | Computador           | Controle (USB ou Bluetooth)               |
-| -------------- | ---------------------------------- | -------------------- | ----------------------------------------- |
-| Andar          | Joystick (canto inferior esquerdo) | `W A S D` ou setas   | Analógico esquerdo ou direcional          |
-| Correr         | Empurrar o joystick até a borda    | `Shift`              | Analógico até a borda, ou RB / RT         |
-| Pular          | Botão ⤒                            | `Espaço`             | A (✕)                                     |
-| Girar a câmera | Arrastar o dedo na tela            | Arrastar com o mouse | Analógico direito                         |
-| Usar / entrar  | Botão amarelo que aparece perto    | `E` ou `Enter`       | B (◯) ou X (▢)                            |
-| Menu           | Botão ☰ (canto superior direito)  | `Esc`                | Start; nos menus, direcional + A, B volta |
+| Ação           | Tablet / celular                   | Computador           | Controle (USB ou Bluetooth)         |
+| -------------- | ---------------------------------- | -------------------- | ----------------------------------- |
+| Andar          | Joystick (canto inferior esquerdo) | `W A S D` ou setas   | Analógico esquerdo ou direcional    |
+| Correr         | Empurrar o joystick até a borda    | `Shift`              | Analógico até a borda, ou R1 / R2   |
+| Usar / entrar  | Botão amarelo que aparece perto    | `E` ou `Enter`       | ✕ (A)                               |
+| Pular          | Botão ⤒                            | `Espaço`             | ▢ (X), ou ✕ longe de qualquer lugar |
+| Girar a câmera | Arrastar o dedo na tela            | Arrastar com o mouse | Analógico direito                   |
+| Menu           | Botão ☰ (canto superior direito)  | `Esc`                | Options (Start)                     |
+| Nos painéis    | Tocar                              | Clicar               | Direcional, ✕ escolhe, ◯ volta      |
 
 **Vários jogadores:** cada criança tem o próprio perfil (nome, progresso, ajustes e lugar no mundo). O jogo salva sozinho e continua de onde parou. Renomear, remover e mudar o limite de tempo ficam na **Área dos pais** (segure o botão por 3 segundos).
 
@@ -126,7 +127,8 @@ As fronteiras são **garantidas pelo lint**: um `import` do domínio para a infr
 - [x] **v0.2, sprint 4f:** mundo Escola e Parque: arrumar a mochila, falar na escola com CAA (bom dia, pedir ajuda, pedir para ir ao banheiro) e esperar a vez no parque
 - [x] **v0.2, sprint 4g:** mundo Emoções: reconhecer sentimentos em rostos e histórias e rotinas para ficar calmo (cantinho calmo)
 - [x] **v0.2, sprint 4h:** mercado 3D por dentro: prateleiras com os itens do dia, carrinho e caixa
-- [ ] **v0.2, próximos sprints:** ônibus em 3D, mais estações e mundo vivo (pessoas, carros, barcos, animais)
+- [x] **Vida real, etapa 1:** controle revisto, faixas de pedestres, ensino sem adivinhação, frases com escolha livre e pictogramas ARASAAC
+- [ ] **Vida real, próximas etapas:** casa e mercado para andar, agenda do dia, receita completa, ônibus de verdade e escola; depois, mundo vivo
 - [ ] **Fase 2:** missões do ônibus, do semáforo e da padaria (frases com CAA: **[eu quero] + [pão]**), painel de ajustes sensoriais, álbum de figurinhas, pictogramas ARASAAC, PWA offline
 - [ ] **Fase 4:** painel para pais e terapeutas, fotos e figuras personalizadas, traduções
 

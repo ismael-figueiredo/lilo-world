@@ -1008,6 +1008,30 @@ button {
   text-align: center;
 }
 
+.pictogram--image {
+  display: block;
+  width: 2.2em;
+  height: 2.2em;
+  object-fit: contain;
+}
+
+.mission__list-item .pictogram--image {
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+
+.tile .pictogram--image {
+  width: 88px;
+  height: 88px;
+}
+
+.album-credit {
+  margin: 14px 0 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
 /* ---------- Travel fade ---------- */
 .fade {
   position: absolute;

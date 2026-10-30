@@ -7,8 +7,10 @@ export type MissionId = string;
 export interface MissionChoice {
   readonly id: string;
   readonly label: string;
-  /** Provisional pictogram (emoji) until ARASAAC pictograms are added. */
+  /** Emoji shown when there is no image. */
   readonly pictogram: string;
+  /** Path of an ARASAAC pictogram, when this card has one. */
+  readonly image?: string;
   /**
    * Choices are shown in groups, one group at a time: the one of the current
    * step (e.g. the shelf, then the cashier). Without a group, the main one.

@@ -2,7 +2,7 @@ import type { MissionChoice, MissionKind } from '@domain/mission/mission';
 import type { MissionAttempt } from '@domain/mission/mission-attempt';
 import type { Reward } from '@domain/reward/reward';
 import { shuffled } from '@domain/shared/random';
-import { h, replayAnimation } from '@presentation/ui/dom';
+import { h, picture, replayAnimation } from '@presentation/ui/dom';
 
 export interface MissionPanelCallbacks {
   onChoose(choiceId: string): void;
@@ -124,7 +124,9 @@ export class MissionPanel {
       const atCounter = choice?.group !== undefined;
       return h('li', { className: 'mission__list-item' }, [
         h('span', { className: 'mission__slot', text: String(index + 1) }),
-        h('span', { className: 'pictogram', text: atCounter ? '🧾' : (choice?.pictogram ?? '❓') }),
+        atCounter || choice === undefined
+          ? h('span', { className: 'pictogram', text: '🧾' })
+          : picture(choice, 'pictogram'),
         h('span', {
           className: 'mission__list-label',
           text: atCounter ? 'pagar' : (choice?.label ?? ''),
@@ -186,11 +188,8 @@ export class MissionPanel {
       item.classList.add('is-done');
       const choice = choices.find((c) => c.id === choiceId);
       if (!layouts[kind].revealList && choice !== undefined) {
-        const [picture, label] = [
-          item.querySelector('.pictogram'),
-          item.querySelector('.mission__list-label'),
-        ];
-        if (picture !== null) picture.textContent = choice.pictogram;
+        item.querySelector('.pictogram')?.replaceWith(picture(choice, 'pictogram'));
+        const label = item.querySelector('.mission__list-label');
         if (label !== null) label.textContent = choice.label;
       }
     }
@@ -284,7 +283,7 @@ export class MissionPanel {
         },
       },
       [
-        h('span', { className: 'pictogram pictogram--big', text: choice.pictogram }),
+        picture(choice, 'pictogram pictogram--big'),
         label ? h('span', { className: 'tile__label', text: choice.label }) : null,
       ],
     );

@@ -4,22 +4,24 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 
 ## Onde estamos
 
-| Sprint                                                              | Status     | Commit    |
-| ------------------------------------------------------------------- | ---------- | --------- |
-| Protótipo 3D (ilha, cidade, missão do mercado, guarda-roupa)        | ✅ feito   | `1fa268b` |
-| 1: perfis, salvamento, menu, ajustes, mapa, limite de tempo, som    | ✅ feito   | `f5008d0` |
-| 2: 9 avatares (crianças, animais, robô), pipeline de assets         | ✅ feito   | `6bc1982` |
-| 3: mundo bonito (modelos CC0), água bloqueada, controle (gamepad)   | ✅ feito   | `1d61174` |
-| 4a: padaria (CAA), ônibus (sequência), semáforo (no mundo 3D)       | ✅ feito   | `a8f4dfd` |
-| 4b: estações de aprendizado, figurinhas, alfabeto, caixa do mercado | ✅ feito   | `2780634` |
-| 4c: missões sorteadas, receitas no mercado, bairro sul com praça    | ✅ feito   | `0d41a2d` |
-| 4d: mundo Natureza (acampamento, fazenda, horta, reciclagem)        | ✅ feito   | `3139b1f` |
-| 4e: mundo Casa (banheiro, quarto, cozinha)                          | ✅ feito   | `1ff1687` |
-| 4f: mundo Escola e Parque (mochila, falar na escola, esperar a vez) | ✅ feito   | `1c4509a` |
-| 4g: mundo Emoções (rostos, histórias, ficar calmo)                  | ✅ feito   | `7d69f80` |
-| 4h: mercado 3D por dentro                                           | ✅ feito   | —         |
-| 4i: ônibus 3D, mais estações                                        | ⏭️ próximo | —         |
-| 5: mundo vivo                                                       | ⏳ depois  | —         |
+| Sprint                                                                                   | Status     | Commit    |
+| ---------------------------------------------------------------------------------------- | ---------- | --------- |
+| Protótipo 3D (ilha, cidade, missão do mercado, guarda-roupa)                             | ✅ feito   | `1fa268b` |
+| 1: perfis, salvamento, menu, ajustes, mapa, limite de tempo, som                         | ✅ feito   | `f5008d0` |
+| 2: 9 avatares (crianças, animais, robô), pipeline de assets                              | ✅ feito   | `6bc1982` |
+| 3: mundo bonito (modelos CC0), água bloqueada, controle (gamepad)                        | ✅ feito   | `1d61174` |
+| 4a: padaria (CAA), ônibus (sequência), semáforo (no mundo 3D)                            | ✅ feito   | `a8f4dfd` |
+| 4b: estações de aprendizado, figurinhas, alfabeto, caixa do mercado                      | ✅ feito   | `2780634` |
+| 4c: missões sorteadas, receitas no mercado, bairro sul com praça                         | ✅ feito   | `0d41a2d` |
+| 4d: mundo Natureza (acampamento, fazenda, horta, reciclagem)                             | ✅ feito   | `3139b1f` |
+| 4e: mundo Casa (banheiro, quarto, cozinha)                                               | ✅ feito   | `1ff1687` |
+| 4f: mundo Escola e Parque (mochila, falar na escola, esperar a vez)                      | ✅ feito   | `1c4509a` |
+| 4g: mundo Emoções (rostos, histórias, ficar calmo)                                       | ✅ feito   | `7d69f80` |
+| 4h: mercado 3D por dentro                                                                | ✅ feito   | `275d889` |
+| Vida real 1: controle, faixas, ensino sem adivinhação, CAA, ARASAAC                      | ✅ feito   | —         |
+| Vida real 2: casa e mercado para andar, agenda do dia, fim dos portais, receita completa | ⏭️ próximo | —         |
+| Vida real 3: ônibus de verdade, escola e fazenda caminháveis, histórias em figuras       | ⏳ depois  | —         |
+| Mundo vivo                                                                               | ⏳ depois  | —         |
 
 ## Sprint 3: mundo bonito, água e controle (feito)
 
@@ -123,13 +125,35 @@ Pendências pequenas: testar com controle físico (só a lógica tem teste); a �
 - A saída volta à porta do mercado, com a câmera do lado da rua. O mascote agora diz o nome do lugar da próxima missão (antes dizia sempre "mercado").
 - Limite: a criança não anda dentro da loja; escolhe pelos cartões. Para andar seria preciso ensinar a `GameWorld.heightAt`/`isWalkable` sobre o piso interno.
 
-## Sprint 4i: próximos
+## Novo rumo: um dia de vida real
 
-- **Ônibus em 3D:** o ônibus estacionado vem até o ponto durante a missão.
-- **Mais estações:** moedas-letra escondidas pela ilha (para o alfabeto) e placas palavra ↔ figura nas trilhas.
-- Revisão com terapeutas: textos, ordem das rotinas e cores das emoções.
+Depois do teste com controle e do uso real do jogo, a direção mudou: menos telas de seleção e mais simulação. Sem portais e sem estrelas travando lugares; a casa tem a agenda do dia em figuras, e a criança vai a pé ou de ônibus. Rua: nunca tirar moedas; a criança volta à calçada com calma e ganha bônus por trajeto seguro.
 
-## Sprint 5: mundo vivo
+### Etapa 1 (feita)
+
+- **Controle:** ✕ usa o que está perto ou pula, ▢ pula, ◯ volta, Options abre o menu; funciona também na tela de perfis. `PadFocus` (`ui/pad-focus.ts`) mantém o foco perto da última escolha. Dicas de botões na tela (`ui/pad-hints.ts`) e joystick escondido.
+- **Rua:** listras paralelas à rua e 7 faixas (`CROSSINGS`, `zebraBars`). `RoadSafety` (`world/road-safety.ts`, testado) leva a criança de volta ao último ponto seguro; atravessar direito e usar um lugar dá +2 moedas (`RewardSafeTrip`).
+- **Ensino:** `ChallengeSession` agora tem rodadas de 5 perguntas; subir de nível exige 4 de 5 de primeira. Depois de um erro só a certa fica ativa, vem pergunta nova e a errada volta depois sem valer ponto. `MissionAttempt` segue a mesma regra (`model`), e no quiz a pergunta errada volta no fim.
+- **Sem entregar a resposta:** cartões de lista, CAA e estações sem palavra embaixo; contagem em grupos de 5; o caixa pede para contar o carrinho.
+- **CAA:** a padaria aceita qualquer lanche (`MissionStep.accepts`), a frase vem da escolha da criança e o botão "Falar" lê. Escola com perguntas de situação.
+- **ARASAAC:** 48 pictogramas revisados em `src/infrastructure/catalog/pictograms.json`, baixados por `pnpm assets`.
+
+Ficou de fora: emoções e frases de ação seguem com emoji (as figuras achadas não serviam ou não foram revisadas), e as prateleiras 3D do mercado também. Em sequências e perguntas a palavra continua embaixo da figura, porque a figura sozinha não explica a ação. Falta testar com controle físico.
+
+### Etapa 2: casa e mercado de verdade
+
+- Zonas internas (`world/zone.ts`): casa com sala, quarto, banheiro e cozinha; mercado caminhável.
+- Guarda-roupa e espelho físicos; rotinas viram ações em objetos.
+- Agenda do dia (`domain/schedule/`); remover portais e `requiredStars`, mantendo os saves.
+- Receita completa (`domain/quest/`): ver o que falta em casa → ir ao mercado → pagar → voltar → cozinhar.
+
+### Etapa 3: ônibus, escola e fazenda
+
+- Ônibus que anda pela rota (`domain/city/bus-route.ts`): esperar, entrar, passar o cartão, sentar, apertar o botão, descer.
+- Escola e fazenda caminháveis, ligadas por ruas.
+- História curta em figuras antes de cada atividade nova.
+
+## Depois: mundo vivo
 
 ### Mundo vivo (`src/presentation/life/`)
 

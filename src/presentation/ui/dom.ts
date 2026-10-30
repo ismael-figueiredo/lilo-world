@@ -29,6 +29,18 @@ export function h<K extends keyof HTMLElementTagNameMap>(
   return element;
 }
 
+/** A card's picture: the pictogram when it has one, otherwise its emoji. */
+export function picture(
+  card: { readonly pictogram: string; readonly image?: string },
+  className: string,
+): HTMLElement {
+  if (card.image === undefined) return h('span', { className, text: card.pictogram });
+  return h('img', {
+    className: `${className} pictogram--image`,
+    attrs: { src: `${import.meta.env.BASE_URL}${card.image}`, alt: '', draggable: 'false' },
+  });
+}
+
 export const toCssColor = (color: number): string => `#${color.toString(16).padStart(6, '0')}`;
 
 /** Restarts a CSS animation class (used for gentle "pop" feedback). */

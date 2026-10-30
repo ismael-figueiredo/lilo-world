@@ -24,6 +24,10 @@ export class ProgressPanel {
             }),
           ]),
           this.body,
+          h('p', {
+            className: 'album-credit',
+            text: 'Pictogramas: Sergio Palao, ARASAAC (arasaac.org), Governo de Aragão. Licença CC BY-NC-SA.',
+          }),
         ]),
       ],
     );

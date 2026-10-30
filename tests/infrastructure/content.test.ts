@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_AVATAR_ID } from '@domain/profile/player-profile';
 import { avatars, missions, wardrobeItems, worlds } from '@infrastructure/catalog/content';
+import pictograms from '@infrastructure/catalog/pictograms.json';
+import { withPictograms } from '@infrastructure/catalog/static-content-catalog';
 
 /** Guards the bundled content against typos that would break a mission. */
 describe('bundled content', () => {
@@ -99,5 +101,21 @@ describe('bundled avatars', () => {
   it('has unique ids, starting with the default avatar', () => {
     expect(new Set(avatars.map((a) => a.id)).size).toBe(avatars.length);
     expect(avatars[0]?.id).toBe(DEFAULT_AVATAR_ID);
+  });
+});
+
+describe('pictograms', () => {
+  it('names only labels that exist on some card', () => {
+    const labels = new Set(missions.flatMap((m) => m.choices.map((c) => c.label)));
+    const listed = Object.keys(pictograms).filter((key) => key !== '$comment');
+    for (const label of listed) expect(labels.has(label), label).toBe(true);
+  });
+
+  it('puts the image on the card and keeps the emoji as fallback', () => {
+    const market = missions.find((m) => m.id === 'city-market');
+    if (market === undefined) throw new Error('Missing market');
+    const apple = withPictograms(market).choices.find((c) => c.id === 'apple');
+    expect(apple?.image).toBe('pictograms/2462.webp');
+    expect(apple?.pictogram).toBe('🍎');
   });
 });
