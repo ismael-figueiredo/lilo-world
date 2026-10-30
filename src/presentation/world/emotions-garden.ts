@@ -4,23 +4,8 @@ import type { Interactable } from '@presentation/world/interactable';
 import { lowPoly, solid } from '@presentation/world/materials';
 import { createPostSign } from '@presentation/world/sign';
 import { fitHeight, type WorldAssets } from '@presentation/world/world-assets';
-
-/** A quiet garden in the island's south-west, for the Emotions missions. */
-export const EMOTIONS_GARDEN = { x: -60, z: 45, radius: 14, height: 4.6 } as const;
-
-export const EmotionsPlace = {
-  faces: 'emotions:faces',
-  stories: 'emotions:stories',
-  calm: 'emotions:calm',
-  back: 'emotions:back',
-} as const;
-
-/** Where the child appears when coming through the portal (looking at the garden). */
-export const emotionsArrival = new THREE.Vector3(
-  EMOTIONS_GARDEN.x,
-  EMOTIONS_GARDEN.height,
-  EMOTIONS_GARDEN.z + 9,
-);
+import { EMOTIONS_GARDEN, EmotionsPlace } from '@presentation/world/zones/anchors';
+import type { Zone } from '@presentation/world/zones/zone';
 
 /** The five faces, each with its own soft color. */
 const faces: readonly (readonly [string, string])[] = [
@@ -72,7 +57,7 @@ function faceDisc(emoji: string, color: string): THREE.Group {
 }
 
 /** Five big faces in a half circle, a little story stage, the calm corner and the way back. */
-export class EmotionsGarden {
+export class EmotionsGarden implements Zone {
   readonly group = new THREE.Group();
   readonly colliders: Collider[] = [];
   readonly places: Interactable[] = [];

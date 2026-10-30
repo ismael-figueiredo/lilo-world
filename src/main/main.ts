@@ -10,3 +10,14 @@ const game = new GameApp(root, services, {
 });
 
 void game.start();
+
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  void navigator.serviceWorker
+    .register(`${import.meta.env.BASE_URL}sw.js`)
+    .then(() => navigator.serviceWorker.ready)
+    .then(({ active }) => {
+      const remember = performance.getEntriesByType('resource').map((entry) => entry.name);
+      active?.postMessage({ remember: [window.location.href, ...remember] });
+    })
+    .catch(() => undefined);
+}

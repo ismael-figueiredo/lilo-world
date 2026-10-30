@@ -32,6 +32,8 @@ const TREE_HEIGHTS: readonly (readonly [WorldModelId, number])[] = [
 export class Nature {
   readonly group = new THREE.Group();
   readonly colliders: Collider[] = [];
+  /** Grass, flowers and mushrooms: pretty, and the first thing to go on a slow tablet. */
+  private readonly cover = new THREE.Group();
   private readonly clouds: THREE.Group[] = [];
 
   constructor(
@@ -44,6 +46,13 @@ export class Nature {
     this.addRocks();
     this.addGround();
     this.addClouds();
+    this.group.add(this.cover);
+  }
+
+  /** On a slow tablet: no ground cover, and trees stop drawing a second time for the shadows. */
+  setDetailed(detailed: boolean): void {
+    this.cover.visible = detailed;
+    for (const child of this.group.children) child.castShadow = detailed;
   }
 
   setCloudsVisible(visible: boolean): void {
@@ -111,7 +120,11 @@ export class Nature {
     model: WorldModelId,
     placements: readonly Placement[],
     height: number,
-    { sink = 0, shadows = true }: { sink?: number; shadows?: boolean } = {},
+    {
+      sink = 0,
+      shadows = true,
+      target = this.group,
+    }: { sink?: number; shadows?: boolean; target?: THREE.Group } = {},
   ): void {
     if (placements.length === 0) return;
     const fit = height / Math.max(this.assets.size(model).y, 0.001);
@@ -133,7 +146,7 @@ export class Nature {
       mesh.castShadow = shadows;
       mesh.receiveShadow = true;
       mesh.computeBoundingSphere();
-      this.group.add(mesh);
+      target.add(mesh);
     }
   }
 
@@ -145,7 +158,7 @@ export class Nature {
   }
 
   private addTrees(): void {
-    const all = this.scatter(220, 1.4, 3.4);
+    const all = this.scatter(130, 1.4, 3.4);
     Nature.deal(all, TREE_HEIGHTS.length).forEach((placements, index) => {
       const [model, height] = TREE_HEIGHTS[index] ?? TREE_HEIGHTS[0] ?? ['tree-round', 6];
       this.instanced(model, placements, height, { sink: 0.02 });
@@ -163,15 +176,16 @@ export class Nature {
   }
 
   private addGround(): void {
-    const [bushes = [], flowering = []] = Nature.deal(this.clusters(90, 3, 2.5, 1.2), 2);
+    const [bushes = [], flowering = []] = Nature.deal(this.clusters(30, 3, 2.5, 1.2), 2);
     this.instanced('bush', bushes, 1.5, { sink: 0.15 });
     this.instanced('bush-flowers', flowering, 1.5, { sink: 0.1 });
 
-    this.instanced('grass-tall', this.scatter(2400, 1.1), 0.85, { shadows: false });
-    this.instanced('grass-wide', this.scatter(500, 1.1), 0.7, { shadows: false });
-    this.instanced('flower-group', this.clusters(70, 9, 3, 1.2), 1, { shadows: false });
-    this.instanced('flowers', this.clusters(40, 5, 3, 1.2), 0.7, { shadows: false });
-    this.instanced('mushroom', this.scatter(50, 1.4), 0.5, { shadows: false });
+    const cover = { shadows: false, target: this.cover };
+    this.instanced('grass-tall', this.scatter(700, 1.1), 0.85, cover);
+    this.instanced('grass-wide', this.scatter(160, 1.1), 0.7, cover);
+    this.instanced('flower-group', this.clusters(18, 5, 3, 1.2), 1, cover);
+    this.instanced('flowers', this.clusters(22, 4, 3, 1.2), 0.7, cover);
+    this.instanced('mushroom', this.scatter(24, 1.4), 0.5, cover);
   }
 
   private addClouds(): void {

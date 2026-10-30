@@ -7,10 +7,12 @@ import { MissionPanel } from '@presentation/ui/mission-panel';
 import type { Player } from '@presentation/actors/player';
 import { CITY, CityPlace, CROSSWALK } from '@presentation/world/city';
 import { CrossingTracker, type CrossingEvent } from '@presentation/world/crosswalk';
-import { EmotionsPlace } from '@presentation/world/emotions-garden';
-import { HomePlace } from '@presentation/world/home-area';
-import { NaturePlace } from '@presentation/world/nature-camp';
-import { SchoolPlace } from '@presentation/world/school-area';
+import {
+  EmotionsPlace,
+  HomePlace,
+  NaturePlace,
+  SchoolPlace,
+} from '@presentation/world/zones/anchors';
 
 /** Where each mission happens in the open world. */
 export const missionPlaces: Readonly<Record<string, string>> = {
@@ -162,7 +164,7 @@ export class MissionController {
 
   /** Into the market: today's groceries on the shelves, the cart, the cashier. */
   private async goInside(attempt: MissionAttempt): Promise<void> {
-    const market = this.ctx.world.market;
+    const market = await this.ctx.whileLoading(this.ctx.world.prepareMarket());
     this.cashier ??= await this.ctx.createCharacter(
       this.ctx.avatar.avatarId === CASHIER_AVATAR ? 'sam' : CASHIER_AVATAR,
     );
@@ -193,8 +195,8 @@ export class MissionController {
 
   /** Inside the market the 3D shelf follows the panel: picks fly to the cart. */
   private showIndoors(choiceId: string, nextTargetId: string | undefined): void {
-    if (!this.indoors || this.attempt === undefined) return;
     const market = this.ctx.world.market;
+    if (!this.indoors || this.attempt === undefined || market === undefined) return;
     market.collect(choiceId);
     market.hint(nextTargetId);
     const next = this.attempt.mission.choices.find((choice) => choice.id === nextTargetId);
@@ -232,7 +234,7 @@ export class MissionController {
         case 'model':
           this.ctx.sound('hint');
           this.panel.showModel(outcome.step.targetId);
-          if (this.indoors) this.ctx.world.market.hint(outcome.step.targetId);
+          if (this.indoors) this.ctx.world.market?.hint(outcome.step.targetId);
           this.modeling = modelSentence(this.attempt, outcome.step);
           this.ctx.dialog.say(this.modeling);
           break;

@@ -68,6 +68,13 @@ export class Sky {
     scene.add(this.sun, this.sun.target);
   }
 
+  /** The map is rebuilt with the new size on the next frame. */
+  setShadowSize(size: number): void {
+    this.sun.shadow.mapSize.set(size, size);
+    this.sun.shadow.map?.dispose();
+    this.sun.shadow.map = null;
+  }
+
   follow(position: THREE.Vector3): void {
     this.sun.target.position.copy(position);
     this.sun.position.copy(position).addScaledVector(SUN_DIRECTION, 100);

@@ -17,7 +17,14 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    // Three.js is most of the bundle (~190 kB gzip); it is cached after the first load.
+    // Three.js is most of the bundle: alone in its file, it stays cached between versions.
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [{ name: 'three', test: /node_modules[\\/]three/ }],
+        },
+      },
+    },
     chunkSizeWarningLimit: 900,
   },
   test: {

@@ -110,15 +110,16 @@ sequenceDiagram
 
 ## Apresentação 3D
 
-| Módulo                      | Papel                                                                           |
-| --------------------------- | ------------------------------------------------------------------------------- |
-| `world/terrain-shape.ts`    | Altura da ilha (simplex noise + áreas planas). Puro e testado                   |
-| `world/collision.ts`        | Colisão do personagem (círculos e caixas) e da câmera. Puro e testado           |
-| `world/city.ts`, `props.ts` | Cidade low-poly: casas, mercado, padaria, ônibus, semáforo, fonte               |
-| `world/nature.ts`           | Árvores, pedras, grama e flores com `InstancedMesh` (leve no tablet)            |
-| `world/portals.ts`          | Portais para os outros mundos, com cadeado e estrelas que faltam                |
-| `actors/player.ts`          | Personagem animado (andar, correr, pular, emotes) e acessórios presos aos ossos |
-| `engine/camera-rig.ts`      | Câmera em terceira pessoa suave, que não atravessa paredes                      |
-| `ui/*`                      | Interface em HTML/CSS sobre o canvas: nítida e acessível                        |
+| Módulo                      | Papel                                                                                                                                                      |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `world/terrain-shape.ts`    | Altura da ilha (simplex noise + áreas planas). Puro e testado                                                                                              |
+| `world/collision.ts`        | Colisão do personagem (círculos e caixas) e da câmera. Puro e testado                                                                                      |
+| `world/city.ts`, `props.ts` | Cidade low-poly: casas, mercado, padaria, ônibus, semáforo, fonte                                                                                          |
+| `world/nature.ts`           | Árvores, pedras, grama e flores com `InstancedMesh` (leve no tablet)                                                                                       |
+| `world/zones/`              | Lugares baixados e desenhados à parte. `zone-entries.ts` lista as zonas; `anchors.ts` guarda posições e ids, que o resto do jogo conhece sem baixar a zona |
+| `world/portals.ts`          | Portais para os outros mundos, com cadeado e estrelas que faltam                                                                                           |
+| `actors/player.ts`          | Personagem animado (andar, correr, pular, emotes) e acessórios presos aos ossos                                                                            |
+| `engine/camera-rig.ts`      | Câmera em terceira pessoa suave, que não atravessa paredes                                                                                                 |
+| `ui/*`                      | Interface em HTML/CSS sobre o canvas: nítida e acessível                                                                                                   |
 
 Decisões detalhadas ficam nas [ADRs](adr/).

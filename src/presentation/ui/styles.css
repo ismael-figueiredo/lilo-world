@@ -805,6 +805,7 @@ button {
 
 /* ---------- Start ---------- */
 .start {
+  z-index: 10;
   position: absolute;
   inset: 0;
   display: flex;

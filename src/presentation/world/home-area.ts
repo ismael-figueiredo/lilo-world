@@ -4,19 +4,8 @@ import type { Interactable } from '@presentation/world/interactable';
 import { lowPoly, solid } from '@presentation/world/materials';
 import { createPostSign, createSign } from '@presentation/world/sign';
 import { fitHeight, type WorldAssets } from '@presentation/world/world-assets';
-
-/** The routines house: a big dollhouse open at the front, east of the new neighborhood. */
-export const HOME_AREA = { x: 64, z: 44, radius: 14, height: 2.2 } as const;
-
-export const HomePlace = {
-  bathroom: 'home:bathroom',
-  bedroom: 'home:bedroom',
-  kitchen: 'home:kitchen',
-  back: 'home:back',
-} as const;
-
-/** Where the child appears when coming through the Casa portal (looking at the house). */
-export const homeArrival = new THREE.Vector3(HOME_AREA.x, HOME_AREA.height, HOME_AREA.z + 6);
+import { HOME_AREA, HomePlace } from '@presentation/world/zones/anchors';
+import type { Zone } from '@presentation/world/zones/zone';
 
 const ROOM = { width: 7, depth: 5.5, height: 3 } as const;
 /** Rooms stand in a row on the north side; their places are in front (south). */
@@ -24,7 +13,7 @@ const ROW_Z = -5;
 const PLACE_Z = ROW_Z + ROOM.depth / 2 + 2;
 
 /** Three open rooms in a row (bathroom, bedroom, kitchen), a little yard and the way back. */
-export class HomeArea {
+export class HomeArea implements Zone {
   readonly group = new THREE.Group();
   readonly colliders: Collider[] = [];
   readonly places: Interactable[] = [];

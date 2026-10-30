@@ -24,6 +24,7 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | Currículo 0 a 2: voz, sensorial, motor único, arrastar, sessão de 10 minutos             | ✅ feito   | —         |
 | Vida real C0: nada entrega a resposta, frases por id, ajuda gentil, degraus              | ✅ feito   | —         |
 | Vida real C1: botões de console, cumprimentar, pulo por lugar, pausa calma               | ✅ feito   | —         |
+| Vida real C2: zonas sob demanda, mundo mais leve, qualidade automática, jogo offline     | ✅ feito   | —         |
 | Currículo 3: áudio gravado, rimas, vogais e sílabas (depende da gravação)                | ⏭️ próximo | —         |
 | Vida real 2: casa e mercado para andar, agenda do dia, fim dos portais, receita completa | ⏳ depois  | —         |
 | Vida real 3: ônibus de verdade, escola e fazenda caminháveis, histórias em figuras       | ⏳ depois  | —         |
@@ -226,7 +227,7 @@ Páginas: `https://poly.pizza/m/<id>`. Confirmar "Quaternius" e "CC0 1.0" antes 
 - **Testar no navegador:**
   - O usuário costuma deixar o próprio servidor na porta **5173**: não mexer nele e usar `pnpm exec vite --port 5180 --strictPort`.
   - Screenshots com puppeteer-core e o Chrome do sistema, com `--use-angle=metal --enable-gpu` (cerca de 30 FPS; o SwiftShader fica em 1 FPS).
-  - Atalhos só de dev no console: `window.lilo.goTo('market' | 'home' | 'bakery' | 'bus-stop')`, `window.lilo.use(id)`, `window.lilo.addPlayTime(min)`.
+  - Atalhos só de dev no console: `window.lilo.goTo('market' | 'home' | 'bakery' | 'bus-stop')`, `window.lilo.use(id)`, `window.lilo.addPlayTime(min)`, `window.lilo.stats()` (chamadas de desenho, memória, FPS e qualidade). `pnpm size` mostra o peso do build.
   - Subir servidor HTTP local é bloqueado; para páginas de teste fora do projeto, abrir via `file://` com `--allow-file-access-from-files`.
 - **Visual:** o padrão é alto, porque o público joga Minecraft e Goat Simulator. Toda mudança visual precisa ser conferida por screenshot.
 - **Princípios** (checklist em [CONTRIBUTING.md](CONTRIBUTING.md)):

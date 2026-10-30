@@ -4,23 +4,8 @@ import type { Interactable } from '@presentation/world/interactable';
 import { lowPoly, solid } from '@presentation/world/materials';
 import { createPostSign } from '@presentation/world/sign';
 import { fitHeight, type WorldAssets, type WorldModelId } from '@presentation/world/world-assets';
-
-/** A flat clearing in the west of the island where the Nature missions happen. */
-export const NATURE_CAMP = { x: -70, z: -15, radius: 15, height: 4.2 } as const;
-
-export const NaturePlace = {
-  farm: 'nature:farm',
-  garden: 'nature:garden',
-  recycling: 'nature:recycling',
-  back: 'camp:back',
-} as const;
-
-/** Where the child appears when coming through the Nature portal. */
-export const campArrival = new THREE.Vector3(
-  NATURE_CAMP.x + 9,
-  NATURE_CAMP.height,
-  NATURE_CAMP.z + 5,
-);
+import { NATURE_CAMP, NaturePlace } from '@presentation/world/zones/anchors';
+import type { Zone } from '@presentation/world/zones/zone';
 
 /** Activities stand in a row on the north side; their places are in front (south). */
 const ROW_Z = -7;
@@ -29,7 +14,7 @@ const PLACE_Z = -2.6;
 const binColors: readonly number[] = [0x2e86de, 0xe8433b, 0x3fae5a, 0xffc83d, 0x8a5a3b];
 
 /** The farm, the garden, the recycling bins, two tents, a campfire and the way back. */
-export class NatureCamp {
+export class NatureCamp implements Zone {
   readonly group = new THREE.Group();
   readonly colliders: Collider[] = [];
   readonly places: Interactable[] = [];

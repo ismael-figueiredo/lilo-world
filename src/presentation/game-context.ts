@@ -56,6 +56,8 @@ export interface GameContext {
   avatarPicture(avatarId: string): string;
   /** Runs `change` behind a short fade, e.g. to step into a building. */
   transition(change: () => void): Promise<void>;
+  /** Shows the loading screen while something takes longer than a blink. */
+  whileLoading<T>(work: Promise<T>): Promise<T>;
   /** Adds another character to the scene, e.g. the market's cashier. */
   createCharacter(avatarId: string): Promise<Player>;
 }

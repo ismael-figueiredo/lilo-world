@@ -1,13 +1,11 @@
 import * as THREE from 'three';
 import type { MissionChoice } from '@domain/mission/mission';
 import { lowPoly, solid } from '@presentation/world/materials';
+import type { Collider } from '@presentation/world/collision';
+import type { Interactable } from '@presentation/world/interactable';
+import { MARKET_INTERIOR } from '@presentation/world/market-position';
 import { createSign } from '@presentation/world/sign';
-
-/**
- * Inside the market. It stands far beyond the sea, where nothing else can be
- * seen, and the game moves the child here behind a fade.
- */
-export const MARKET_INTERIOR = { x: 0, z: 460 } as const;
+import type { Zone } from '@presentation/world/zones/zone';
 
 const ROOM = { width: 16, depth: 11, height: 6 } as const;
 const SHELF_Z = -ROOM.depth / 2 + 0.9;
@@ -53,8 +51,10 @@ function pictureTexture(picture: string): THREE.CanvasTexture {
 }
 
 /** Shelves with today's groceries, a shopping cart and the cashier's counter. */
-export class MarketInterior {
+export class MarketInterior implements Zone {
   readonly group = new THREE.Group();
+  readonly colliders: readonly Collider[] = [];
+  readonly places: readonly Interactable[] = [];
   private readonly items = new Map<string, Item>();
   private readonly flights: Flight[] = [];
   private inCart = 0;

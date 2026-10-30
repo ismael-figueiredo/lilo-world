@@ -2,16 +2,22 @@ import * as THREE from 'three';
 import type { TrafficPhase } from '@domain/city/traffic-light';
 import type { WorldMapEntry } from '@application/use-cases/get-world-map';
 import type { Random } from '@presentation/engine/math';
+import type { Quality } from '@presentation/engine/quality';
 import { CITY, City, isInsideCity, PLAYGROUND, SOUTH_DISTRICT } from '@presentation/world/city';
 import { isInsideAny, type Area, type Collider } from '@presentation/world/collision';
 import type { Interactable } from '@presentation/world/interactable';
 import { lowPoly } from '@presentation/world/materials';
 import { Nature } from '@presentation/world/nature';
-import { EMOTIONS_GARDEN, EmotionsGarden } from '@presentation/world/emotions-garden';
-import { HOME_AREA, HomeArea } from '@presentation/world/home-area';
-import { MARKET_INTERIOR, MarketInterior } from '@presentation/world/market-interior';
-import { NATURE_CAMP, NatureCamp } from '@presentation/world/nature-camp';
-import { SCHOOL_AREA, SchoolArea, SchoolPlace } from '@presentation/world/school-area';
+import type { MarketInterior } from '@presentation/world/market-interior';
+import {
+  EMOTIONS_GARDEN,
+  HOME_AREA,
+  NATURE_CAMP,
+  SCHOOL_AREA,
+  SchoolPlace,
+} from '@presentation/world/zones/anchors';
+import { zoneEntries, ZoneId } from '@presentation/world/zones/zone-entries';
+import { ZoneManager } from '@presentation/world/zones/zone-manager';
 import { PORTAL_PLAZA, Portals } from '@presentation/world/portals';
 import type { RoadSafety } from '@presentation/world/road-safety';
 import { Sky } from '@presentation/world/sky';
@@ -19,6 +25,8 @@ import { createTerrainMesh } from '@presentation/world/terrain-mesh';
 import { defaultTerrainOptions, TerrainShape } from '@presentation/world/terrain-shape';
 import { Water } from '@presentation/world/water';
 import type { WorldAssets } from '@presentation/world/world-assets';
+
+const shadowSizes: Readonly<Record<Quality, number>> = { high: 2048, medium: 1536, low: 1024 };
 
 /** Path of stones from the side street up to the portal hill. */
 const PATH = { fromZ: -CITY.radius + 2, toZ: PORTAL_PLAZA.z + PORTAL_PLAZA.radius - 2 } as const;
@@ -35,22 +43,15 @@ export class GameWorld {
 
   private readonly water = new Water();
   private readonly city: City;
-  private readonly camp: NatureCamp;
-  private readonly home: HomeArea;
-  private readonly school: SchoolArea;
-  private readonly emotions: EmotionsGarden;
-  /** Inside the market, far beyond the sea. */
-  readonly market: MarketInterior;
+  private readonly zones: ZoneManager;
+  /** Inside the market, far beyond the sea, once the child has been there. */
+  market: MarketInterior | undefined;
   private readonly portals = new Portals();
   private readonly nature: Nature;
   private readonly staticColliders: Collider[];
 
   constructor(scene: THREE.Scene, random: Random, assets: WorldAssets) {
     this.city = new City(assets);
-    this.camp = new NatureCamp(assets);
-    this.home = new HomeArea(assets);
-    this.school = new SchoolArea(assets);
-    this.emotions = new EmotionsGarden(assets);
     this.shape = new TerrainShape(random, {
       ...defaultTerrainOptions,
       flatAreas: [
@@ -64,19 +65,17 @@ export class GameWorld {
       ],
     });
     this.sky = new Sky(scene);
-    this.market = new MarketInterior(this.shape.heightAt(MARKET_INTERIOR.x, MARKET_INTERIOR.z));
+    this.zones = new ZoneManager(
+      zoneEntries,
+      scene,
+      { assets, heightAt: (x, z) => this.shape.heightAt(x, z) },
+      () => {
+        this.collectZones();
+      },
+    );
 
     scene.add(createTerrainMesh(this.shape, random));
-    scene.add(
-      this.water.mesh,
-      this.city.group,
-      this.portals.group,
-      this.camp.group,
-      this.home.group,
-      this.school.group,
-      this.emotions.group,
-      this.market.group,
-    );
+    scene.add(this.water.mesh, this.city.group, this.portals.group);
     this.addPath(scene);
 
     this.nature = new Nature(this.shape, random, assets, {
@@ -90,22 +89,29 @@ export class GameWorld {
         (Math.abs(x) < 5 && z < PATH.fromZ + 4 && z > PATH.toZ - 4),
     });
     scene.add(this.nature.group);
-    this.staticColliders = [
-      ...this.city.colliders,
-      ...this.camp.colliders,
-      ...this.home.colliders,
-      ...this.school.colliders,
-      ...this.emotions.colliders,
-      ...this.nature.colliders,
-    ];
-    this.colliders = this.staticColliders;
-    this.places = [
-      ...this.city.places,
-      ...this.camp.places,
-      ...this.home.places,
-      ...this.school.places,
-      ...this.emotions.places,
-    ];
+    this.staticColliders = [...this.city.colliders, ...this.nature.colliders];
+    this.collectZones();
+  }
+
+  /** The island's zones, downloaded while the child is on the start screen. */
+  prepareIsland(): Promise<void> {
+    return this.zones.prepareIsland();
+  }
+
+  async prepareMarket(): Promise<MarketInterior> {
+    const market = (await this.zones.prepare(ZoneId.market)) as MarketInterior;
+    this.market = market;
+    return market;
+  }
+
+  /** Draws every zone for a moment, for the picture of the map. */
+  showAllZones(show: boolean): void {
+    this.zones.showAll(show);
+  }
+
+  private collectZones(): void {
+    this.colliders = [...this.staticColliders, ...this.portals.colliders, ...this.zones.colliders];
+    this.places = [...this.city.places, ...this.zones.places, ...this.portals.places];
   }
 
   get roadSafety(): RoadSafety {
@@ -138,11 +144,16 @@ export class GameWorld {
   /** Solid things that were added after the world was built. */
   addColliders(colliders: readonly Collider[]): void {
     this.staticColliders.push(...colliders);
-    this.colliders = [...this.colliders, ...colliders];
+    this.collectZones();
   }
 
   setMotionScale(scale: number): void {
     this.water.motionScale = scale;
+  }
+
+  setQuality(quality: Quality): void {
+    this.nature.setDetailed(quality !== 'low');
+    this.sky.setShadowSize(shadowSizes[quality]);
   }
 
   setCloudsVisible(visible: boolean): void {
@@ -151,23 +162,13 @@ export class GameWorld {
 
   showWorlds(entries: readonly WorldMapEntry[]): void {
     this.portals.show(entries);
-    this.colliders = [...this.staticColliders, ...this.portals.colliders];
-    this.places = [
-      ...this.city.places,
-      ...this.camp.places,
-      ...this.home.places,
-      ...this.school.places,
-      ...this.emotions.places,
-      ...this.portals.places,
-    ];
+    this.collectZones();
   }
 
   update(time: number, dt: number, focus: THREE.Vector3): void {
     this.water.update(time);
     this.city.update(time);
-    this.camp.update(time);
-    this.emotions.update(time);
-    this.market.update(time, dt);
+    this.zones.update(time, dt, focus);
     this.portals.update(time);
     this.nature.update(dt);
     this.sky.follow(focus);

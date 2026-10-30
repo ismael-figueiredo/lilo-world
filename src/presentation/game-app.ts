@@ -19,9 +19,10 @@ import { WardrobeController } from '@presentation/controllers/wardrobe-controlle
 import { CameraRig } from '@presentation/engine/camera-rig';
 import { GamepadReader, padIsActive } from '@presentation/engine/gamepad';
 import { gameKey, Input, isTyping } from '@presentation/engine/input';
+import { QualityGovernor, type Quality } from '@presentation/engine/quality';
 import { seededRandom } from '@presentation/engine/math';
 import { cameraRelative } from '@presentation/engine/movement';
-import { createRenderer, fitToContainer } from '@presentation/engine/renderer';
+import { createRenderer, fitToContainer, pixelRatioFor } from '@presentation/engine/renderer';
 import type { GameContext, Mode, PanelMode } from '@presentation/game-context';
 import { Controls } from '@presentation/ui/controls';
 import { Dialog } from '@presentation/ui/dialog';
@@ -30,6 +31,7 @@ import { Hud } from '@presentation/ui/hud';
 import { Minimap } from '@presentation/ui/minimap';
 import type { Gesture } from '@presentation/ui/controls';
 import { CalmPause } from '@presentation/ui/calm-pause';
+import { LoadingScreen } from '@presentation/ui/loading-screen';
 import { PadFocus } from '@presentation/ui/pad-focus';
 import {
   colliderOf,
@@ -47,10 +49,16 @@ import { GameWorld } from '@presentation/world/game-world';
 import { GoalMarker } from '@presentation/world/goal-marker';
 import type { Interactable } from '@presentation/world/interactable';
 import { captureMap } from '@presentation/world/map-snapshot';
-import { emotionsArrival, EmotionsPlace } from '@presentation/world/emotions-garden';
-import { homeArrival, HomePlace } from '@presentation/world/home-area';
-import { campArrival, NaturePlace } from '@presentation/world/nature-camp';
-import { schoolArrival, SchoolPlace } from '@presentation/world/school-area';
+import {
+  campArrival,
+  emotionsArrival,
+  EmotionsPlace,
+  homeArrival,
+  HomePlace,
+  NaturePlace,
+  schoolArrival,
+  SchoolPlace,
+} from '@presentation/world/zones/anchors';
 import { PORTAL_PLAZA, portalId } from '@presentation/world/portals';
 import type { RoadEvent } from '@presentation/world/road-safety';
 import { skillOfStation } from '@presentation/world/stations';
@@ -71,6 +79,8 @@ const ROAD_WARNING_GAP = 6;
 /** Seconds between greetings: one wave at a time, even if the button is pressed again. */
 const GREET_GAP = 2.5;
 const still = { x: 0, z: 0 };
+/** How fast the number shown in the dev stats follows each frame. */
+const FPS_SMOOTHING = 0.05;
 const cameraSpeeds = { low: 0.55, normal: 1, high: 1.6 } as const;
 
 /**
@@ -142,6 +152,9 @@ export class GameApp implements GameContext {
   private returningToSidewalk = false;
   private lastRoadWarning = -Infinity;
   private lastGreeting = -Infinity;
+  private readonly governor = new QualityGovernor();
+  private readonly loading = new LoadingScreen();
+  private fps = 60;
   private people: readonly Person[] = [];
 
   constructor(
@@ -392,7 +405,9 @@ export class GameApp implements GameContext {
         fitToContainer(renderer, this.camera, this.root);
       });
 
-      const assets = await WorldAssets.load(this.options.baseUrl);
+      const assets = await WorldAssets.load(this.options.baseUrl, (done) => {
+        this.loading.setProgress(done);
+      });
       const world = new GameWorld(this.scene, seededRandom(this.options.seed ?? 20261028), assets);
       this.gameWorld = world;
       const player = await this.avatars.create(DEFAULT_AVATAR_ID);
@@ -409,6 +424,7 @@ export class GameApp implements GameContext {
       this.cameraRig.yaw = world.spawnYaw;
       this.cameraRig.snapTo(player.position);
       void this.addNeighbors(world);
+      void world.prepareIsland();
       this.input = new Input(renderer.domElement);
       this.enterPanel('menu');
       this.currentMode = 'profiles';
@@ -418,6 +434,7 @@ export class GameApp implements GameContext {
         this.frame(time);
       });
       this.listenToPage();
+      this.loading.hide();
       if (import.meta.env.DEV) this.exposeDevTools();
 
       this.profileScreen.setAvatars(await this.services.listAvatars.execute(), (id) =>
@@ -426,6 +443,7 @@ export class GameApp implements GameContext {
       this.profileScreen.show(await this.services.listProfiles.execute());
     } catch (error) {
       console.error(error);
+      this.loading.hide();
       this.profileScreen.setLoading('Não foi possível abrir o jogo. Tente recarregar a página.');
     }
   }
@@ -484,6 +502,8 @@ export class GameApp implements GameContext {
     await this.refresh();
 
     // The start screen still covers the game, so this extra frame is never seen.
+    await this.whileLoading(world.prepareIsland());
+    world.showAllZones(true);
     const picture = captureMap(
       renderer,
       this.scene,
@@ -492,6 +512,7 @@ export class GameApp implements GameContext {
         world.setCloudsVisible(visible);
       },
     );
+    world.showAllZones(false);
     this.menus.map.setPicture(picture);
     this.minimap.setPicture(picture);
 
@@ -531,6 +552,9 @@ export class GameApp implements GameContext {
     const dt = Math.min(0.05, this.lastTime === 0 ? 0 : (timeMs - this.lastTime) / 1000);
     this.lastTime = timeMs;
     this.elapsed += dt;
+    if (dt > 0) this.fps += (1 / dt - this.fps) * FPS_SMOOTHING;
+    const quality = this.governor.sample(dt);
+    if (quality !== undefined) this.applyQuality(quality, renderer, world);
 
     const exploring = this.currentMode === 'explore';
     this.pollGamepad(dt, input, exploring);
@@ -679,6 +703,11 @@ export class GameApp implements GameContext {
     await this.playerServices.rewardSafeTrip.execute();
     this.sound('coin');
     await this.refresh();
+  }
+
+  private applyQuality(quality: Quality, renderer: THREE.WebGLRenderer, world: GameWorld): void {
+    renderer.setPixelRatio(pixelRatioFor(quality));
+    world.setQuality(quality);
   }
 
   /** ▢: greets who is close. On a playground with nobody around, jumps. */
@@ -852,6 +881,10 @@ export class GameApp implements GameContext {
   }
 
   /** Another character in the scene (the cashier, for example). */
+  whileLoading<T>(work: Promise<T>): Promise<T> {
+    return this.loading.during(work);
+  }
+
   async createCharacter(avatarId: string): Promise<Player> {
     const character = await this.avatars.create(avatarId);
     this.scene.add(character.root);
@@ -1014,6 +1047,10 @@ export class GameApp implements GameContext {
         use: (placeId: string) => {
           const place = this.gameWorld?.places.find((p) => p.id === placeId);
           if (place !== undefined) void this.use(place);
+        },
+        stats: () => {
+          const { render, memory } = this.renderer?.info ?? { render: {}, memory: {} };
+          return { ...render, ...memory, quality: this.governor.quality, fps: this.fps };
         },
         addPlayTime: (minutes: number) => {
           this.playedMs += minutes * 60_000;

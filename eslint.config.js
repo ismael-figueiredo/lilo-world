@@ -24,7 +24,7 @@ const allowTo = (...types) => ({
 });
 
 export default defineConfig(
-  { ignores: ['dist', 'coverage', 'node_modules'] },
+  { ignores: ['dist', 'coverage', 'node_modules', 'public/sw.js'] },
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,

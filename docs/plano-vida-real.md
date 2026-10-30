@@ -86,15 +86,15 @@ flowchart LR
 
 ### Metas de desempenho
 
-Referência: tablet comum. Valores a calibrar na tarefa C2.1.
+Referência: tablet comum. Medido em 30/10/2026, antes e depois da C2: chamadas de desenho de 795 para 422, triângulos na cena de 2,95 para 1,43 milhão, JS inicial de 248 para 238 kB, com a vegetação como maior custo. Falta medir em tablet real.
 
-| Medida                  | Meta                                             |
-| ----------------------- | ------------------------------------------------ |
-| Até a casa aparecer     | Até 3 s em Wi-Fi comum                           |
-| Download antes de jogar | Até 2 MB, com JS inicial até 300 kB comprimido   |
-| Cada zona nova          | Até 1,5 MB, com cache depois da primeira visita  |
-| Na tela, por zona       | Até 150 chamadas de desenho e 300 mil triângulos |
-| Quadros por segundo     | 30 ou mais, com qualidade automática             |
+| Medida                  | Meta                                                                                                  |
+| ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| Até a casa aparecer     | Até 3 s em Wi-Fi comum                                                                                |
+| Download antes de jogar | Até 2 MB, com JS inicial até 300 kB comprimido                                                        |
+| Cada zona nova          | Até 1,5 MB, com cache depois da primeira visita                                                       |
+| Na tela, por zona       | Até 150 chamadas de desenho e 300 mil triângulos em zonas novas; a rua hoje está em 422 e 1,43 milhão |
+| Quadros por segundo     | 30 ou mais, com qualidade automática                                                                  |
 
 ## 5. Camadas e tarefas
 
@@ -142,14 +142,14 @@ Objetivo: uma criança joga sem pensar nos botões.
 
 Objetivo: o jogo cresce sem pesar.
 
-- [ ] **C2.1 Medição.** Painel de dev com FPS, chamadas de desenho, triângulos e memória, além de script de tamanho do build. Pronto: números atuais anotados e metas calibradas.
-- [ ] **C2.2 `ZoneManager`.** Montar, atualizar, descartar (geometria, material e textura) e trocar zona atrás do fade. Pronto: dez trocas seguidas sem crescer a memória.
-- [ ] **C2.3 Carga por zona.** `WorldAssets` passa a pedir só o manifesto da zona. Pronto: abrir a casa baixa apenas os modelos da casa.
-- [ ] **C2.4 Código dividido.** `import()` dinâmico por zona. Pronto: JS inicial dentro da meta.
-- [ ] **C2.5 Migrar a rua.** Cidade e ilha viram zona `rua`, com natureza fora da área jogável reduzida. Pronto: mesmo jogo com menos da metade dos triângulos.
-- [ ] **C2.6 Tela de carregamento.** Barra simples com Lilo, mesma para todas as zonas. Pronto: nunca há tela preta sem aviso.
-- [ ] **C2.7 Qualidade automática.** Sombras, densidade e resolução ajustadas pelo FPS. Pronto: mantém 30 FPS ou mais no tablet de referência.
-- [ ] **C2.8 Cache offline.** Service worker com arquivos versionados. Pronto: segunda visita abre sem rede.
+- [x] **C2.1 Medição.** Painel de dev com FPS, chamadas de desenho, triângulos e memória, além de script de tamanho do build. Pronto: números atuais anotados e metas calibradas.
+- [x] **C2.2 `ZoneManager`.** Montar, atualizar, descartar (geometria, material e textura) e trocar zona atrás do fade. Pronto: dez trocas seguidas sem crescer a memória.
+- [x] **C2.3 Carga por zona.** `WorldAssets` passa a pedir só o manifesto da zona. Pronto: abrir a casa baixa apenas os modelos da casa.
+- [x] **C2.4 Código dividido.** `import()` dinâmico por zona. Pronto: JS inicial dentro da meta.
+- [x] **C2.5 Aliviar a rua.** Natureza reduzida e peças fixas da cidade unidas. Pronto: 1,43 milhão de triângulos, menos da metade dos 2,95 milhões de antes. A rua ainda carrega no início: virar zona fica na C4.14.
+- [x] **C2.6 Tela de carregamento.** Barra simples com Lilo, mesma para todas as zonas. Pronto: nunca há tela preta sem aviso.
+- [x] **C2.7 Qualidade automática.** Sombras, densidade e resolução ajustadas pelo FPS. Pronto: mantém 30 FPS ou mais no tablet de referência.
+- [x] **C2.8 Cache offline.** Service worker com arquivos versionados. Pronto: segunda visita abre sem rede.
 
 ### C3. Personagem e pessoas
 
@@ -182,6 +182,7 @@ Objetivo: primeira experiência nova e completa.
 - [ ] **C4.11 Fim dos portais.** Remover portais, estrelas de bloqueio e mundos no mapa, mantendo os saves. Pronto: nada travado por estrelas e teste de migração.
 - [ ] **C4.12 Bloco como sessão.** Ao fim de um bloco, parada natural e salvamento. Pronto: limite de 10 minutos nunca corta uma ação no meio.
 - [ ] **C4.13 Primeira execução.** Criar criança → acordar → aprender andar e ✕ dentro de casa. Pronto: criança nova chega à mesa sem ajuda de texto.
+- [ ] **C4.14 Rua sob demanda.** Ilha e cidade viram zona, e o jogo abre só com a casa. Pronto: a casa aparece sem baixar os modelos da rua.
 
 ### C5. Hora, clima e roupa
 

@@ -24,6 +24,7 @@ import {
   type Road,
 } from '@presentation/world/street-plan';
 import type { CrosswalkZone } from '@presentation/world/crosswalk';
+import { mergeStatic } from '@presentation/world/merge-static';
 import { createPostSign, createSign } from '@presentation/world/sign';
 import { LearningStations } from '@presentation/world/stations';
 import {
@@ -146,6 +147,11 @@ export class City {
     this.group.add(this.stations.group);
     this.colliders.push(...this.stations.colliders);
     this.places.push(...this.stations.places);
+    mergeStatic(this.group, [
+      this.stations.group,
+      ...this.trafficLights.map((light) => light.group),
+      ...(this.fountainWater === undefined ? [] : [this.fountainWater]),
+    ]);
   }
 
   /** The shared traffic light cycle right now. */
