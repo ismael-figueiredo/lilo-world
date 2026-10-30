@@ -20,6 +20,8 @@ export interface MissionChoice {
 export interface MissionStep {
   readonly targetId: string;
   readonly prompt: string;
+  /** Other right answers: when the child chooses (any snack is a good request). */
+  readonly accepts?: readonly string[];
   /** Shown big above the cards while this step is asked (a sound "Muuu!", a thing to sort). */
   readonly show?: string;
 }

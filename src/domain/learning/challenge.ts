@@ -16,7 +16,7 @@ export interface Word {
 
 export interface ChallengeOption {
   readonly id: string;
-  /** Read aloud and shown under the picture. */
+  /** For screen readers and said after answering; never shown, or it would give the answer. */
   readonly label: string;
   /** Big content of the card: a letter, a number, a picture or coins. */
   readonly face: string;
@@ -32,6 +32,8 @@ export interface Challenge {
   readonly show: string;
   readonly options: readonly ChallengeOption[];
   readonly answerId: string;
+  /** Said when the answer is shown after a mistake: it teaches, it does not scold. */
+  readonly explanation: string;
   /** A letter the child collects for the alphabet album when this is solved. */
   readonly letter?: string;
 }
@@ -52,6 +54,10 @@ const SHOP_ITEMS: readonly Word[] = [
 
 /** First letter without accent marks: ÁRVORE starts with A. */
 export const firstLetter = (text: string): string => text.normalize('NFD').charAt(0).toUpperCase();
+
+/** Groups of five, which are easy to see and count (as on a hand). */
+const grouped = (picture: string, count: number): string =>
+  count > 5 ? `${picture.repeat(5)} ${picture.repeat(count - 5)}` : picture.repeat(count);
 
 const numberOption = (value: number, face = String(value)): ChallengeOption => ({
   id: String(value),
@@ -96,10 +102,12 @@ function letterChallenge(random: Random, level: number, words: readonly Word[]):
     return {
       skill: 'letters',
       level,
-      question: `Qual figura é ${word.text.toLowerCase()}?`,
+      // The child reads: saying the word aloud would turn this into a listening exercise.
+      question: 'Leia a palavra. Qual é a figura?',
       show: word.text,
       options,
       answerId: word.text,
+      explanation: `Esta é a figura de ${word.text.toLowerCase()}.`,
       letter,
     };
   }
@@ -114,9 +122,11 @@ function letterChallenge(random: Random, level: number, words: readonly Word[]):
     skill: 'letters',
     level,
     question: `Com qual letra começa ${word.text.toLowerCase()}?`,
-    show: `${word.pictogram} ${word.text}`,
+    // Only the picture: the written word would show the answer.
+    show: word.pictogram,
     options,
     answerId: letter,
+    explanation: `${word.text.toLowerCase()} começa com a letra ${letter}.`,
     letter,
   };
 }
@@ -135,6 +145,7 @@ function numberChallenge(random: Random, level: number): Challenge {
       show: `${thing.repeat(a)} ➕ ${thing.repeat(b)}`,
       options: withDistractors(random, answer, 3, 2, 10).map((v) => numberOption(v)),
       answerId: String(answer),
+      explanation: `${a} mais ${b} é igual a ${answer}.`,
     };
   }
   const max = level === 1 ? 5 : 10;
@@ -144,9 +155,10 @@ function numberChallenge(random: Random, level: number): Challenge {
     skill: 'numbers',
     level,
     question: 'Quantos tem? Conte comigo.',
-    show: thing.repeat(answer),
+    show: grouped(thing, answer),
     options: withDistractors(random, answer, 3, 1, max).map((v) => numberOption(v)),
     answerId: String(answer),
+    explanation: `Aqui tem ${answer}.`,
   };
 }
 
@@ -159,8 +171,11 @@ function coinChallenge(random: Random, level: number): Challenge {
     level,
     question: `${item.text.charAt(0)}${item.text.slice(1).toLowerCase()} custa ${price} ${price === 1 ? 'moeda' : 'moedas'}. Quantas moedas você dá?`,
     show: `${item.pictogram} = ${price} 🪙`,
-    options: withDistractors(random, price, 3, 1, max).map((v) => numberOption(v, '🪙'.repeat(v))),
+    options: withDistractors(random, price, 3, 1, max).map((v) =>
+      numberOption(v, grouped('🪙', v)),
+    ),
     answerId: String(price),
+    explanation: `São ${price} ${price === 1 ? 'moeda' : 'moedas'}.`,
   };
 }
 

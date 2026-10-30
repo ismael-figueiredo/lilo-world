@@ -14,10 +14,15 @@ export class LearningController {
   readonly panel: ChallengePanel;
   private session: ChallengeSession | undefined;
   private busy = false;
+  private skill: Skill | undefined;
+  private roundCoins = 0;
 
   constructor(private readonly ctx: GameContext) {
     this.panel = new ChallengePanel({
       onChoose: (optionId) => void this.choose(optionId),
+      onAgain: () => {
+        if (this.skill !== undefined) void this.open(this.skill);
+      },
       onExit: () => {
         this.exit();
       },
@@ -26,6 +31,8 @@ export class LearningController {
 
   async open(skill: Skill): Promise<void> {
     this.session = await this.ctx.player.startChallenge.execute(skill);
+    this.skill = skill;
+    this.roundCoins = 0;
     this.ctx.enterPanel('learning');
     const place = this.ctx.world.places.find((p) => p.id === stationId(skill));
     if (place !== undefined) {
@@ -61,27 +68,35 @@ export class LearningController {
       const result = await this.ctx.player.answerChallenge.execute(current, optionId);
       this.session = result.session;
       const { outcome } = result;
-      if (outcome.kind === 'hint') {
+      if (outcome.kind === 'model') {
         this.ctx.sound('hint');
-        this.panel.showHint(current.challenge.answerId, outcome.hintLevel);
-        this.ctx.dialog.say(`${challengePhrases.hint} ${current.challenge.question}`);
+        this.panel.showAnswer(outcome.answerId);
+        this.ctx.dialog.say(current.challenge.explanation);
         return;
       }
 
-      const leveledUp = outcome.reachedLevel !== undefined;
-      this.ctx.sound(result.reward.stars > 0 ? 'star' : 'correct');
-      const praise = leveledUp
-        ? `${challengePhrases.levelUp} ⭐`
-        : result.sticker !== undefined
+      this.roundCoins += result.reward.coins;
+      const firstTry = outcome.kind === 'correct';
+      this.ctx.sound(result.reward.stars > 0 ? 'star' : firstTry ? 'correct' : 'tap');
+      const praise =
+        result.sticker !== undefined
           ? challengePhrases.sticker
-          : `${challengePhrases.correct} 🪙 +${result.reward.coins}`;
+          : firstTry
+            ? `${challengePhrases.correct} 🪙 +${result.reward.coins}`
+            : challengePhrases.practiced;
       this.panel.celebrate(praise, result.sticker);
-      this.ctx.avatar.playEmote(leveledUp ? 'Dance' : 'Yes');
+      if (firstTry) this.ctx.avatar.playEmote('Yes');
       await this.ctx.refresh();
 
       await new Promise((resolve) => window.setTimeout(resolve, NEXT_QUESTION_MS));
       if (this.session !== result.session) return;
       this.panel.hideToast();
+      if (outcome.summary !== undefined) {
+        this.panel.showResult(outcome.summary, this.roundCoins);
+        if (outcome.summary.reachedLevel !== undefined) this.ctx.avatar.playEmote('Dance');
+        this.ctx.dialog.say(`Você acertou ${outcome.summary.score} de ${outcome.summary.total}.`);
+        return;
+      }
       this.panel.render(result.session);
       this.ctx.dialog.say(result.session.challenge.question);
     } finally {

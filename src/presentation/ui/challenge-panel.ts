@@ -1,20 +1,21 @@
 import type { Challenge, ChallengeOption } from '@domain/learning/challenge';
 import { MAX_LEVEL } from '@domain/learning/challenge';
-import type { HintLevel } from '@domain/mission/mission-attempt';
 import type { ChallengeSession } from '@domain/learning/challenge-session';
-import { STREAK_TO_LEVEL_UP } from '@domain/learning/challenge-session';
+import { ROUND_LENGTH, type RoundSummary } from '@domain/learning/challenge-session';
 import type { Sticker } from '@domain/stickers/sticker';
 import { h, replayAnimation } from '@presentation/ui/dom';
 import type { StationLook } from '@presentation/world/stations';
 
 export interface ChallengePanelCallbacks {
   onChoose(optionId: string): void;
+  onAgain(): void;
   onExit(): void;
 }
 
 /**
- * A learning station: one big question and a few big cards. Dots show the
- * level and how many right answers are left to go up; nothing ever counts down.
+ * A learning station: one big question and a few big cards, in rounds that
+ * always end. Dots show how far the round has come. Cards carry no words: a
+ * label under the picture would give the answer away.
  */
 export class ChallengePanel {
   readonly element: HTMLElement;
@@ -29,6 +30,8 @@ export class ChallengePanel {
   private readonly options = h('div', { className: 'mission__shelf challenge__options' });
   private readonly toast = h('div', { className: 'challenge__toast' });
   private readonly tiles = new Map<string, HTMLButtonElement>();
+  private readonly board = h('div', { className: 'challenge__board' }, [this.show, this.question]);
+  private readonly result = h('div', { className: 'challenge__result is-hidden' });
 
   constructor(private readonly callbacks: ChallengePanelCallbacks) {
     const exit = h('button', {
@@ -50,8 +53,9 @@ export class ChallengePanel {
             this.levelDots,
             this.streakDots,
           ]),
-          h('div', { className: 'challenge__board' }, [this.show, this.question]),
+          this.board,
           this.options,
+          this.result,
           this.toast,
         ]),
       ],
@@ -63,6 +67,9 @@ export class ChallengePanel {
     this.element.style.setProperty('--station', look.color);
     this.title.textContent = `${look.icon} ${look.name}`;
     this.toast.classList.remove('is-visible');
+    this.result.classList.add('is-hidden');
+    this.board.classList.remove('is-hidden');
+    this.options.classList.remove('is-hidden');
     this.render(session);
     this.element.classList.add('is-visible');
   }
@@ -74,19 +81,10 @@ export class ChallengePanel {
   /** Shows the session's current challenge (a new one after a right answer). */
   render(session: ChallengeSession): void {
     const { challenge } = session;
-    this.levelDots.replaceChildren(
-      ...Array.from({ length: MAX_LEVEL }, (_, index) =>
-        h('span', {
-          className: `challenge__dot${index < session.level ? ' is-on' : ''}`,
-          text: '⭐',
-        }),
-      ),
-    );
-    this.levelDots.setAttribute('aria-label', `Nível ${session.level}`);
-    this.streakDots.classList.toggle('is-hidden', session.isAtTop);
+    this.paintLevel(session.level);
     this.streakDots.replaceChildren(
-      ...Array.from({ length: STREAK_TO_LEVEL_UP }, (_, index) =>
-        h('span', { className: `challenge__step${index < session.streak ? ' is-on' : ''}` }),
+      ...Array.from({ length: ROUND_LENGTH }, (_, index) =>
+        h('span', { className: `challenge__step${index < session.asked ? ' is-on' : ''}` }),
       ),
     );
     this.show.textContent = challenge.show;
@@ -99,12 +97,65 @@ export class ChallengePanel {
     replayAnimation(this.options, 'is-new');
   }
 
-  showHint(answerId: string, level: HintLevel): void {
-    for (const tile of this.tiles.values()) tile.classList.remove('is-hinted', 'is-pointed');
-    const tile = this.tiles.get(answerId);
-    if (tile === undefined) return;
-    tile.classList.add('is-hinted');
-    if (level >= 2) tile.classList.add('is-pointed');
+  private paintLevel(level: number): void {
+    this.levelDots.replaceChildren(
+      ...Array.from({ length: MAX_LEVEL }, (_, index) =>
+        h('span', { className: `challenge__dot${index < level ? ' is-on' : ''}`, text: '⭐' }),
+      ),
+    );
+    this.levelDots.setAttribute('aria-label', `Nível ${level}`);
+  }
+
+  /** Not this card: only the right one stays active, with an arrow. */
+  showAnswer(answerId: string): void {
+    for (const [id, tile] of this.tiles) {
+      const right = id === answerId;
+      tile.disabled = !right;
+      tile.classList.toggle('is-dimmed', !right);
+      tile.classList.toggle('is-hinted', right);
+      tile.classList.toggle('is-pointed', right);
+    }
+  }
+
+  /** The end of a round: how it went, and the choice to go on or stop. */
+  showResult(summary: RoundSummary, coins: number): void {
+    this.board.classList.add('is-hidden');
+    this.options.classList.add('is-hidden');
+    this.toast.classList.remove('is-visible');
+    if (summary.reachedLevel !== undefined) this.paintLevel(summary.reachedLevel);
+    const stars = Array.from({ length: summary.total }, (_, index) =>
+      h('span', {
+        className: `challenge__dot${index < summary.score ? ' is-on' : ''}`,
+        text: '⭐',
+      }),
+    );
+    this.result.replaceChildren(
+      h('p', { className: 'challenge__result-title', text: resultTitle(summary) }),
+      h('div', { className: 'challenge__result-stars' }, stars),
+      h('p', {
+        className: 'challenge__result-score',
+        text: `${summary.score} de ${summary.total}   🪙 +${coins}`,
+      }),
+      h('div', { className: 'celebration__actions' }, [
+        h('button', {
+          className: 'big-button big-button--green',
+          text: '🔁 Mais uma rodada',
+          attrs: { type: 'button' },
+          onTap: () => {
+            this.callbacks.onAgain();
+          },
+        }),
+        h('button', {
+          className: 'big-button',
+          text: '🌍 Sair',
+          attrs: { type: 'button' },
+          onTap: () => {
+            this.callbacks.onExit();
+          },
+        }),
+      ]),
+    );
+    this.result.classList.remove('is-hidden');
   }
 
   /** A short, happy note: right answer, new level or a new sticker. */
@@ -126,7 +177,6 @@ export class ChallengePanel {
   }
 
   private createTile(challenge: Challenge, option: ChallengeOption): HTMLButtonElement {
-    const showLabel = option.label.toUpperCase() !== option.face.toUpperCase();
     const tile = h(
       'button',
       {
@@ -137,12 +187,14 @@ export class ChallengePanel {
           this.callbacks.onChoose(option.id);
         },
       },
-      [
-        h('span', { className: 'pictogram pictogram--big challenge__face', text: option.face }),
-        showLabel ? h('span', { className: 'tile__label', text: option.label }) : null,
-      ],
+      [h('span', { className: 'pictogram pictogram--big challenge__face', text: option.face })],
     );
     this.tiles.set(option.id, tile);
     return tile;
   }
 }
+
+const resultTitle = (summary: RoundSummary): string => {
+  if (summary.reachedLevel !== undefined) return '🎉 Você subiu de nível!';
+  return summary.score >= summary.total - 1 ? '🎉 Muito bem!' : '🌱 Você está aprendendo!';
+};

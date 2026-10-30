@@ -19,7 +19,7 @@ export const challengePhrases = {
   correct: 'Isso!',
   levelUp: 'Você subiu de nível!',
   sticker: 'Ganhou uma figurinha!',
-  hint: 'Vamos tentar de novo.',
+  practiced: 'Agora você viu como é.',
 } as const;
 
 export class AnswerChallenge {
@@ -34,28 +34,31 @@ export class AnswerChallenge {
     const words = await this.catalog.listWords();
     const { session, outcome } = current.answer(optionId, this.random, words);
 
-    if (outcome.kind === 'hint') {
-      void this.speech.speak(`${challengePhrases.hint} ${current.challenge.question}`);
+    if (outcome.kind === 'model') {
+      void this.speech.speak(current.challenge.explanation);
       return { session, outcome, reward: { coins: 0, stars: 0 } };
     }
 
+    const reachedLevel = outcome.summary?.reachedLevel;
     const saved = await this.progress.load();
     const { progress, reward, sticker } = saved.recordChallenge(current.skill, {
       correct: true,
-      ...(outcome.reachedLevel === undefined ? {} : { reachedLevel: outcome.reachedLevel }),
+      practice: outcome.kind === 'practiced',
+      ...(reachedLevel === undefined ? {} : { reachedLevel }),
       ...(outcome.letter === undefined ? {} : { letter: outcome.letter }),
     });
     await this.progress.save(progress);
 
     const earned = albumStickers.find((s) => s.id === sticker);
     const praise = [
-      challengePhrases.correct,
-      outcome.reachedLevel === undefined ? '' : challengePhrases.levelUp,
+      outcome.kind === 'correct' ? challengePhrases.correct : challengePhrases.practiced,
+      reachedLevel === undefined ? '' : challengePhrases.levelUp,
       earned === undefined ? '' : challengePhrases.sticker,
     ]
       .filter(Boolean)
       .join(' ');
-    void this.speech.speak(`${praise} ${session.challenge.question}`);
+    const next = outcome.summary === undefined ? ` ${session.challenge.question}` : '';
+    void this.speech.speak(`${praise}${next}`);
     return earned === undefined
       ? { session, outcome, reward }
       : { session, outcome, reward, sticker: earned };

@@ -44,6 +44,8 @@ export interface ChallengeRecord {
   readonly reachedLevel?: number;
   /** A letter learned with this answer (first-letter challenges). */
   readonly letter?: string;
+  /** Pressed after being shown the answer: no coin, but a new level still counts. */
+  readonly practice?: boolean;
 }
 
 /** The result of one play of a mission. */
@@ -155,9 +157,9 @@ export class PlayerProgress {
   }
 
   /**
-   * One answer at a learning station. Every right answer gives a coin. The
-   * first right answer of a skill and every new level give a sticker and a
-   * star (once each). Wrong answers change nothing: they only bring a hint.
+   * One answer at a learning station. Every first-try answer gives a coin.
+   * The first right answer of a skill and every new level give a sticker and a
+   * star (once each). Wrong answers change nothing.
    */
   recordChallenge(
     skill: Skill,
@@ -170,8 +172,12 @@ export class PlayerProgress {
       MAX_LEVEL,
     );
     const candidate = stickerId(skill, record.reachedLevel === undefined ? 1 : level);
-    const sticker = this.hasSticker(candidate) ? undefined : candidate;
-    const reward: Reward = { coins: 1, stars: sticker === undefined ? 0 : 1 };
+    const practiceOnly = record.practice === true && record.reachedLevel === undefined;
+    const sticker = practiceOnly || this.hasSticker(candidate) ? undefined : candidate;
+    const reward: Reward = {
+      coins: record.practice === true ? 0 : 1,
+      stars: sticker === undefined ? 0 : 1,
+    };
     const earned = Coins.of(reward.coins);
     const letter = record.letter?.toUpperCase();
     const progress = this.with({

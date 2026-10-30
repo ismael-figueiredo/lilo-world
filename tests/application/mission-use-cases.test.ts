@@ -39,10 +39,10 @@ describe('mission use cases', () => {
     if (!result.ok) expect(result.error.code).toBe('not-found');
   });
 
-  it('repeats the instruction kindly after a mistake', async () => {
+  it('shows and says the answer kindly after a mistake', async () => {
     const result = await chooseAnswer.execute(await start(), 'bread');
-    expect(result.ok && result.value.outcome.kind).toBe('hint');
-    expect(speech.spoken.at(-1)).toBe(`${phrases.hint} Pegue a maçã.`);
+    expect(result.ok && result.value.outcome.kind).toBe('model');
+    expect(speech.spoken.at(-1)).toBe(`${phrases.model} maçã.`);
   });
 
   it('praises and gives the next instruction after a correct choice', async () => {

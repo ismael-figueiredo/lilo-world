@@ -1,6 +1,7 @@
 import type { Clock } from '@application/ports/clock';
 import type { ProgressRepository } from '@application/ports/progress-repository';
 import type { Speech } from '@application/ports/speech';
+import type { MissionStep } from '@domain/mission/mission';
 import type { AttemptOutcome, MissionAttempt } from '@domain/mission/mission-attempt';
 import type { Reward } from '@domain/reward/reward';
 import { ok, type Result } from '@domain/shared/result';
@@ -16,8 +17,22 @@ export interface ChooseMissionAnswerResult {
 export const phrases = {
   correct: 'Isso!',
   completed: 'Você conseguiu! Muito bem!',
-  hint: 'Vamos tentar de novo.',
+  model: 'Olhe, é esta:',
 } as const;
+
+/** What is said when the answer is shown. In the street, it is the instruction again. */
+export function modelSentence(attempt: MissionAttempt, step: MissionStep): string {
+  if (attempt.mission.kind === 'world-task') return step.prompt;
+  const answer = attempt.mission.choices.find((choice) => choice.id === step.targetId);
+  return `${phrases.model} ${answer?.label ?? ''}.`;
+}
+
+/** After a right card: praise and the next instruction. A sentence card says its word. */
+export function stepSentence(attempt: MissionAttempt, choiceId: string, next: MissionStep): string {
+  if (attempt.mission.kind !== 'build-sentence') return `${phrases.correct} ${next.prompt}`;
+  const card = attempt.mission.choices.find((choice) => choice.id === choiceId);
+  return `${card?.label ?? ''}. ${next.prompt}`;
+}
 
 export class ChooseMissionAnswer {
   constructor(
@@ -36,12 +51,13 @@ export class ChooseMissionAnswer {
     const { attempt, outcome } = result.value;
     switch (outcome.kind) {
       case 'correct':
-        void this.speech.speak(`${phrases.correct} ${outcome.nextStep.prompt}`);
+        void this.speech.speak(stepSentence(attempt, choiceId, outcome.nextStep));
         return ok({ attempt, outcome });
-      case 'hint':
-        void this.speech.speak(`${phrases.hint} ${outcome.step.prompt}`);
+      case 'model':
+        void this.speech.speak(modelSentence(attempt, outcome.step));
         return ok({ attempt, outcome });
       case 'completed': {
+        const silent = attempt.mission.kind === 'build-sentence';
         const saved = await this.progress.load();
         const { progress, reward } = saved.completeMission(attempt.mission, {
           mistakes: attempt.mistakes,
@@ -49,9 +65,12 @@ export class ChooseMissionAnswer {
         });
         await this.progress.save(progress);
         const { farewell } = attempt.mission;
-        void this.speech.speak(
-          farewell === undefined ? phrases.completed : `${farewell} ${phrases.completed}`,
-        );
+        // A sentence is spoken only when the child presses "Falar".
+        if (!silent) {
+          void this.speech.speak(
+            farewell === undefined ? phrases.completed : `${farewell} ${phrases.completed}`,
+          );
+        }
         return ok({ attempt, outcome, reward });
       }
     }

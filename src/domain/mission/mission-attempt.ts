@@ -1,43 +1,70 @@
 import type { Mission, MissionStep } from '@domain/mission/mission';
 import { domainError, err, ok, type Result } from '@domain/shared/result';
 
-/** Each wrong answer makes the hint clearer, up to this level. Errors never punish. */
-export const MAX_HINT_LEVEL = 2;
-
-export type HintLevel = 0 | 1 | 2;
-
 export type AttemptOutcome =
   | { readonly kind: 'correct'; readonly nextStep: MissionStep }
-  | { readonly kind: 'hint'; readonly hintLevel: HintLevel; readonly step: MissionStep }
+  /** Not this one: the game shows the right card, and only that one can be pressed. */
+  | { readonly kind: 'model'; readonly step: MissionStep }
   | { readonly kind: 'completed' };
+
+interface State {
+  readonly plan: readonly MissionStep[];
+  readonly stepIndex: number;
+  readonly modeling: boolean;
+  readonly mistakes: number;
+  readonly chosen: readonly string[];
+  readonly repeated: readonly MissionStep[];
+}
+
+const accepts = (step: MissionStep, choiceId: string): boolean =>
+  choiceId === step.targetId || step.accepts?.includes(choiceId) === true;
 
 /**
  * Immutable state of a mission being played, following the fixed structure
- * request → action → celebration.
+ * request → action → celebration. A mistake shows the answer at once, so the
+ * child never guesses through the cards. In a quiz, that question comes back
+ * at the end to be answered alone.
  */
 export class MissionAttempt {
   private constructor(
     readonly mission: Mission,
-    readonly stepIndex: number,
-    readonly hintLevel: HintLevel,
-    readonly mistakes: number,
+    private readonly state: State,
   ) {}
 
   static start(mission: Mission): MissionAttempt {
-    return new MissionAttempt(mission, 0, 0, 0);
+    return new MissionAttempt(mission, {
+      plan: mission.steps,
+      stepIndex: 0,
+      modeling: false,
+      mistakes: 0,
+      chosen: [],
+      repeated: [],
+    });
+  }
+
+  get stepIndex(): number {
+    return this.state.stepIndex;
+  }
+
+  get mistakes(): number {
+    return this.state.mistakes;
+  }
+
+  get isModeling(): boolean {
+    return this.state.modeling;
   }
 
   get isCompleted(): boolean {
-    return this.stepIndex >= this.mission.steps.length;
+    return this.state.stepIndex >= this.state.plan.length;
   }
 
   get currentStep(): MissionStep | undefined {
-    return this.mission.steps[this.stepIndex];
+    return this.state.plan[this.state.stepIndex];
   }
 
-  /** Ids of choices already collected in earlier steps. */
-  get completedTargets(): readonly string[] {
-    return this.mission.steps.slice(0, this.stepIndex).map((step) => step.targetId);
+  /** What the child chose, step by step (their own sentence, in AAC missions). */
+  get chosen(): readonly string[] {
+    return this.state.chosen;
   }
 
   choose(choiceId: string): Result<{ attempt: MissionAttempt; outcome: AttemptOutcome }> {
@@ -46,22 +73,31 @@ export class MissionAttempt {
       return err(domainError('mission-already-finished', 'The mission is already completed'));
     }
 
-    if (choiceId !== step.targetId) {
-      const hintLevel = Math.min(this.hintLevel + 1, MAX_HINT_LEVEL) as HintLevel;
-      const attempt = new MissionAttempt(
-        this.mission,
-        this.stepIndex,
-        hintLevel,
-        this.mistakes + 1,
-      );
-      return ok({ attempt, outcome: { kind: 'hint', hintLevel, step } });
+    if (!accepts(step, choiceId)) {
+      const attempt = this.with({
+        modeling: true,
+        mistakes: this.state.mistakes + (this.state.modeling ? 0 : 1),
+      });
+      return ok({ attempt, outcome: { kind: 'model', step } });
     }
 
-    const attempt = new MissionAttempt(this.mission, this.stepIndex + 1, 0, this.mistakes);
+    const repeat =
+      this.state.modeling && this.mission.kind === 'quiz' && !this.state.repeated.includes(step);
+    const attempt = this.with({
+      plan: repeat ? [...this.state.plan, step] : this.state.plan,
+      repeated: repeat ? [...this.state.repeated, step] : this.state.repeated,
+      stepIndex: this.state.stepIndex + 1,
+      modeling: false,
+      chosen: [...this.state.chosen, choiceId],
+    });
     const nextStep = attempt.currentStep;
     return ok({
       attempt,
       outcome: nextStep === undefined ? { kind: 'completed' } : { kind: 'correct', nextStep },
     });
+  }
+
+  private with(changes: Partial<State>): MissionAttempt {
+    return new MissionAttempt(this.mission, { ...this.state, ...changes });
   }
 }

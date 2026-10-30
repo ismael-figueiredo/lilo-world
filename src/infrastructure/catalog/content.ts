@@ -92,24 +92,10 @@ function recipe(
       })),
       {
         targetId: `pay-${count}`,
-        prompt: `Vamos ao caixa. São ${count} coisas: pague ${count} moedas.`,
+        prompt: 'Vamos ao caixa. Cada coisa custa 1 moeda. Conte o que tem no carrinho.',
       },
     ],
     farewell: `Obrigado! Bom apetite!`,
-    result,
-  };
-}
-
-/** Something to ask for at the bakery, always with "por favor". */
-function snack(id: string, item: string, name: string, result: string): MissionVariant {
-  return {
-    id,
-    introduction: `Vamos pedir ${name}! Monte a frase.`,
-    steps: [
-      { targetId: 'i-want', prompt: 'Toque em: eu quero.' },
-      { targetId: item, prompt: `Agora, toque em ${name}.` },
-      { targetId: 'please', prompt: 'E para terminar, com educação: por favor.' },
-    ],
     result,
   };
 }
@@ -363,7 +349,7 @@ export const missions: readonly Mission[] = [
       { targetId: 'apple', prompt: 'Pegue a maçã.' },
       { targetId: 'milk', prompt: 'Agora, pegue o leite.' },
       { targetId: 'bread', prompt: 'Agora, pegue o pão.' },
-      { targetId: 'pay-3', prompt: 'Vamos ao caixa. São 3 coisas: pague 3 moedas.' },
+      { targetId: 'pay-3', prompt: 'Vamos ao caixa. Conte o que tem no carrinho.' },
     ],
     variants: [
       recipe('cake', 'um bolo', '🎂', ['eggs', 'milk', 'flour', 'chocolate']),
@@ -386,7 +372,7 @@ export const missions: readonly Mission[] = [
     kind: 'build-sentence',
     worldId: 'city',
     title: 'Pedir na padaria',
-    introduction: 'Vamos pedir um lanche! Monte a frase.',
+    introduction: 'Vamos pedir um lanche! Você escolhe o que quer.',
     choices: [
       { id: 'i-want', label: 'eu quero', pictogram: '🙋' },
       { id: 'bread', label: 'pão', pictogram: '🍞' },
@@ -397,16 +383,14 @@ export const missions: readonly Mission[] = [
       { id: 'please', label: 'por favor', pictogram: '🙏' },
     ],
     steps: [
-      { targetId: 'i-want', prompt: 'Toque em: eu quero.' },
-      { targetId: 'bread', prompt: 'Agora, toque no pão.' },
+      { targetId: 'i-want', prompt: 'Você está com fome. Como você começa a pedir?' },
+      {
+        targetId: 'bread',
+        accepts: ['cake', 'juice', 'cheese-bread', 'milk'],
+        prompt: 'O que você quer?',
+      },
+      { targetId: 'please', prompt: 'Falta a palavra gentil.' },
     ],
-    variants: [
-      snack('bread', 'bread', 'pão', '🍞'),
-      snack('cake', 'cake', 'bolo', '🍰'),
-      snack('juice', 'juice', 'suco', '🧃'),
-      snack('cheese-bread', 'cheese-bread', 'pão de queijo', '🧀'),
-    ],
-    distractors: 2,
     reward: { coins: 10, stars: 1 },
     farewell: 'Aqui está! Obrigado!',
   },
@@ -672,16 +656,16 @@ export const missions: readonly Mission[] = [
       { id: 'please', label: 'por favor', pictogram: '🙏' },
     ],
     steps: [
-      { targetId: 'hello', prompt: 'Toque em: bom dia.' },
-      { targetId: 'teacher', prompt: 'Agora, toque em: professora.' },
+      { targetId: 'hello', prompt: 'O que a gente diz ao chegar?' },
+      { targetId: 'teacher', prompt: 'Para quem você está falando?' },
     ],
     variants: [
       saying(
         'greet-teacher',
         'Você chegou na escola! Vamos dar bom dia para a professora.',
         [
-          ['hello', 'Toque em: bom dia.'],
-          ['teacher', 'Agora, toque em: professora.'],
+          ['hello', 'O que a gente diz ao chegar?'],
+          ['teacher', 'Para quem você está falando?'],
         ],
         'Bom dia! Que bom te ver!',
       ),
@@ -689,8 +673,8 @@ export const missions: readonly Mission[] = [
         'greet-friend',
         'Seu amigo chegou! Vamos cumprimentar.',
         [
-          ['hello', 'Toque em: bom dia.'],
-          ['friend', 'Agora, toque em: amigo.'],
+          ['hello', 'O que a gente diz ao chegar?'],
+          ['friend', 'Para quem você está falando?'],
         ],
         'Bom dia, amigo!',
       ),
@@ -698,9 +682,9 @@ export const missions: readonly Mission[] = [
         'help',
         'A tarefa está difícil. Vamos pedir ajuda.',
         [
-          ['i-need', 'Toque em: eu preciso de.'],
-          ['help', 'Agora, toque em: ajuda.'],
-          ['please', 'E para terminar: por favor.'],
+          ['i-need', 'Como você começa a pedir?'],
+          ['help', 'Do que você precisa?'],
+          ['please', 'Falta a palavra gentil.'],
         ],
         'Claro! Eu te ajudo.',
       ),
@@ -708,9 +692,9 @@ export const missions: readonly Mission[] = [
         'bathroom',
         'Você quer ir ao banheiro. Vamos pedir.',
         [
-          ['can-i', 'Toque em: posso.'],
-          ['bathroom', 'Agora, toque em: ir ao banheiro.'],
-          ['please', 'E para terminar: por favor.'],
+          ['can-i', 'Como você começa a pedir?'],
+          ['bathroom', 'O que você quer fazer?'],
+          ['please', 'Falta a palavra gentil.'],
         ],
         'Pode sim! Volte logo.',
       ),
@@ -718,9 +702,9 @@ export const missions: readonly Mission[] = [
         'water',
         'Você está com sede. Vamos pedir.',
         [
-          ['can-i', 'Toque em: posso.'],
-          ['water', 'Agora, toque em: beber água.'],
-          ['please', 'E para terminar: por favor.'],
+          ['can-i', 'Como você começa a pedir?'],
+          ['water', 'O que você quer fazer?'],
+          ['please', 'Falta a palavra gentil.'],
         ],
         'Pode sim!',
       ),
@@ -728,8 +712,8 @@ export const missions: readonly Mission[] = [
         'play',
         'Você quer brincar com um amigo. Vamos convidar.',
         [
-          ['can-i', 'Toque em: posso.'],
-          ['play', 'Agora, toque em: brincar com você.'],
+          ['can-i', 'Como você começa a pedir?'],
+          ['play', 'O que você quer fazer?'],
         ],
         'Oba! Vamos brincar!',
       ),

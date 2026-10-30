@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { phrases } from '@application/use-cases/choose-mission-answer';
+import { modelSentence, phrases, stepSentence } from '@application/use-cases/choose-mission-answer';
 import type { MissionAttempt } from '@domain/mission/mission-attempt';
 import type { GameContext } from '@presentation/game-context';
 import { MissionPanel } from '@presentation/ui/mission-panel';
@@ -215,17 +215,17 @@ export class MissionController {
       const { outcome } = result.value;
 
       switch (outcome.kind) {
-        case 'hint':
+        case 'model':
           this.ctx.sound('hint');
-          this.panel.showHint(outcome.step.targetId, outcome.hintLevel);
+          this.panel.showModel(outcome.step.targetId);
           if (this.indoors) this.ctx.world.market.hint(outcome.step.targetId);
-          this.ctx.dialog.say(`${phrases.hint} ${outcome.step.prompt}`);
+          this.ctx.dialog.say(modelSentence(this.attempt, outcome.step));
           break;
         case 'correct':
           this.ctx.sound('correct');
-          this.panel.collect(choiceId, outcome.nextStep.targetId);
+          this.panel.next(this.attempt, choiceId);
           this.showIndoors(choiceId, outcome.nextStep.targetId);
-          this.ctx.dialog.say(`${phrases.correct} ${outcome.nextStep.prompt}`);
+          this.ctx.dialog.say(stepSentence(this.attempt, choiceId, outcome.nextStep));
           this.ctx.avatar.playEmote('Yes');
           break;
         case 'completed': {
@@ -235,19 +235,23 @@ export class MissionController {
             this.crossing = undefined;
             this.ctx.enterPanel('mission');
           }
+          this.panel.next(this.attempt, choiceId);
+          if (mission.kind === 'build-sentence') {
+            // The child says it: the game speaks only when the button is pressed,
+            // as a communication device would.
+            const sentence = this.panel.sentence(this.attempt);
+            this.ctx.dialog.say('Pronto! Agora é só falar.');
+            if (!(await this.panel.waitForSpeak(sentence))) return;
+            const answer = mission.farewell === undefined ? '' : ` ${mission.farewell}`;
+            this.ctx.say(`${sentence}.${answer}`);
+          }
           this.ctx.sound(reward.stars > 0 ? 'star' : 'coin');
-          this.panel.collect(choiceId);
           this.panel.celebrate(reward, mission.result);
           if (this.indoors) {
             this.showIndoors(choiceId, undefined);
             this.cashier?.playEmote('Wave');
           }
-          if (mission.kind === 'build-sentence') {
-            // The game says the child's request aloud, as an AAC device would.
-            // Then the answer of whoever was asked (the baker, the teacher…).
-            const answer = mission.farewell === undefined ? '' : ` ${mission.farewell}`;
-            this.ctx.say(`${this.panel.sentence(this.attempt)}.${answer} Muito bem!`);
-          } else {
+          if (mission.kind !== 'build-sentence') {
             const { farewell } = mission;
             this.ctx.dialog.say(
               farewell === undefined ? phrases.completed : `${farewell} ${phrases.completed}`,

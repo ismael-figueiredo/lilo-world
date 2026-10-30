@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { AnswerChallenge, challengePhrases } from '@application/use-cases/answer-challenge';
 import { GetAlbum } from '@application/use-cases/get-album';
 import { StartChallenge } from '@application/use-cases/start-challenge';
-import type { ChallengeSession } from '@domain/learning/challenge-session';
+import { ROUND_LENGTH, type ChallengeSession } from '@domain/learning/challenge-session';
 import { PlayerProgress } from '@domain/progress/player-progress';
 import { seededRandom } from '@domain/shared/random';
 import { stickerId } from '@domain/stickers/sticker';
@@ -56,25 +56,39 @@ describe('learning station use cases', () => {
     expect(saved.letters.length).toBeGreaterThan(0);
   });
 
-  it('saves a new level with its sticker and star', async () => {
+  it('saves a new level at the end of a good round, with its sticker and star', async () => {
     let session = await start.execute('coins');
-    for (let i = 0; i < 2; i += 1) session = (await right(session)).session;
-    const levelUp = await right(session);
-    expect(levelUp.outcome).toMatchObject({ reachedLevel: 2 });
-    expect(levelUp.sticker?.id).toBe(stickerId('coins', 2));
+    let last = await right(session);
+    for (let i = 1; i < ROUND_LENGTH; i += 1) {
+      session = last.session;
+      last = await right(session);
+    }
+    expect(last.outcome).toMatchObject({ summary: { score: ROUND_LENGTH, reachedLevel: 2 } });
+    expect(last.sticker?.id).toBe(stickerId('coins', 2));
     expect(speech.spoken.at(-1)).toContain(challengePhrases.levelUp);
     const saved = await progress.load();
     expect(saved.levelOf('coins')).toBe(2);
     expect(saved.stars).toBe(2);
   });
 
-  it('only hints on a wrong card, without saving anything', async () => {
+  it('shows the answer on a wrong card, saving nothing', async () => {
     const session = await start.execute('numbers');
     const wrongId = session.challenge.options.find((o) => o.id !== session.challenge.answerId)?.id;
     const result = await answer.execute(session, wrongId ?? '');
-    expect(result.outcome).toEqual({ kind: 'hint', hintLevel: 1 });
+    expect(result.outcome).toEqual({ kind: 'model', answerId: session.challenge.answerId });
     expect(result.reward).toEqual({ coins: 0, stars: 0 });
-    expect(speech.spoken.at(-1)).toBe(`${challengePhrases.hint} ${session.challenge.question}`);
+    expect(speech.spoken.at(-1)).toBe(session.challenge.explanation);
+    expect((await progress.load()).coins.amount).toBe(0);
+  });
+
+  it('gives no coin for pressing the answer that was shown', async () => {
+    const session = await start.execute('numbers');
+    const wrongId = session.challenge.options.find((o) => o.id !== session.challenge.answerId)?.id;
+    const shown = await answer.execute(session, wrongId ?? '');
+    const pressed = await answer.execute(shown.session, session.challenge.answerId);
+    expect(pressed.outcome.kind).toBe('practiced');
+    expect(pressed.reward.coins).toBe(0);
+    expect(pressed.sticker).toBeUndefined();
     expect((await progress.load()).coins.amount).toBe(0);
   });
 

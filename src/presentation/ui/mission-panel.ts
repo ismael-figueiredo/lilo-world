@@ -1,6 +1,7 @@
 import type { MissionChoice, MissionKind } from '@domain/mission/mission';
-import type { HintLevel, MissionAttempt } from '@domain/mission/mission-attempt';
+import type { MissionAttempt } from '@domain/mission/mission-attempt';
 import type { Reward } from '@domain/reward/reward';
+import { shuffled } from '@domain/shared/random';
 import { h, replayAnimation } from '@presentation/ui/dom';
 
 export interface MissionPanelCallbacks {
@@ -15,14 +16,19 @@ const MAIN_GROUP = 'main';
 const groupTitles: Readonly<Record<string, string>> = { cashier: '🧾 Caixa: pague com moedas' };
 
 /** How each kind of mission shows its list. */
-const layouts: Readonly<
-  Record<MissionKind, { readonly title: string; readonly revealList: boolean }>
-> = {
-  'pick-items': { title: '📝 Lista', revealList: true },
-  'build-sentence': { title: '💬 Minha frase', revealList: false },
-  sequence: { title: '🔢 Passos', revealList: false },
-  quiz: { title: '❓ Perguntas', revealList: false },
-  'world-task': { title: '🎯 Missão', revealList: true },
+interface Layout {
+  readonly title: string;
+  readonly revealList: boolean;
+  /** Words under the cards. Off where the word would give the answer away. */
+  readonly labels: boolean;
+}
+
+const layouts: Readonly<Record<MissionKind, Layout>> = {
+  'pick-items': { title: '📝 Lista', revealList: true, labels: false },
+  'build-sentence': { title: '💬 Minha frase', revealList: false, labels: false },
+  sequence: { title: '🔢 Passos', revealList: false, labels: true },
+  quiz: { title: '❓ Perguntas', revealList: false, labels: true },
+  'world-task': { title: '🎯 Missão', revealList: true, labels: true },
 };
 
 /**
@@ -47,10 +53,10 @@ export function spokenSentence(labels: readonly string[]): string {
 }
 
 /**
- * The list and the shelf. Pictograms first, words second; a wrong tap only
- * makes the right card glow (and then an arrow points at it). Sentences and
- * sequences fill empty slots as the child chooses; a world task shows only a
- * small card at the top, so the child can play in the street.
+ * The list and the shelf. After a wrong tap only the right card stays active,
+ * glowing with an arrow, so nothing is solved by trying card after card.
+ * Sentences and sequences fill empty slots as the child chooses; a world task
+ * shows only a small card at the top, so the child can play in the street.
  */
 export class MissionPanel {
   readonly element: HTMLElement;
@@ -63,9 +69,11 @@ export class MissionPanel {
   private readonly shelfTitle = h('p', { className: 'mission__shelf-title' });
   /** What the current step shows big (a sound, a thing to sort). */
   private readonly question = h('p', { className: 'mission__question is-hidden' });
-  private shows = new Map<string, string>();
   private groups = new Map<string, string>();
-  private readonly listItems = new Map<string, HTMLLIElement>();
+  private readonly collected = new Set<string>();
+  private stopWaiting: ((spoken: boolean) => void) | undefined;
+  private listItems: HTMLLIElement[] = [];
+  private readonly speakArea = h('div', { className: 'mission__speak is-hidden' });
 
   constructor(private readonly callbacks: MissionPanelCallbacks) {
     const exit = h('button', {
@@ -85,6 +93,7 @@ export class MissionPanel {
           h('div', { className: 'mission__shelf-area' }, [
             this.shelfTitle,
             this.question,
+            this.speakArea,
             this.shelf,
           ]),
         ]),
@@ -103,76 +112,117 @@ export class MissionPanel {
     this.element.classList.remove('mission--task-done');
     this.element.classList.toggle('mission--slots', !layout.revealList);
     this.tiles.clear();
-    this.listItems.clear();
+    this.collected.clear();
     this.celebration.classList.remove('is-visible');
     this.celebration.replaceChildren();
 
     const choiceById = new Map(mission.choices.map((choice) => [choice.id, choice]));
-    this.shows = new Map(
-      mission.steps.flatMap((step) =>
-        step.show === undefined ? [] : [[step.targetId, step.show]],
+    this.groups = new Map(mission.choices.map((choice) => [choice.id, choice.group ?? MAIN_GROUP]));
+    this.listItems = mission.steps.map((step, index) => {
+      const choice = choiceById.get(step.targetId);
+      // A step at another counter (the cashier) is named, not answered, on the list.
+      const atCounter = choice?.group !== undefined;
+      return h('li', { className: 'mission__list-item' }, [
+        h('span', { className: 'mission__slot', text: String(index + 1) }),
+        h('span', { className: 'pictogram', text: atCounter ? '🧾' : (choice?.pictogram ?? '❓') }),
+        h('span', {
+          className: 'mission__list-label',
+          text: atCounter ? 'pagar' : (choice?.label ?? ''),
+        }),
+        h('span', { className: 'mission__check', attrs: { 'aria-hidden': 'true' } }),
+      ]);
+    });
+    this.list.replaceChildren(...this.listItems);
+    this.speakArea.classList.add('is-hidden');
+    this.shelf.classList.remove('is-hidden');
+    this.shelf.replaceChildren(
+      ...shelfOrder(mission.choices, mission.kind).map((choice) =>
+        this.createTile(choice, layout.labels),
       ),
     );
-    this.groups = new Map(mission.choices.map((choice) => [choice.id, choice.group ?? MAIN_GROUP]));
-    this.list.replaceChildren(
-      ...mission.steps.map((step, index) => {
-        const choice = choiceById.get(step.targetId);
-        const item = h('li', { className: 'mission__list-item' }, [
-          h('span', { className: 'mission__slot', text: String(index + 1) }),
-          // A step at another counter (the cashier) is named, not answered, on the list.
-          ...(choice?.group === undefined
-            ? [
-                h('span', { className: 'pictogram', text: choice?.pictogram ?? '❓' }),
-                h('span', { className: 'mission__list-label', text: choice?.label ?? '' }),
-              ]
-            : [
-                h('span', { className: 'pictogram', text: '🧾' }),
-                h('span', { className: 'mission__list-label', text: 'pagar' }),
-              ]),
-          h('span', { className: 'mission__check', attrs: { 'aria-hidden': 'true' } }),
-        ]);
-        this.listItems.set(step.targetId, item);
-        return item;
-      }),
-    );
-    this.shelf.replaceChildren(
-      ...shelfOrder(mission.choices, mission.kind).map((choice) => this.createTile(choice)),
-    );
-    this.highlightCurrent(attempt.currentStep?.targetId);
+    this.showStep(attempt);
     this.element.classList.add('is-visible');
   }
 
   close(): void {
     this.element.classList.remove('is-visible');
+    // Leaving on the "Falar" screen must not leave the mission waiting forever.
+    this.stopWaiting?.(false);
   }
 
-  /** The sentence built so far, e.g. "Eu quero pão" (for the game to say aloud). */
+  /** The child's own sentence, e.g. "Eu quero pão, por favor". */
   sentence(attempt: MissionAttempt): string {
     return spokenSentence(
-      attempt.mission.steps.map(
-        (step) =>
-          attempt.mission.choices.find((choice) => choice.id === step.targetId)?.label ?? '',
+      attempt.chosen.map(
+        (id) => attempt.mission.choices.find((choice) => choice.id === id)?.label ?? '',
       ),
     );
   }
 
-  showHint(targetId: string, level: HintLevel): void {
+  /** Not this card: only the right one stays active, so there is no guessing. */
+  showModel(targetId: string): void {
     this.clearHints();
-    const tile = this.tiles.get(targetId);
-    if (tile === undefined) return;
-    tile.classList.add('is-hinted');
-    if (level >= 2) tile.classList.add('is-pointed');
+    for (const [id, tile] of this.tiles) {
+      const right = id === targetId;
+      tile.disabled = !right;
+      tile.classList.toggle('is-dimmed', !right);
+      tile.classList.toggle('is-hinted', right);
+      tile.classList.toggle('is-pointed', right);
+    }
   }
 
-  collect(choiceId: string, nextTargetId?: string): void {
+  /** The step just done is marked, and the next one is shown. */
+  next(attempt: MissionAttempt, choiceId: string): void {
     this.clearHints();
-    const tile = this.tiles.get(choiceId);
-    if (tile !== undefined) {
-      tile.classList.add('is-collected');
-      tile.disabled = true;
+    const { kind, choices } = attempt.mission;
+    // In a quiz the same answer can be right again, so its card stays on the shelf.
+    if (kind !== 'quiz') this.collected.add(choiceId);
+    for (const [id, tile] of this.tiles) {
+      tile.disabled = this.collected.has(id);
+      tile.classList.toggle('is-collected', this.collected.has(id));
     }
-    this.listItems.get(choiceId)?.classList.add('is-done');
-    this.highlightCurrent(nextTargetId);
+    const item = this.listItems[attempt.stepIndex - 1];
+    if (item !== undefined) {
+      item.classList.add('is-done');
+      const choice = choices.find((c) => c.id === choiceId);
+      if (!layouts[kind].revealList && choice !== undefined) {
+        const [picture, label] = [
+          item.querySelector('.pictogram'),
+          item.querySelector('.mission__list-label'),
+        ];
+        if (picture !== null) picture.textContent = choice.pictogram;
+        if (label !== null) label.textContent = choice.label;
+      }
+    }
+    if (kind === 'quiz') {
+      this.shelf.replaceChildren(...shuffled(Math.random, [...this.tiles.values()]));
+    }
+    this.showStep(attempt);
+  }
+
+  /** The finished sentence. Resolves true when the child presses to say it. */
+  waitForSpeak(sentence: string): Promise<boolean> {
+    this.shelf.classList.add('is-hidden');
+    this.shelfTitle.classList.add('is-hidden');
+    return new Promise((resolve) => {
+      this.stopWaiting = (spoken) => {
+        this.stopWaiting = undefined;
+        this.speakArea.classList.add('is-hidden');
+        resolve(spoken);
+      };
+      this.speakArea.replaceChildren(
+        h('p', { className: 'mission__sentence', text: `${sentence}.` }),
+        h('button', {
+          className: 'big-button big-button--green',
+          text: '🔊 Falar',
+          attrs: { type: 'button' },
+          onTap: () => {
+            this.stopWaiting?.(true);
+          },
+        }),
+      );
+      this.speakArea.classList.remove('is-hidden');
+    });
   }
 
   /** `result` is what was made or bought (🎂), shown big above the prize. */
@@ -222,7 +272,7 @@ export class MissionPanel {
     this.celebration.classList.add('is-visible');
   }
 
-  private createTile(choice: MissionChoice): HTMLButtonElement {
+  private createTile(choice: MissionChoice, label: boolean): HTMLButtonElement {
     const tile = h(
       'button',
       {
@@ -235,22 +285,24 @@ export class MissionPanel {
       },
       [
         h('span', { className: 'pictogram pictogram--big', text: choice.pictogram }),
-        h('span', { className: 'tile__label', text: choice.label }),
+        label ? h('span', { className: 'tile__label', text: choice.label }) : null,
       ],
     );
     this.tiles.set(choice.id, tile);
     return tile;
   }
 
-  private highlightCurrent(targetId: string | undefined): void {
-    for (const [id, item] of this.listItems) item.classList.toggle('is-current', id === targetId);
-    const show = targetId === undefined ? undefined : this.shows.get(targetId);
-    this.question.textContent = show ?? '';
-    this.question.classList.toggle('is-hidden', show === undefined);
-    if (show !== undefined) replayAnimation(this.question, 'is-popping');
+  private showStep(attempt: MissionAttempt): void {
+    const step = attempt.currentStep;
+    this.listItems.forEach((item, index) => {
+      item.classList.toggle('is-current', index === attempt.stepIndex);
+    });
+    this.question.textContent = step?.show ?? '';
+    this.question.classList.toggle('is-hidden', step?.show === undefined);
+    if (step?.show !== undefined) replayAnimation(this.question, 'is-popping');
     // Only the cards of the current step's group are on the shelf (e.g. the cashier's coins).
-    if (targetId === undefined) return;
-    const group = this.groups.get(targetId) ?? MAIN_GROUP;
+    if (step === undefined) return;
+    const group = this.groups.get(step.targetId) ?? MAIN_GROUP;
     for (const [id, tile] of this.tiles) {
       tile.classList.toggle('is-hidden', (this.groups.get(id) ?? MAIN_GROUP) !== group);
     }
@@ -260,6 +312,8 @@ export class MissionPanel {
   }
 
   private clearHints(): void {
-    for (const tile of this.tiles.values()) tile.classList.remove('is-hinted', 'is-pointed');
+    for (const tile of this.tiles.values()) {
+      tile.classList.remove('is-hinted', 'is-pointed', 'is-dimmed');
+    }
   }
 }
