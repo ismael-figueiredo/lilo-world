@@ -47,7 +47,7 @@ export class Controls {
           callbacks.onAction();
         },
       },
-      [this.actionIcon, this.actionLabel],
+      [h('span', { className: 'action__pad pad-glyph' }), this.actionIcon, this.actionLabel],
     );
 
     this.element = h('div', { className: 'controls' }, [

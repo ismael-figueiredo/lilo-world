@@ -991,6 +991,62 @@ button {
   box-shadow: 0 0 0 12px rgba(255, 210, 63, 0.35);
 }
 
+/* The touch controls go away; the buttons to press are shown instead. */
+.is-pad .joystick,
+.is-pad .round-button--jump {
+  display: none;
+}
+
+.action__pad {
+  display: none;
+}
+
+.is-pad .action__pad {
+  display: grid;
+}
+
+.pad-glyph {
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+
+.pad-hints {
+  position: absolute;
+  top: 92px;
+  right: 16px;
+  display: none;
+  gap: 18px;
+  padding: 6px 16px;
+  background: var(--paper);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.pad-hints__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pad-hints .pad-glyph {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  font-size: 1.1rem;
+}
+
+.is-pad .ui.has-panel .pad-hints {
+  display: flex;
+}
+
 .is-hidden {
   display: none !important;
 }

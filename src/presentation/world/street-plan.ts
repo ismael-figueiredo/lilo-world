@@ -110,3 +110,33 @@ export function planStreets(
 
   return { asphalt, sidewalks, dashes };
 }
+
+/** A painted crossing on one road: `at` is its position along the road. */
+export interface Crossing {
+  readonly road: Road;
+  readonly at: number;
+  readonly width: number;
+  /** Has a traffic light: people wait for the green figure. */
+  readonly signal?: boolean;
+}
+
+export const crossingRect = ({ road, at, width }: Crossing): Rect =>
+  road.axis === 'x'
+    ? { x: at, z: road.at, width, depth: road.width }
+    : { x: road.at, z: at, width: road.width, depth: width };
+
+const BAR_THICKNESS = 0.6;
+const BAR_SPACING = 1.2;
+
+/** Zebra bars: long and parallel to the road, in a row across it (as on real streets). */
+export function zebraBars(crossing: Crossing): Rect[] {
+  const { road, at, width } = crossing;
+  const count = Math.floor(road.width / BAR_SPACING);
+  const start = road.at - ((count - 1) * BAR_SPACING) / 2;
+  return Array.from({ length: count }, (_, index) => {
+    const line = start + index * BAR_SPACING;
+    return road.axis === 'x'
+      ? { x: at, z: line, width, depth: BAR_THICKNESS }
+      : { x: line, z: at, width: BAR_THICKNESS, depth: width };
+  });
+}

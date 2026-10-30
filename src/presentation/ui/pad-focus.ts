@@ -38,6 +38,22 @@ export function pickInDirection(
   return best;
 }
 
+/** Index of the box closest to `from`, for when the focused button goes away. */
+export function pickNearest(from: Box, candidates: readonly Box[]): number | undefined {
+  const origin = center(from);
+  let best: number | undefined;
+  let bestDistance = Infinity;
+  candidates.forEach((candidate, index) => {
+    const target = center(candidate);
+    const distance = Math.hypot(target.x - origin.x, target.y - origin.y);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = index;
+    }
+  });
+  return best;
+}
+
 /** Full-screen layers (menus, missions, wardrobe, profiles); the last open one is on top. */
 const LAYERS =
   '.overlay.is-visible, .mission.is-visible, .wardrobe.is-visible, .start:not(.is-hidden)';
@@ -50,34 +66,74 @@ const isShown = (element: HTMLElement): boolean => {
   return style.visibility !== 'hidden' && style.pointerEvents !== 'none';
 };
 
-const topLayer = (root: HTMLElement): HTMLElement => {
-  const layers = [...root.querySelectorAll<HTMLElement>(LAYERS)];
-  return layers.at(-1) ?? root;
+const focusOn = (element: HTMLElement | undefined): void => {
+  element?.focus({ preventScroll: true });
+  element?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 };
 
-/** Moves the keyboard focus between the buttons on screen with the controller's D-pad. */
-export function moveFocus(ui: HTMLElement, direction: PadDirection): void {
-  const root = topLayer(ui);
-  const elements = [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(isShown);
-  if (elements.length === 0) return;
-  const active = document.activeElement;
-  const current = elements.find((element) => element === active);
-  if (current === undefined) {
-    elements[0]?.focus();
-    return;
-  }
-  const others = elements.filter((element) => element !== current);
-  const next = pickInDirection(
-    current.getBoundingClientRect(),
-    others.map((element) => element.getBoundingClientRect()),
-    direction,
-  );
-  if (next !== undefined) others[next]?.focus();
-}
+/**
+ * Moves the focus between the buttons on screen with the controller. It never
+ * lets the focus get lost: when the chosen card is disabled or a panel redraws,
+ * the focus goes to the nearest button instead of back to the top.
+ */
+export class PadFocus {
+  private layer: HTMLElement | undefined;
+  private lastBox: Box | undefined;
 
-/** Presses the focused button, as a tap would. */
-export function pressFocused(ui: HTMLElement): void {
-  const active = document.activeElement;
-  if (active instanceof HTMLElement && topLayer(ui).contains(active)) active.click();
-  else moveFocus(ui, 'down');
+  constructor(private readonly root: HTMLElement) {}
+
+  /** Call every frame while the controller is used in a panel. */
+  keep(): void {
+    const layer = this.topLayer();
+    if (layer !== this.layer) {
+      this.layer = layer;
+      this.lastBox = undefined;
+    }
+    // No panel is open yet (a fade is running): nothing to focus on.
+    if (layer === this.root) return;
+    const elements = this.buttons();
+    const active = elements.find((element) => element === document.activeElement);
+    if (active !== undefined) {
+      this.lastBox = active.getBoundingClientRect();
+      return;
+    }
+    if (elements.length === 0) return;
+    // Never land on the close button by itself: one more press would leave the panel.
+    const choices = elements.filter((element) => !element.classList.contains('panel__close'));
+    const options = choices.length > 0 ? choices : elements;
+    if (this.lastBox === undefined) {
+      focusOn(options[0]);
+      return;
+    }
+    const boxes = options.map((element) => element.getBoundingClientRect());
+    focusOn(options[pickNearest(this.lastBox, boxes) ?? 0]);
+  }
+
+  move(direction: PadDirection): void {
+    this.keep();
+    const current = document.activeElement;
+    const others = this.buttons().filter((element) => element !== current);
+    if (!(current instanceof HTMLElement)) return;
+    const next = pickInDirection(
+      current.getBoundingClientRect(),
+      others.map((element) => element.getBoundingClientRect()),
+      direction,
+    );
+    if (next !== undefined) focusOn(others[next]);
+  }
+
+  /** Presses the focused button, as a tap would. */
+  press(): void {
+    this.keep();
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && this.topLayer().contains(active)) active.click();
+  }
+
+  private topLayer(): HTMLElement {
+    return [...this.root.querySelectorAll<HTMLElement>(LAYERS)].at(-1) ?? this.root;
+  }
+
+  private buttons(): HTMLElement[] {
+    return [...this.topLayer().querySelectorAll<HTMLElement>(FOCUSABLE)].filter(isShown);
+  }
 }

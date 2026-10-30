@@ -245,6 +245,12 @@ export class PlayerProgress {
     return this.with({ stats: this.addStats(missionId, record, false) });
   }
 
+  /** A small prize for doing something well outside a mission. */
+  earnCoins(amount: number): PlayerProgress {
+    const earned = Coins.of(amount);
+    return earned.ok ? this.with({ coins: this.state.coins.add(earned.value) }) : this;
+  }
+
   buy(item: WardrobeItem): Result<PlayerProgress> {
     if (this.owns(item.id)) {
       return err(domainError('item-already-owned', `Item already owned: ${item.id}`));

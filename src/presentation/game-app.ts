@@ -14,7 +14,7 @@ import { LearningController } from '@presentation/controllers/learning-controlle
 import { MissionController, missionPlaces } from '@presentation/controllers/mission-controller';
 import { WardrobeController } from '@presentation/controllers/wardrobe-controller';
 import { CameraRig } from '@presentation/engine/camera-rig';
-import { GamepadReader } from '@presentation/engine/gamepad';
+import { GamepadReader, padIsActive } from '@presentation/engine/gamepad';
 import { Input } from '@presentation/engine/input';
 import { seededRandom } from '@presentation/engine/math';
 import { cameraRelative } from '@presentation/engine/movement';
@@ -25,7 +25,8 @@ import { Dialog } from '@presentation/ui/dialog';
 import { h } from '@presentation/ui/dom';
 import { Hud } from '@presentation/ui/hud';
 import { Minimap } from '@presentation/ui/minimap';
-import { moveFocus, pressFocused } from '@presentation/ui/pad-focus';
+import { PadFocus } from '@presentation/ui/pad-focus';
+import { PadHints } from '@presentation/ui/pad-hints';
 import { ProfileScreen } from '@presentation/ui/profile-screen';
 import { RestScreen } from '@presentation/ui/rest-screen';
 import { CityPlace } from '@presentation/world/city';
@@ -39,6 +40,7 @@ import { homeArrival, HomePlace } from '@presentation/world/home-area';
 import { campArrival, NaturePlace } from '@presentation/world/nature-camp';
 import { schoolArrival, SchoolPlace } from '@presentation/world/school-area';
 import { PORTAL_PLAZA, portalId } from '@presentation/world/portals';
+import type { RoadEvent } from '@presentation/world/road-safety';
 import { skillOfStation } from '@presentation/world/stations';
 import { WorldAssets } from '@presentation/world/world-assets';
 import '@presentation/ui/styles.css';
@@ -52,6 +54,8 @@ export interface GameAppOptions {
 const AUTOSAVE_MS = 10_000;
 const TIME_CHECK_MS = 5_000;
 const EXTRA_TIME_MS = 5 * 60_000;
+/** Seconds between two spoken street warnings. */
+const ROAD_WARNING_GAP = 6;
 const cameraSpeeds = { low: 0.55, normal: 1, high: 1.6 } as const;
 
 /**
@@ -83,8 +87,11 @@ export class GameApp implements GameContext {
   private readonly avatars: AvatarLibrary;
   private readonly gamepad = new GamepadReader((connected) => {
     this.input?.reset();
+    this.showPadControls(connected);
     this.say(connected ? '🎮 Controle conectado!' : 'O controle desligou.');
   });
+  private readonly padFocus: PadFocus;
+  private readonly padHints = new PadHints();
 
   private renderer: THREE.WebGLRenderer | undefined;
   private gameWorld: GameWorld | undefined;
@@ -103,12 +110,17 @@ export class GameApp implements GameContext {
   private lastSave = 0;
   private lastTimeCheck = 0;
   private warnedLastMission = false;
+  /** Crossed on a zebra with no warning since the last place visited. */
+  private safeTrip = false;
+  private returningToSidewalk = false;
+  private lastRoadWarning = -Infinity;
 
   constructor(
     private readonly root: HTMLElement,
     readonly services: GameServices,
     private readonly options: GameAppOptions,
   ) {
+    this.padFocus = new PadFocus(this.root);
     this.controls = new Controls({
       onMove: (move) => this.input?.setJoystick(move),
       onJump: () => this.input?.requestJump(),
@@ -179,6 +191,7 @@ export class GameApp implements GameContext {
 
   enterPanel(mode: PanelMode): void {
     this.currentMode = mode;
+    this.ui.classList.add('has-panel');
     this.controls.setVisible(false);
     this.controls.hideAction();
     this.marker.group.visible = false;
@@ -191,6 +204,8 @@ export class GameApp implements GameContext {
 
   backToExploring(): void {
     this.services.speech.stop();
+    this.ui.classList.remove('has-panel');
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     this.cameraRig?.clearFocus();
     this.currentMode = 'explore';
     this.controls.setVisible(true);
@@ -308,6 +323,7 @@ export class GameApp implements GameContext {
       this.wardrobe.panel.element,
       ...this.menus.elements,
       this.restScreen.element,
+      this.padHints.element,
       this.fade,
     );
     this.root.append(this.ui, this.profileScreen.element);
@@ -492,6 +508,7 @@ export class GameApp implements GameContext {
 
     if (exploring) {
       this.updateExploration(player.position, input);
+      this.watchTheRoad(player.position, world);
       this.missions.update(player.position);
       const goal = this.goalPlace();
       this.minimap.draw(
@@ -513,15 +530,25 @@ export class GameApp implements GameContext {
   private pollGamepad(dt: number, input: Input, exploring: boolean): void {
     const pad = this.gamepad.poll();
     if (pad === undefined) return;
+    if (padIsActive(pad)) this.showPadControls(true);
     if (exploring) {
-      input.applyPad(pad, dt);
+      const position = this.character?.position;
+      const canUse = position !== undefined && this.nearbyPlace(position) !== undefined;
+      input.applyPad(pad, dt, canUse);
       if (pad.menu) this.goBack();
       return;
     }
-    if (pad.navigate !== undefined || pad.confirm) document.body.classList.add('is-pad');
-    if (pad.navigate !== undefined) moveFocus(this.ui, pad.navigate);
-    if (pad.confirm) pressFocused(this.ui);
+    if (!document.body.classList.contains('is-pad')) return;
+    this.padFocus.keep();
+    if (pad.navigate !== undefined) this.padFocus.move(pad.navigate);
+    if (pad.primary) this.padFocus.press();
     if (pad.back || pad.menu) this.goBack();
+  }
+
+  /** Shows the controller's buttons on screen and hides the touch controls. */
+  private showPadControls(active: boolean): void {
+    document.body.classList.toggle('is-pad', active);
+    if (active) this.padHints.setStyle(this.gamepad.style);
   }
 
   /** Esc, or B / Start on a controller: opens the menu or closes what is open. */
@@ -535,6 +562,56 @@ export class GameApp implements GameContext {
       this.backToExploring();
     } else if (this.currentMode === 'mission') void this.missions.exit();
     else if (this.currentMode === 'learning') this.learning.exit();
+  }
+
+  /** Calm street rules: a warning brings the child back, and safe trips earn coins. */
+  private watchTheRoad(position: THREE.Vector3, world: GameWorld): void {
+    if (this.missions.isCrossingStreet || this.returningToSidewalk) return;
+    const event = world.roadSafety.update(position.x, position.z, world.trafficPhase.walk);
+    if (event === 'crossed') {
+      this.safeTrip = true;
+    } else if (event !== undefined) {
+      this.safeTrip = false;
+      void this.backToSidewalk(event, world);
+    }
+  }
+
+  private async backToSidewalk(event: RoadEvent, world: GameWorld): Promise<void> {
+    const spot = world.roadSafety.lastSafeSpot;
+    if (spot === undefined) return;
+    this.returningToSidewalk = true;
+    if (this.input !== undefined) this.input.enabled = false;
+    // Said once in a while: repeating it at every step would only nag.
+    if (this.elapsed - this.lastRoadWarning > ROAD_WARNING_GAP) {
+      this.lastRoadWarning = this.elapsed;
+      this.sound('hint');
+      this.say(
+        event === 'red-light'
+          ? 'O boneco está vermelho. Vamos esperar na calçada.'
+          : 'A rua é dos carros. Ande na calçada e atravesse na faixa.',
+      );
+    }
+    await this.transition(() => {
+      this.character?.placeAt(
+        new THREE.Vector3(spot.x, world.heightAt(spot.x, spot.z), spot.z),
+        this.character.facing,
+      );
+      world.roadSafety.reset();
+    });
+    if (this.input !== undefined && this.currentMode === 'explore') {
+      this.input.enabled = true;
+      this.input.stopUntilReleased();
+    }
+    this.returningToSidewalk = false;
+  }
+
+  /** Reaching a place after crossing safely gives a small prize. */
+  private async rewardSafeTrip(): Promise<void> {
+    if (!this.safeTrip || this.playerServices === undefined) return;
+    this.safeTrip = false;
+    await this.playerServices.rewardSafeTrip.execute();
+    this.sound('coin');
+    await this.refresh();
   }
 
   private updateExploration(position: THREE.Vector3, input: Input): void {
@@ -571,6 +648,7 @@ export class GameApp implements GameContext {
   }
 
   private async use(place: Interactable): Promise<void> {
+    await this.rewardSafeTrip();
     const missionId = Object.entries(missionPlaces).find(
       ([, placeId]) => placeId === place.id,
     )?.[0];
@@ -771,7 +849,7 @@ export class GameApp implements GameContext {
       if (event.key === 'Escape') this.goBack();
     });
     window.addEventListener('pointerdown', () => {
-      document.body.classList.remove('is-pad');
+      this.showPadControls(false);
     });
   }
 

@@ -13,6 +13,7 @@ import { MARKET_INTERIOR, MarketInterior } from '@presentation/world/market-inte
 import { NATURE_CAMP, NatureCamp } from '@presentation/world/nature-camp';
 import { SCHOOL_AREA, SchoolArea } from '@presentation/world/school-area';
 import { PORTAL_PLAZA, Portals } from '@presentation/world/portals';
+import type { RoadSafety } from '@presentation/world/road-safety';
 import { Sky } from '@presentation/world/sky';
 import { createTerrainMesh } from '@presentation/world/terrain-mesh';
 import { defaultTerrainOptions, TerrainShape } from '@presentation/world/terrain-shape';
@@ -105,6 +106,10 @@ export class GameWorld {
       ...this.school.places,
       ...this.emotions.places,
     ];
+  }
+
+  get roadSafety(): RoadSafety {
+    return this.city.roadSafety;
   }
 
   /** The traffic light cycle shared by the whole town. */

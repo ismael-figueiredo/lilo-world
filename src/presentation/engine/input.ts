@@ -17,6 +17,7 @@ export class Input {
   private readonly keys = new Set<string>();
   private joystick: MoveInput = idleInput;
   private pad: MoveInput = idleInput;
+  private waitingForRelease = false;
   private jumpQueued = false;
   private actionQueued = false;
   private look = { x: 0, y: 0 };
@@ -36,17 +37,29 @@ export class Input {
 
   get move(): MoveInput {
     if (!this.enabled) return idleInput;
+    const move = this.rawMove();
+    if (!this.waitingForRelease) return move;
+    if (move.x === 0 && move.y === 0) this.waitingForRelease = false;
+    return idleInput;
+  }
+
+  /** The child stands still until the stick or keys are let go. */
+  stopUntilReleased(): void {
+    this.waitingForRelease = true;
+  }
+
+  private rawMove(): MoveInput {
     if (this.joystick !== idleInput) return this.joystick;
     return this.pad !== idleInput ? this.pad : keyboardInput(this.keys);
   }
 
-  /** Feeds one frame of the controller (moving, camera, jump and use). */
-  applyPad(frame: PadFrame, dt: number): void {
+  /** Feeds one frame of the controller. ✕ uses `canUse` things, otherwise it jumps. */
+  applyPad(frame: PadFrame, dt: number, canUse: boolean): void {
     this.pad = frame.move;
     this.look.x += frame.look.x * PAD_LOOK_SPEED * dt;
     this.look.y += frame.look.y * PAD_LOOK_SPEED * dt;
-    if (frame.jump) this.jumpQueued = true;
-    if (frame.action) this.actionQueued = true;
+    if (frame.jump || (frame.primary && !canUse)) this.jumpQueued = true;
+    if (frame.primary && canUse) this.actionQueued = true;
   }
 
   setJoystick(input: MoveInput): void {

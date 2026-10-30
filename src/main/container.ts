@@ -29,6 +29,7 @@ import { ListAvatars } from '@application/use-cases/list-avatars';
 import { ListProfiles } from '@application/use-cases/list-profiles';
 import { LoadSession } from '@application/use-cases/load-session';
 import { RenameProfile } from '@application/use-cases/rename-profile';
+import { RewardSafeTrip } from '@application/use-cases/reward-safe-trip';
 import { SaveSession } from '@application/use-cases/save-session';
 import { SelectProfile } from '@application/use-cases/select-profile';
 import { StartChallenge } from '@application/use-cases/start-challenge';
@@ -87,6 +88,7 @@ export function createServices(adapters: Adapters): GameServices {
       startMission: new StartMission(catalog, speech, random),
       chooseMissionAnswer: new ChooseMissionAnswer(progress, speech, clock),
       leaveMission: new LeaveMission(progress, clock),
+      rewardSafeTrip: new RewardSafeTrip(progress),
       startChallenge: new StartChallenge(catalog, progress, speech, random),
       answerChallenge: new AnswerChallenge(catalog, progress, speech, random),
       getAlbum: new GetAlbum(progress),

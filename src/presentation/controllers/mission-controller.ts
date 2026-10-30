@@ -136,6 +136,11 @@ export class MissionController {
     if (this.indoors) this.goOutside();
   }
 
+  /** The crossing mission follows the child itself. */
+  get isCrossingStreet(): boolean {
+    return this.crossing !== undefined;
+  }
+
   /** Every frame: keeps the cashier breathing and waving. */
   tick(dt: number): void {
     this.cashier?.update(dt, { x: 0, z: 0 }, false, this.ctx.world);

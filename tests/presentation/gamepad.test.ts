@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   PadButton,
+  padIsActive,
+  padStyleOf,
   readPad,
   stickToLook,
   stickToMove,
   type PadState,
 } from '@presentation/engine/gamepad';
 import { idleInput } from '@presentation/engine/movement';
-import { pickInDirection } from '@presentation/ui/pad-focus';
+import { pickInDirection, pickNearest } from '@presentation/ui/pad-focus';
 
 const pad = (axes: number[] = [], pressedButtons: number[] = []): PadState => {
   const pressed: boolean[] = Array.from({ length: 17 }, () => false);
@@ -38,19 +40,27 @@ describe('gamepad mapping', () => {
   });
 
   it('counts buttons only on the frame they are pressed', () => {
-    const first = readPad(pad(), pad([], [PadButton.a]));
-    expect(first.jump).toBe(true);
-    expect(first.confirm).toBe(true);
-    const held = readPad(pad([], [PadButton.a]), pad([], [PadButton.a]));
-    expect(held.jump).toBe(false);
-    expect(held.confirm).toBe(false);
+    expect(readPad(pad(), pad([], [PadButton.a])).primary).toBe(true);
+    expect(readPad(pad([], [PadButton.a]), pad([], [PadButton.a])).primary).toBe(false);
   });
 
-  it('uses B or X to use things, B to go back and Start for the menu', () => {
-    expect(readPad(pad(), pad([], [PadButton.x])).action).toBe(true);
-    const b = readPad(pad(), pad([], [PadButton.b]));
-    expect(b.action && b.back).toBe(true);
+  it('maps cross to the main action, square to jump, circle to back, options to menu', () => {
+    expect(readPad(pad(), pad([], [PadButton.a])).jump).toBe(false);
+    expect(readPad(pad(), pad([], [PadButton.x])).jump).toBe(true);
+    expect(readPad(pad(), pad([], [PadButton.b])).back).toBe(true);
     expect(readPad(pad(), pad([], [PadButton.start])).menu).toBe(true);
+  });
+
+  it('knows when the child is using the controller', () => {
+    expect(padIsActive(readPad(pad(), pad([0, 0])))).toBe(false);
+    expect(padIsActive(readPad(pad(), pad([0, -1])))).toBe(true);
+    expect(padIsActive(readPad(pad(), pad([], [PadButton.b])))).toBe(true);
+  });
+
+  it('shows the symbols of the controller, PlayStation when unknown', () => {
+    expect(padStyleOf('Xbox 360 Controller (XInput STANDARD GAMEPAD)')).toBe('xbox');
+    expect(padStyleOf('Wireless Controller (Vendor: 054c)')).toBe('playstation');
+    expect(padStyleOf('USB Gamepad')).toBe('playstation');
   });
 
   it('navigates panels once per push of the D-pad or stick', () => {
@@ -74,6 +84,11 @@ describe('panel focus with the D-pad', () => {
     expect(pickInDirection(box(0, 0), grid, 'right')).toBe(0);
     expect(pickInDirection(box(0, 0), grid, 'down')).toBe(1);
     expect(pickInDirection(box(200, 200), grid, 'right')).toBe(3);
+  });
+
+  it('goes to the nearest button when the focused one disappears', () => {
+    expect(pickNearest(box(210, 190), grid)).toBe(2);
+    expect(pickNearest(box(0, 0), [])).toBeUndefined();
   });
 
   it('stays put when nothing is in that direction', () => {

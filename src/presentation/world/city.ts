@@ -15,7 +15,14 @@ import {
   trafficLight,
   type TrafficLight,
 } from '@presentation/world/props';
-import { planStreets, type Road } from '@presentation/world/street-plan';
+import { RoadSafety } from '@presentation/world/road-safety';
+import {
+  crossingRect,
+  planStreets,
+  zebraBars,
+  type Crossing,
+  type Road,
+} from '@presentation/world/street-plan';
 import type { CrosswalkZone } from '@presentation/world/crosswalk';
 import { createPostSign, createSign } from '@presentation/world/sign';
 import { LearningStations } from '@presentation/world/stations';
@@ -45,7 +52,9 @@ const ROAD_WIDTH = 7;
 const SIDEWALK = 3;
 /** Buildings start this far from the middle of the main road. */
 const LOT_START = ROAD_WIDTH / 2 + SIDEWALK + 0.5;
-const CROSSWALK_X = 5.2;
+/** Middle of the crossing with a traffic light, by the market. */
+const CROSSWALK_X = 8.5;
+const CROSSWALK_WIDTH = 4.4;
 
 /** Streets running down from the main street to the avenue (x of their middle). */
 const WEST_STREET_X = -31.5;
@@ -65,10 +74,29 @@ const ROADS: readonly Road[] = [
   { axis: 'z', at: EAST_STREET_X, from: 0, to: AVENUE_Z, width: 5, sidewalk: 1.5 },
 ];
 
-/** The painted crossing between the side street and the market. */
+const [MAIN_STREET, NORTH_STREET, AVENUE_ROAD, WEST_STREET, EAST_STREET] = ROADS as readonly [
+  Road,
+  Road,
+  Road,
+  Road,
+  Road,
+];
+
+/** Every painted crossing in town. Only the one by the market has a traffic light. */
+const CROSSINGS: readonly Crossing[] = [
+  { road: MAIN_STREET, at: CROSSWALK_X, width: CROSSWALK_WIDTH, signal: true },
+  { road: MAIN_STREET, at: -8, width: CROSSWALK_WIDTH },
+  { road: NORTH_STREET, at: -9, width: 4 },
+  { road: AVENUE_ROAD, at: -13, width: 3.6 },
+  { road: AVENUE_ROAD, at: 13, width: 3.6 },
+  { road: WEST_STREET, at: 15, width: 3.2 },
+  { road: EAST_STREET, at: 15, width: 3.2 },
+];
+
+/** The crossing with a traffic light, used by the "cross the street" mission. */
 export const CROSSWALK: CrosswalkZone = {
-  minX: CROSSWALK_X - 0.35,
-  maxX: CROSSWALK_X + 5 * 1.2 + 0.35,
+  minX: CROSSWALK_X - CROSSWALK_WIDTH / 2,
+  maxX: CROSSWALK_X + CROSSWALK_WIDTH / 2,
   roadHalfWidth: ROAD_WIDTH / 2,
   curbDepth: SIDEWALK,
 };
@@ -96,6 +124,16 @@ export class City {
   private readonly trafficLights: TrafficLight[] = [];
   private fountainWater?: THREE.Mesh;
   private readonly stations = new LearningStations(CITY.height);
+  private readonly plan = planStreets(ROADS, CROSSINGS.map(crossingRect));
+  /** Follows the child near the streets. */
+  readonly roadSafety = new RoadSafety(
+    this.plan.asphalt,
+    CROSSINGS.map((crossing) => ({
+      rect: crossingRect(crossing),
+      signal: crossing.signal === true,
+      across: crossing.road.axis === 'x' ? ('z' as const) : ('x' as const),
+    })),
+  );
 
   constructor(private readonly assets: WorldAssets) {
     this.group.position.y = CITY.height;
@@ -130,13 +168,7 @@ export class City {
     const asphalt = lowPoly(0x5d6475);
     const sidewalk = lowPoly(0xe3ddd0);
     const paint = lowPoly(0xffffff);
-    const crosswalk = {
-      x: (CROSSWALK.minX + CROSSWALK.maxX) / 2,
-      z: 0,
-      width: CROSSWALK.maxX - CROSSWALK.minX + 1,
-      depth: ROAD_WIDTH,
-    };
-    const plan = planStreets(ROADS, [crosswalk]);
+    const plan = this.plan;
     for (const piece of plan.asphalt) {
       // Side streets sit a hair higher, so touching ends never flicker.
       const lift = piece.road * 0.002;
@@ -162,11 +194,12 @@ export class City {
         solid(new THREE.BoxGeometry(dash.width, 0.1, dash.depth), paint, [dash.x, 0.06, dash.z]),
       );
     }
-    // Crosswalk between the side street and the market.
-    for (let i = 0; i < 6; i += 1) {
-      this.group.add(
-        solid(new THREE.BoxGeometry(0.7, 0.1, 5.6), paint, [CROSSWALK_X + i * 1.2, 0.07, 0]),
-      );
+    for (const crossing of CROSSINGS) {
+      for (const bar of zebraBars(crossing)) {
+        this.group.add(
+          solid(new THREE.BoxGeometry(bar.width, 0.1, bar.depth), paint, [bar.x, 0.07, bar.z]),
+        );
+      }
     }
   }
 
@@ -398,8 +431,8 @@ export class City {
     }
 
     for (const [x, z] of [
-      [CROSSWALK_X - 1.4, -4.2],
-      [CROSSWALK_X - 1.4, 4.2],
+      [CROSSWALK_X - CROSSWALK_WIDTH / 2 - 0.9, -4.2],
+      [CROSSWALK_X - CROSSWALK_WIDTH / 2 - 0.9, 4.2],
     ] as const) {
       const light = trafficLight();
       this.place(light.group, x, z, z < 0);

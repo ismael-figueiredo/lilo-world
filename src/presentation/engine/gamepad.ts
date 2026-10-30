@@ -28,11 +28,13 @@ export interface PadFrame {
   readonly move: MoveInput;
   /** Right stick, each axis in [-1, 1] (right and down are positive, like a mouse drag). */
   readonly look: { readonly x: number; readonly y: number };
+  /** ✕: uses what is nearby or confirms; jumps when there is nothing to use. */
+  readonly primary: boolean;
+  /** ▢: always jumps. */
   readonly jump: boolean;
-  readonly action: boolean;
+  /** ◯: goes back in panels. */
   readonly back: boolean;
   readonly menu: boolean;
-  readonly confirm: boolean;
   /** Direction pressed this frame, for moving the focus in panels. */
   readonly navigate: PadDirection | undefined;
 }
@@ -105,17 +107,36 @@ export function readPad(previous: PadState, current: PadState): PadFrame {
   return {
     move,
     look: stickToLook(rx, ry),
-    jump: went(PadButton.a),
-    action: went(PadButton.b) || went(PadButton.x),
+    primary: went(PadButton.a),
+    jump: went(PadButton.x),
     back: went(PadButton.b),
     menu: went(PadButton.start),
-    confirm: went(PadButton.a),
     navigate:
       direction !== undefined && direction !== directionOf(previous) ? direction : undefined,
   };
 }
 
 const emptyPad: PadState = { axes: [], pressed: [] };
+
+/** True when the child is using the controller this frame. */
+export const padIsActive = (frame: PadFrame): boolean =>
+  frame.primary ||
+  frame.jump ||
+  frame.back ||
+  frame.menu ||
+  frame.navigate !== undefined ||
+  frame.move !== idleInput;
+
+export type PadStyle = 'playstation' | 'xbox';
+
+/** Which button names to show. Unknown (generic) controllers get PlayStation symbols. */
+export const padStyleOf = (id: string): PadStyle =>
+  /xbox|xinput|045e/iu.test(id) ? 'xbox' : 'playstation';
+
+export const padGlyphs: Readonly<Record<PadStyle, { confirm: string; back: string }>> = {
+  playstation: { confirm: '✕', back: '◯' },
+  xbox: { confirm: 'A', back: 'B' },
+};
 
 /** Reads the first connected controller (USB or Bluetooth) once per frame. */
 export class GamepadReader {
@@ -138,6 +159,12 @@ export class GamepadReader {
 
   get connected(): boolean {
     return this.index !== null;
+  }
+
+  get style(): PadStyle {
+    const index = this.index;
+    if (index === null || typeof navigator.getGamepads !== 'function') return 'playstation';
+    return padStyleOf(navigator.getGamepads()[index]?.id ?? '');
   }
 
   poll(): PadFrame | undefined {

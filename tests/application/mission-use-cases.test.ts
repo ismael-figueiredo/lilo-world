@@ -5,6 +5,7 @@ import { MissionAttempt } from '@domain/mission/mission-attempt';
 import { StaticContentCatalog } from '@infrastructure/catalog/static-content-catalog';
 import { InMemoryProgressRepository } from '@infrastructure/persistence/in-memory-progress-repository';
 import { LeaveMission } from '@application/use-cases/leave-mission';
+import { RewardSafeTrip, SAFE_TRIP_COINS } from '@application/use-cases/reward-safe-trip';
 import { content, FakeSpeech, FixedClock, mission } from '../support/fixtures';
 
 describe('mission use cases', () => {
@@ -115,5 +116,14 @@ describe('mission use cases', () => {
     if (!last.ok) throw new Error('setup failed');
     await leave.execute(last.value.attempt);
     expect((await progress.load()).statsFor(mission.id).attempts).toBe(1);
+  });
+});
+
+describe('safe trip', () => {
+  it('adds coins and saves them', async () => {
+    const progress = new InMemoryProgressRepository();
+    const coins = await new RewardSafeTrip(progress).execute();
+    expect(coins).toBe(SAFE_TRIP_COINS);
+    expect((await progress.load()).coins.amount).toBe(SAFE_TRIP_COINS);
   });
 });
