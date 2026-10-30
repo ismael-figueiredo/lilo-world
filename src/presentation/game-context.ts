@@ -18,9 +18,10 @@ export type Mode =
   | 'session'
   | 'wardrobe'
   | 'menu'
+  | 'pause'
   | 'rest';
 
-export type PanelMode = 'mission' | 'learning' | 'session' | 'wardrobe' | 'menu' | 'rest';
+export type PanelMode = 'mission' | 'learning' | 'session' | 'wardrobe' | 'menu' | 'pause' | 'rest';
 
 /** What controllers can use. Implemented by GameApp; keeps controllers small and focused. */
 export interface GameContext {

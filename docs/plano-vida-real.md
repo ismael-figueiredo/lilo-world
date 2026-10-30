@@ -127,15 +127,15 @@ Objetivo: uma criança joga sem pensar nos botões.
 | ▢           | X    | Botão 👋      | Q        | Cumprimentar (ou pular em pátio, quadra e praia) |
 | △           | Y    | Botão 📅      | Tab      | Agenda do dia                                    |
 | Options     | Menu | Botão ☰      | P        | Menu                                             |
-| L1          | LB   | Botão 🛟      | C        | Preciso de uma pausa (cantinho calmo)            |
+| L1          | LB   | Botão 🧸      | C        | Preciso de uma pausa (cantinho calmo)            |
 | R2          | RT   | Automático    | Shift    | Correr, se não estiver no modo calmo             |
 
-- [ ] **C1.1 Novo mapa de botões.** Atualizar `gamepad.ts`, `padGlyphs`, `input.ts` e `pad-focus`. Pronto: testes de intenção atualizados e ✕ confirma em todos os painéis.
-- [ ] **C1.2 Dicas sempre certas.** `pad-hints` mostra o que cada botão faz no momento. Pronto: a dica muda ao chegar perto de algo.
-- [ ] **C1.3 Controles de toque iguais.** Mesmos botões e posições estáveis. Pronto: alvos de 88 px ou mais em celular deitado e em pé.
-- [ ] **C1.4 Cumprimentar.** Personagem acena, NPC perto responde. Pronto: acenar perto de alguém gera resposta falada e animada; longe, só acena.
-- [ ] **C1.5 Pulo por lugar.** Zonas dizem se o pulo existe. Pronto: na rua não pula; na quadra sim.
-- [ ] **C1.6 Botão de pausa.** L1 abre o cantinho calmo de qualquer lugar. Pronto: ao sair, volta exatamente onde estava.
+- [x] **C1.1 Novo mapa de botões.** Atualizar `gamepad.ts`, `padGlyphs`, `input.ts` e `pad-focus`. Pronto: testes de intenção atualizados e ✕ confirma em todos os painéis.
+- [x] **C1.2 Dicas sempre certas.** `pad-hints` mostra o que cada botão faz no momento. Pronto: a dica muda ao chegar perto de algo.
+- [x] **C1.3 Controles de toque iguais.** Mesmos botões e posições estáveis. Pronto: alvos de 88 px ou mais em celular deitado e em pé.
+- [x] **C1.4 Cumprimentar.** Personagem acena, NPC perto responde. Pronto: acenar perto de alguém gera resposta falada e animada; longe, só acena.
+- [x] **C1.5 Pulo por lugar.** Zonas dizem se o pulo existe. Pronto: na rua não pula; na quadra sim.
+- [x] **C1.6 Botão de pausa.** L1 abre o cantinho calmo de qualquer lugar. Pronto: ao sair, volta exatamente onde estava.
 - [ ] **C1.7 Teste com controle físico.** Pendência antiga. Pronto: roteiro feito por você em DualSense ou Xbox, com problemas anotados.
 
 ### C2. Zonas e carregamento leve

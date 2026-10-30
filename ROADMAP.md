@@ -23,6 +23,7 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | Vida real 1: controle, faixas, ensino sem adivinhação, CAA, ARASAAC                      | ✅ feito   | —         |
 | Currículo 0 a 2: voz, sensorial, motor único, arrastar, sessão de 10 minutos             | ✅ feito   | —         |
 | Vida real C0: nada entrega a resposta, frases por id, ajuda gentil, degraus              | ✅ feito   | —         |
+| Vida real C1: botões de console, cumprimentar, pulo por lugar, pausa calma               | ✅ feito   | —         |
 | Currículo 3: áudio gravado, rimas, vogais e sílabas (depende da gravação)                | ⏭️ próximo | —         |
 | Vida real 2: casa e mercado para andar, agenda do dia, fim dos portais, receita completa | ⏳ depois  | —         |
 | Vida real 3: ônibus de verdade, escola e fazenda caminháveis, histórias em figuras       | ⏳ depois  | —         |
@@ -153,7 +154,7 @@ Depois do teste com controle e do uso real do jogo, a direção mudou: menos tel
 
 ### Etapa 1 (feita)
 
-- **Controle:** um botão, uma função: ▢ usa e escolhe, ✕ pula, ◯ volta, △ ou Options abre o menu, com os símbolos nas cores do PlayStation (`padGlyphs`). Funciona também na tela de perfis. `PadFocus` (`ui/pad-focus.ts`) mantém o foco perto da última escolha. Dicas de botões na tela (`ui/pad-hints.ts`) e joystick escondido.
+- **Controle (trocado na C1, ver README):** um botão, uma função: ▢ usava e escolhia, ✕ pulava, ◯ volta, △ ou Options abria o menu, com os símbolos nas cores do PlayStation (`padGlyphs`). Funciona também na tela de perfis. `PadFocus` (`ui/pad-focus.ts`) mantém o foco perto da última escolha. Dicas de botões na tela (`ui/pad-hints.ts`) e joystick escondido.
 - **Rua:** listras paralelas à rua e 7 faixas (`CROSSINGS`, `zebraBars`). `RoadSafety` (`world/road-safety.ts`, testado) leva a criança de volta ao último ponto seguro; atravessar direito e usar um lugar dá +2 moedas (`RewardSafeTrip`).
 - **Ensino:** `ChallengeSession` agora tem rodadas de 5 perguntas; subir de nível exige 4 de 5 de primeira. Depois de um erro só a certa fica ativa, vem pergunta nova e a errada volta depois sem valer ponto. `MissionAttempt` segue a mesma regra (`model`), e no quiz a pergunta errada volta no fim.
 - **Sem entregar a resposta:** cartões de lista, CAA e estações sem palavra embaixo; contagem em grupos de 5; o caixa pede para contar o carrinho.

@@ -29,6 +29,7 @@ import { h } from '@presentation/ui/dom';
 import { Hud } from '@presentation/ui/hud';
 import { Minimap } from '@presentation/ui/minimap';
 import type { Gesture } from '@presentation/ui/controls';
+import { CalmPause } from '@presentation/ui/calm-pause';
 import { PadFocus } from '@presentation/ui/pad-focus';
 import {
   colliderOf,
@@ -82,9 +83,19 @@ export class GameApp implements GameContext {
   private readonly camera = new THREE.PerspectiveCamera(55, 1, 0.1, 1200);
   private readonly ui = h('div', { className: 'ui' });
   private readonly fade = h('div', { className: 'fade', attrs: { 'aria-hidden': 'true' } });
-  private readonly hud = new Hud(() => {
-    if (this.currentMode === 'explore') this.menus.open();
+  private readonly hud = new Hud(
+    () => {
+      if (this.currentMode === 'explore') this.menus.open();
+    },
+    () => {
+      this.togglePause();
+    },
+  );
+  private readonly calmPause = new CalmPause(() => {
+    this.togglePause();
   });
+  /** What the pause interrupted, to go back to exactly that. */
+  private beforePause: Mode | undefined;
   readonly dialog = new Dialog();
   private readonly marker = new GoalMarker();
   private readonly mascot = new Mascot();
@@ -359,6 +370,7 @@ export class GameApp implements GameContext {
       this.wardrobe.panel.element,
       ...this.menus.elements,
       this.restScreen.element,
+      this.calmPause.element,
       this.padHints.element,
       this.fade,
     );
@@ -570,8 +582,10 @@ export class GameApp implements GameContext {
       input.applyPad(pad, dt);
       if (pad.menu) this.goBack();
       if (pad.agenda) this.day.open();
+      if (pad.pause) this.togglePause();
       return;
     }
+    if (pad.pause) this.togglePause();
     if (!document.body.classList.contains('is-pad')) return;
     this.padFocus.keep();
     if (pad.navigate !== undefined) this.padFocus.move(pad.navigate);
@@ -586,9 +600,30 @@ export class GameApp implements GameContext {
     if (active) this.padHints.setStyle(this.gamepad.style);
   }
 
+  /** A pause on top of whatever is happening, which waits there unchanged. */
+  private togglePause(): void {
+    const paused = this.beforePause;
+    if (paused !== undefined) {
+      this.beforePause = undefined;
+      this.calmPause.hide();
+      if (paused === 'explore') this.backToExploring(phrases.pauseBack);
+      else this.currentMode = paused;
+      return;
+    }
+    const mode = this.currentMode;
+    if (mode === 'loading' || mode === 'profiles' || mode === 'rest') return;
+    this.beforePause = mode;
+    this.services.speech.stop();
+    if (mode === 'explore') this.enterPanel('pause');
+    else this.currentMode = 'pause';
+    this.calmPause.show();
+    this.say(phrases.pauseOpen);
+  }
+
   /** Esc, or B / Start on a controller: opens the menu or closes what is open. */
   private goBack(): void {
-    if (this.currentMode === 'explore') this.menus.open();
+    if (this.currentMode === 'pause') this.togglePause();
+    else if (this.currentMode === 'explore') this.menus.open();
     else if (this.currentMode === 'menu') {
       this.menus.closeAll();
       this.backToExploring();
@@ -940,6 +975,7 @@ export class GameApp implements GameContext {
       if (event.key === 'Escape') this.goBack();
       if (isTyping(event.target) || event.repeat) return;
       const key = gameKey(event.code);
+      if (key === 'pause') this.togglePause();
       if (this.currentMode !== 'explore') return;
       if (key === 'menu') this.goBack();
       if (key === 'agenda') {

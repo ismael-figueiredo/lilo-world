@@ -1172,6 +1172,23 @@ button {
   pointer-events: auto;
 }
 
+.hud__pause {
+  position: relative;
+  z-index: 2;
+  width: var(--touch);
+  height: var(--touch);
+  border: none;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  font-size: 2.2rem;
+  pointer-events: auto;
+}
+
+.is-pad .hud__pause {
+  display: none;
+}
+
 .hud__burger {
   display: block;
   height: 5px;
@@ -2317,6 +2334,19 @@ img.stimulus__picture {
 /* Families can reduce motion in the device settings; the game respects it. */
 /* A phone held upright: answers stack, and "Pronto" stays on the screen. */
 @media (max-width: 760px) and (min-height: 521px) {
+  /* Buttons stay on the screen: the clock only shows up when time is running out. */
+  .hud__timer:not(.is-warning) {
+    display: none;
+  }
+  /* The yellow button goes above the others, never over the joystick. */
+  .controls__right {
+    flex-wrap: wrap-reverse;
+    justify-content: flex-end;
+    max-width: 200px;
+  }
+  .action {
+    order: 1;
+  }
   .drag {
     grid-template-columns: 1fr;
     gap: 8px;

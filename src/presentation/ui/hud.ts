@@ -1,6 +1,6 @@
 import { h, replayAnimation } from '@presentation/ui/dom';
 
-/** Coins, stars, time left and the menu, always in the same corner. */
+/** A pause, time left, coins, stars and the menu, always in the same corner. */
 export class Hud {
   readonly element: HTMLElement;
   private readonly coins = h('span', { className: 'hud__value', text: '0' });
@@ -9,7 +9,7 @@ export class Hud {
   private readonly starPill: HTMLElement;
   private readonly timer = h('div', { className: 'hud__pill hud__timer is-hidden' });
 
-  constructor(onMenu: () => void) {
+  constructor(onMenu: () => void, onPause: () => void) {
     this.coinPill = h('div', { className: 'hud__pill', attrs: { 'aria-label': 'Moedas' } }, [
       h('span', { className: 'hud__icon', text: '🪙' }),
       this.coins,
@@ -31,7 +31,22 @@ export class Hud {
         h('span', { className: 'hud__burger' }),
       ],
     );
-    this.element = h('div', { className: 'hud' }, [this.timer, this.coinPill, this.starPill, menu]);
+    const pause = h(
+      'button',
+      {
+        className: 'hud__pause',
+        attrs: { type: 'button', 'aria-label': 'Pausa' },
+        onTap: onPause,
+      },
+      [h('span', { text: '🧸' })],
+    );
+    this.element = h('div', { className: 'hud' }, [
+      pause,
+      this.timer,
+      this.coinPill,
+      this.starPill,
+      menu,
+    ]);
   }
 
   set(coins: number, stars: number): void {

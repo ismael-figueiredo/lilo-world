@@ -23,9 +23,11 @@ export class PadHints {
   readonly element = h('div', { className: 'pad-hints', attrs: { 'aria-hidden': 'true' } }, [
     hint('select', 'escolher', 'pad-hints__item--panel'),
     hint('back', 'voltar', 'pad-hints__item--panel'),
+    hint('pause', 'pausa', 'pad-hints__item--panel'),
     hint('gesture', this.gesture, 'pad-hints__item--world'),
     hint('agenda', 'agenda', 'pad-hints__item--world'),
     hint('menu', 'menu', 'pad-hints__item--world'),
+    hint('pause', 'pausa', 'pad-hints__item--world'),
   ]);
 
   setGesture(gesture: Gesture): void {
