@@ -1,0 +1,85 @@
+import { addObjects, carryObjects, countObjects, payCoins } from '@domain/activity/generators';
+import { skill, type SkillDefinition } from '@domain/curriculum/skill';
+
+const track = 'math';
+
+/** Trails M1 to M8 grow here: objects first, then pictures, then numbers. */
+export const math: readonly SkillDefinition[] = [
+  skill('math.count.5', {
+    name: 'Contar até 5',
+    track,
+    station: 'numbers',
+    level: 1,
+    interaction: 'tap',
+    games: ['garden'],
+    activity: countObjects({ max: 5 }),
+  }),
+  skill('math.carry.5', {
+    name: 'Levar até 5',
+    track,
+    station: 'numbers',
+    level: 1,
+    interaction: 'drag',
+    games: ['garden'],
+    activity: carryObjects({ max: 5 }),
+  }),
+  skill('math.count.10', {
+    name: 'Contar até 10',
+    requires: ['math.count.5'],
+    track,
+    station: 'numbers',
+    level: 2,
+    interaction: 'tap',
+    games: ['garden'],
+    activity: countObjects({ max: 10 }),
+  }),
+  skill('math.carry.10', {
+    name: 'Levar até 10',
+    requires: ['math.carry.5'],
+    track,
+    station: 'numbers',
+    level: 2,
+    interaction: 'drag',
+    games: ['garden'],
+    activity: carryObjects({ max: 10 }),
+  }),
+  skill('math.add.10', {
+    name: 'Somar até 10',
+    requires: ['math.count.10'],
+    track,
+    station: 'numbers',
+    level: 3,
+    interaction: 'tap',
+    games: ['garden'],
+    activity: addObjects({ max: 10 }),
+  }),
+  skill('math.pay.3', {
+    name: 'Pagar até 3',
+    track,
+    station: 'coins',
+    level: 1,
+    interaction: 'drag',
+    games: ['shop'],
+    activity: payCoins({ max: 3 }),
+  }),
+  skill('math.pay.6', {
+    name: 'Pagar até 6',
+    requires: ['math.pay.3'],
+    track,
+    station: 'coins',
+    level: 2,
+    interaction: 'drag',
+    games: ['shop'],
+    activity: payCoins({ max: 6 }),
+  }),
+  skill('math.pay.10', {
+    name: 'Pagar até 10',
+    requires: ['math.pay.6'],
+    track,
+    station: 'coins',
+    level: 3,
+    interaction: 'drag',
+    games: ['shop'],
+    activity: payCoins({ max: 10 }),
+  }),
+];

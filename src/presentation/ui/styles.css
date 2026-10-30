@@ -9,6 +9,7 @@
   --sun: #ffd23f;
   --sun-dark: #e8b10f;
   --coral: #ff7a6b;
+  --coral-dark: #d9503f;
   --lilo: #ffa53d;
   --shadow: 0 6px 0 rgba(0, 0, 0, 0.14), 0 14px 30px rgba(20, 40, 80, 0.18);
   --radius: 28px;
@@ -281,9 +282,9 @@ button {
   padding: 0 34px;
   border: none;
   border-radius: 999px;
-  background: var(--sky);
+  background: var(--sky-dark);
   box-shadow:
-    0 6px 0 var(--sky-dark),
+    0 6px 0 #1a659e,
     0 14px 30px rgba(20, 40, 80, 0.2);
   color: #fff;
   font-size: 1.6rem;
@@ -291,9 +292,9 @@ button {
 }
 
 .big-button--green {
-  background: var(--leaf);
+  background: var(--leaf-dark);
   box-shadow:
-    0 6px 0 var(--leaf-dark),
+    0 6px 0 #226b35,
     0 14px 30px rgba(20, 40, 80, 0.2);
 }
 
@@ -306,8 +307,8 @@ button {
 
 .panel__close {
   flex: none;
-  width: 64px;
-  height: 64px;
+  width: var(--touch);
+  height: var(--touch);
   border: none;
   border-radius: 50%;
   background: #f0ece2;
@@ -333,6 +334,8 @@ button {
 .mission__sheet {
   position: relative;
   width: min(1100px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
   padding: 20px 24px 24px;
   background: var(--paper);
   border-radius: 36px;
@@ -448,8 +451,8 @@ button {
 
 .mission--slots .mission__list-item.is-done .mission__slot {
   border-style: solid;
-  border-color: var(--leaf);
-  background: var(--leaf);
+  border-color: var(--leaf-dark);
+  background: var(--leaf-dark);
   color: #fff;
 }
 
@@ -506,6 +509,31 @@ button {
 
 .mission--task .celebration {
   pointer-events: auto;
+}
+
+/* The instruction stays on screen, with the voice one press away. */
+.instruction {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.instruction__text {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.repeat-button {
+  flex: none;
+  width: var(--touch);
+  height: var(--touch);
+  border: none;
+  border-radius: 50%;
+  background: #f0ece2;
+  font-size: 2rem;
 }
 
 .mission__shelf-area {
@@ -718,7 +746,7 @@ button {
 }
 
 .wardrobe__tab.is-active {
-  background: var(--sky);
+  background: var(--sky-dark);
   color: #fff;
 }
 
@@ -1047,12 +1075,6 @@ button {
   pointer-events: auto;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .fade {
-    transition-duration: 0.15s;
-  }
-}
-
 /* ---------- Shared ---------- */
 /* Playing with a controller: the focused button must be easy to spot. */
 .is-pad :focus {
@@ -1144,9 +1166,9 @@ button {
   flex-direction: column;
   justify-content: center;
   gap: 6px;
-  width: 64px;
-  height: 64px;
-  padding: 0 16px;
+  width: var(--touch);
+  height: var(--touch);
+  padding: 0 24px;
   border: none;
   border-radius: 50%;
   background: var(--paper);
@@ -1273,19 +1295,20 @@ button {
 }
 
 .menu__tile--green {
-  background: var(--leaf);
+  background: var(--leaf-dark);
 }
 .menu__tile--sky {
-  background: var(--sky);
+  background: var(--sky-dark);
 }
 .menu__tile--sun {
   background: var(--sun-dark);
+  color: var(--ink);
 }
 .menu__tile--grape {
   background: #9b6bf2;
 }
 .menu__tile--coral {
-  background: var(--coral);
+  background: var(--coral-dark);
 }
 
 /* ---------- Settings ---------- */
@@ -1335,7 +1358,7 @@ button {
 
 .slider {
   flex: 2 1 220px;
-  height: 44px;
+  height: var(--touch);
   accent-color: var(--sky);
   cursor: pointer;
 }
@@ -1353,6 +1376,12 @@ button {
   border-radius: 999px;
   background: #d8d2c4;
   transition: background 0.2s;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  inset: -18px 0;
 }
 
 .switch.is-on {
@@ -1385,7 +1414,7 @@ button {
 }
 
 .segmented__option {
-  min-height: 52px;
+  min-height: var(--touch);
   padding: 0 16px;
   border: none;
   border-radius: 16px;
@@ -1395,7 +1424,7 @@ button {
 }
 
 .segmented__option.is-active {
-  background: var(--sky);
+  background: var(--sky-dark);
   color: #fff;
 }
 
@@ -1403,7 +1432,7 @@ button {
 .hold {
   position: relative;
   overflow: hidden;
-  min-height: 60px;
+  min-height: var(--touch);
   padding: 0 22px;
   border: none;
   border-radius: 999px;
@@ -1602,8 +1631,8 @@ button {
   border-radius: 18px;
   background: rgba(255, 253, 248, 0.92);
   box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
-  min-width: 60px;
-  min-height: 60px;
+  min-width: var(--touch);
+  min-height: var(--touch);
 }
 
 .map__pin--above {
@@ -1766,7 +1795,7 @@ button {
 }
 
 .small-button {
-  min-height: 56px;
+  min-height: var(--touch);
   padding: 0 18px;
   border: none;
   border-radius: 999px;
@@ -1794,6 +1823,227 @@ button {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
+}
+
+/* The fade softens a change of place: cut to 0.01 ms it became a white flash. */
+.reduce-motion .fade {
+  transition-duration: 0.3s !important;
+}
+
+.reduce-motion .tile.is-hinted {
+  box-shadow: 0 0 0 8px var(--sun);
+}
+
+.reduce-motion .hold.is-holding .hold__fill {
+  transition-duration: var(--hold-ms, 3000ms) !important;
+}
+
+/* ---------- Activity stage ---------- */
+.stimulus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.stimulus__group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+
+.stimulus__object {
+  font-size: 2.8rem;
+}
+
+img.stimulus__object {
+  width: 3.4rem;
+  height: 3.4rem;
+}
+
+.stimulus__picture {
+  font-size: 4rem;
+}
+
+img.stimulus__picture {
+  width: 6rem;
+  height: 6rem;
+}
+
+.stimulus__sign {
+  font-size: 2.6rem;
+  font-weight: 900;
+}
+
+.stimulus--word {
+  margin: 0;
+  font-size: 3.6rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--station);
+}
+
+.activity__answers.is-new {
+  animation: rise 0.35s ease;
+}
+
+/* The numbers station's orange is too light for digits; the same goes for the stage. */
+.challenge .challenge__face {
+  font-size: 4rem;
+  color: var(--ink);
+}
+
+.drag {
+  display: grid;
+  grid-template-columns: 1fr minmax(150px, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.drag__tray,
+.drag__target {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 140px;
+  padding: 10px;
+  border-radius: 20px;
+}
+
+.drag__tray {
+  background: #fff;
+}
+
+.drag__target {
+  position: relative;
+  border: 4px dashed var(--ink-soft);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+/* In a corner: the first piece must not cover it. */
+.drag__target-icon {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  font-size: 2.4rem;
+  pointer-events: none;
+}
+
+.drag__piece {
+  position: relative;
+  z-index: 1;
+  width: var(--touch);
+  height: var(--touch);
+  border: none;
+  border-radius: 18px;
+  background: var(--paper);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.12);
+  touch-action: none;
+}
+
+.drag__picture {
+  font-size: 2.6rem;
+}
+
+.drag__done {
+  grid-column: 1 / -1;
+  justify-self: center;
+}
+
+.drag__done:disabled {
+  opacity: 0.45;
+}
+
+.big-button.is-hinted {
+  outline: 8px solid var(--sun);
+}
+
+/* ---------- The day's plan ---------- */
+.day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: min(860px, calc(100% - 32px));
+}
+
+.day__path {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.day__card {
+  flex: 1 1 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: 200px;
+  min-height: 150px;
+  padding: 12px;
+  border: none;
+  border-top: 8px solid var(--station, var(--sun));
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.12);
+  color: var(--ink);
+}
+
+.day__card.is-done {
+  opacity: 0.6;
+}
+
+.day__card--prize {
+  background: #fff6db;
+}
+
+.day__icon {
+  font-size: 3rem;
+}
+
+.day__name {
+  font-size: 1.15rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.day__hint {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.day__prize {
+  margin: 0;
+  font-size: 2.2rem;
+  font-weight: 900;
+}
+
+.day__breath {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #bfe3ff, var(--sky));
+  /* 4 s in, 4 s out, three times. */
+  animation: slow-breath 8s ease-in-out 3;
+}
+
+@keyframes slow-breath {
+  0%,
+  100% {
+    transform: scale(0.6);
+  }
+  50% {
+    transform: scale(1);
+  }
 }
 
 /* ---------- Small screens ---------- */
@@ -1828,6 +2078,168 @@ button {
   }
   .menu__tile {
     min-height: 110px;
+  }
+}
+
+/* A phone on its side: the answers must fit on the screen without scrolling. */
+@media (max-height: 520px) {
+  .mission__sheet {
+    padding: 12px 16px;
+  }
+  .mission:not(.mission--task) .mission__title:not(.challenge .mission__title) {
+    display: none;
+  }
+  .mission__body {
+    flex-direction: row;
+    gap: 12px;
+  }
+  .mission__list-card {
+    flex: none;
+    width: 160px;
+    padding: 8px 12px;
+  }
+  .mission__list {
+    display: block;
+  }
+  .mission__list-title {
+    margin-bottom: 2px;
+    font-size: 1.05rem;
+  }
+  .mission__list-item {
+    gap: 6px;
+    padding: 2px 6px;
+    font-size: 0.95rem;
+  }
+  .mission__list-item .pictogram {
+    font-size: 1.4rem;
+  }
+  .mission__list-item img {
+    width: 34px;
+    height: 34px;
+  }
+  .instruction {
+    margin-bottom: 0;
+    padding-right: 84px;
+  }
+  .instruction__text {
+    font-size: 1.05rem;
+  }
+  .mission__question {
+    padding: 0;
+    font-size: 2.4rem;
+  }
+  .mission__shelf {
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: 8px;
+    padding: 8px;
+    border-radius: 18px;
+  }
+  .tile {
+    min-height: 92px;
+  }
+  .tile .pictogram__image,
+  .tile img {
+    max-height: 64px;
+  }
+  .pictogram--big {
+    font-size: 2.2rem;
+  }
+  .challenge__board {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 6px 0;
+    padding: 6px 12px;
+  }
+  .challenge__board .instruction {
+    flex: 2;
+    padding-right: 76px;
+    text-align: left;
+  }
+  .challenge__show {
+    flex: 1;
+    font-size: 2rem;
+  }
+  .challenge__show--word {
+    font-size: 2.2rem;
+  }
+  .challenge__options {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+  .challenge .challenge__face {
+    font-size: 3rem;
+  }
+  .stimulus__object {
+    font-size: 1.8rem;
+  }
+  img.stimulus__object {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+  .stimulus__picture {
+    font-size: 2.6rem;
+  }
+  img.stimulus__picture {
+    width: 3.4rem;
+    height: 3.4rem;
+  }
+  .stimulus__sign {
+    font-size: 1.8rem;
+  }
+  .stimulus--word {
+    font-size: 2.2rem;
+  }
+  .drag__tray,
+  .drag__target {
+    min-height: 92px;
+    padding: 6px;
+  }
+  .mission__shelf.drag {
+    grid-template-columns: 1fr 150px auto;
+    align-items: center;
+  }
+  .drag__tray,
+  .drag__target {
+    align-self: stretch;
+    gap: 4px;
+  }
+  .drag__piece {
+    width: 56px;
+    height: 56px;
+  }
+  .drag__target .drag__piece {
+    width: 40px;
+    height: 40px;
+  }
+  .drag__target-icon {
+    font-size: 1.4rem;
+  }
+  .drag__picture {
+    font-size: 1.6rem;
+  }
+  .drag__target .drag__picture {
+    font-size: 1.2rem;
+  }
+  .drag__done {
+    grid-column: auto;
+    min-width: 0;
+    padding: 0 16px;
+    font-size: 1.1rem;
+  }
+  .day {
+    gap: 8px;
+    padding: 12px;
+  }
+  .day__card {
+    min-height: 92px;
+    padding: 6px;
+  }
+  .day__icon {
+    font-size: 1.8rem;
+  }
+  .day__breath {
+    width: 110px;
+    height: 110px;
   }
 }
 
@@ -1912,6 +2324,18 @@ button {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .fade {
+    transition-duration: 0.3s !important;
+  }
+
+  .tile.is-hinted {
+    box-shadow: 0 0 0 8px var(--sun);
+  }
+
+  .hold.is-holding .hold__fill {
+    transition-duration: var(--hold-ms, 3000ms) !important;
   }
 }
 

@@ -33,6 +33,18 @@ describe('mission use cases', () => {
     expect(speech.spoken).toEqual(['Vamos ao mercado! Pegue a maçã.']);
   });
 
+  it('says the introduction of the chosen variant, the same one the balloon shows', async () => {
+    const variant = { id: 'fair', introduction: 'Vamos à feira!', steps: mission.steps };
+    const catalog = new StaticContentCatalog({
+      ...content,
+      missions: [{ ...mission, variants: [variant] }],
+    });
+    const result = await new StartMission(catalog, speech).execute(mission.id);
+    if (!result.ok) throw new Error(result.error.message);
+    expect(result.value.mission.introduction).toBe('Vamos à feira!');
+    expect(speech.spoken).toEqual(['Vamos à feira! Pegue a maçã.']);
+  });
+
   it('reports an unknown mission', async () => {
     const result = await startMission.execute('missing');
     expect(result.ok).toBe(false);

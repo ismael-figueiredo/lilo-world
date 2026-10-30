@@ -55,7 +55,7 @@ describe('settings', () => {
     expect(settings.masterVolume).toBe(1);
     expect(settings.musicVolume).toBe(0);
     expect(settings.voiceSpeed).toBe(defaultSettings.voiceSpeed);
-    expect(settings.sessionLimitMinutes).toBe(0);
+    expect(settings.sessionLimitMinutes).toBe(defaultSettings.sessionLimitMinutes);
     expect(settings.softColors).toBe(false);
     expect(sanitizeSettings(null)).toEqual(defaultSettings);
   });

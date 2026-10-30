@@ -31,6 +31,14 @@ describe('LocalStorageProgressRepository', () => {
     expect(progress.coins.amount).toBe(0);
   });
 
+  it('keeps the story of each skill between days', async () => {
+    const storage = new MemoryStorage();
+    const repository = new LocalStorageProgressRepository(storage, 'player');
+    await repository.save(PlayerProgress.createNew().recordSkill('math.count.5', true, 5));
+    const again = await new LocalStorageProgressRepository(storage, 'player').load();
+    expect(again.skillRecord('math.count.5')?.recent).toEqual([true]);
+  });
+
   it('ignores fields with the wrong type', async () => {
     storage.setItem(
       PROGRESS_STORAGE_KEY,
@@ -40,6 +48,7 @@ describe('LocalStorageProgressRepository', () => {
     expect(progress.toSnapshot()).toEqual({
       coins: 0,
       stars: 2,
+      skillRecords: {},
       ownedItemIds: [],
       equipped: {},
       completedMissionIds: [],

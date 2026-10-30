@@ -45,6 +45,12 @@ describe('gamepad mapping', () => {
     expect(readPad(pad([], [PadButton.x]), pad([], [PadButton.x])).select).toBe(false);
   });
 
+  it('knows when the choosing button stays down, for buttons that must be held', () => {
+    const held = readPad(pad([], [PadButton.x]), pad([], [PadButton.x]));
+    expect(held.selectHeld).toBe(true);
+    expect(readPad(pad([], [PadButton.x]), pad()).selectHeld).toBe(false);
+  });
+
   it('gives each button one job: square chooses, cross jumps, circle goes back', () => {
     const square = readPad(pad(), pad([], [PadButton.x]));
     expect(square.select && !square.jump).toBe(true);

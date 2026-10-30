@@ -1,12 +1,15 @@
 import type { ContentCatalog } from '@application/ports/content-catalog';
 import type { AvatarDefinition, AvatarId } from '@domain/avatar/avatar';
 import type { WardrobeItem, WardrobeItemId } from '@domain/avatar/wardrobe-item';
-import type { Word } from '@domain/learning/challenge';
+import type { SkillDefinition } from '@domain/curriculum/skill';
+import type { Word } from '@domain/language/word';
 import type { Mission, MissionId } from '@domain/mission/mission';
 import type { World } from '@domain/world/world';
 import { avatars, missions, wardrobeItems, worlds } from '@infrastructure/catalog/content';
+import { math } from '@infrastructure/catalog/curriculum/math';
+import { portuguese } from '@infrastructure/catalog/curriculum/portuguese';
+import { wordBank } from '@infrastructure/catalog/curriculum/word-bank';
 import pictograms from '@infrastructure/catalog/pictograms.json';
-import { words } from '@infrastructure/catalog/words';
 
 export interface GameContent {
   readonly worlds: readonly World[];
@@ -14,6 +17,7 @@ export interface GameContent {
   readonly wardrobeItems: readonly WardrobeItem[];
   readonly avatars: readonly AvatarDefinition[];
   readonly words: readonly Word[];
+  readonly skills?: readonly SkillDefinition[];
 }
 
 const pictogramIds: Readonly<Record<string, unknown>> = pictograms;
@@ -27,12 +31,21 @@ export function withPictograms(mission: Mission): Mission {
   return { ...mission, choices };
 }
 
+/** The reviewed pictogram of a word, found by the same name its card has in the missions. */
+export function withWordPicture(word: Word): Word {
+  const id = pictogramIds[word.text.toLowerCase()];
+  return typeof id === 'number' ? { ...word, image: `pictograms/${id}.webp` } : word;
+}
+
+export const curriculum: readonly SkillDefinition[] = [...portuguese, ...math];
+
 const defaultContent: GameContent = {
   worlds,
   missions: missions.map(withPictograms),
   wardrobeItems,
   avatars,
-  words,
+  words: wordBank.map(withWordPicture),
+  skills: curriculum,
 };
 
 /** Content bundled with the game. A remote or therapist-edited catalog can replace it later. */
@@ -65,5 +78,9 @@ export class StaticContentCatalog implements ContentCatalog {
 
   listWords(): Promise<readonly Word[]> {
     return Promise.resolve(this.content.words);
+  }
+
+  listSkills(): Promise<readonly SkillDefinition[]> {
+    return Promise.resolve(this.content.skills ?? curriculum);
   }
 }

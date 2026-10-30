@@ -55,7 +55,9 @@ O plano completo do projeto está em [docs/plano-jogo-autismo.md](docs/plano-jog
 
 **Menu ☰:** mapa (toque num lugar e a seta mostra o caminho), meu progresso, ajustes (volumes, voz, cores suaves, reduzir movimento, câmera, minimapa, limite de tempo por sessão) e trocar jogador.
 
-**Primeira missão:** siga a seta até o 🍎 **Mercado**, entre e pegue os ingredientes da receita do dia (cada vez é uma: bolo, salada, sopa…) e pague no caixa contando moedas. Com as moedas, vá até **🏠 Minha casa** e escolha cores, chapéus e acessórios no guarda-roupa. Nas **estações de Letras, Números e Moedas** (🔤 🔢 🪙) ela pratica no próprio ritmo: três acertos seguidos sobem o nível e cada nível novo dá uma figurinha para o álbum. As estrelas abrem os portais para novos mundos.
+**Plano de hoje:** ao entrar, a criança vê três atividades curtas e um prêmio, e escolhe o que vem primeiro. A sessão cabe em 10 minutos, com caminhada entre as atividades, uma pausa opcional e sempre o mesmo fim. Quem preferir pode explorar: o plano fica no menu.
+
+**Primeira missão:** siga a seta até o 🍎 **Mercado**, entre e pegue os ingredientes da receita do dia (cada vez é uma: bolo, salada, sopa…) e pague no caixa contando moedas. Com as moedas, vá até **🏠 Minha casa** e escolha cores, chapéus e acessórios no guarda-roupa. Nas **estações de Letras, Números e Moedas** (🔤 🔢 🪙) ela pratica no próprio ritmo, em rodadas de 5 perguntas: 4 acertos de primeira sobem o nível e cada nível novo dá uma figurinha para o álbum. As estrelas abrem os portais para novos mundos.
 
 ## Rodar localmente
 
@@ -101,7 +103,7 @@ flowchart LR
 
 ```
 src/
-├── domain/          # Moedas, missões (pedido → ação → dica), progresso, mundos. Zero dependências.
+├── domain/          # Moedas, missões, atividades, currículo, progresso, mundos. Zero dependências.
 ├── application/     # Casos de uso (StartMission, BuyWardrobeItem…) e ports (interfaces).
 ├── infrastructure/  # Implementações dos ports: localStorage, Web Speech API, catálogo de conteúdo.
 ├── presentation/    # Mundo 3D (Three.js), personagem, câmera, interface HTML.
@@ -128,8 +130,10 @@ As fronteiras são **garantidas pelo lint**: um `import` do domínio para a infr
 - [x] **v0.2, sprint 4g:** mundo Emoções: reconhecer sentimentos em rostos e histórias e rotinas para ficar calmo (cantinho calmo)
 - [x] **v0.2, sprint 4h:** mercado 3D por dentro: prateleiras com os itens do dia, carrinho e caixa
 - [x] **Vida real, etapa 1:** controle revisto, faixas de pedestres, ensino sem adivinhação, frases com escolha livre e pictogramas ARASAAC
+- [x] **Currículo, fases 0 a 2:** motor único de atividades, tocar e arrastar, domínio com revisão espaçada, sessão de 10 minutos e área do adulto
+- [ ] **Currículo, próximas fases:** rimas, sílabas e fonemas com áudio gravado, matemática até compor 10, leitura e escrita
 - [ ] **Vida real, próximas etapas:** casa e mercado para andar, agenda do dia, receita completa, ônibus de verdade e escola; depois, mundo vivo
-- [ ] **Fase 2:** missões do ônibus, do semáforo e da padaria (frases com CAA: **[eu quero] + [pão]**), painel de ajustes sensoriais, álbum de figurinhas, pictogramas ARASAAC, PWA offline
+- [ ] **Fase 2:** PWA offline
 - [ ] **Fase 4:** painel para pais e terapeutas, fotos e figuras personalizadas, traduções
 
 Quer ajudar numa dessas etapas? Veja as [issues](https://github.com/ismael-figueiredo/lilo-world/issues) e o [guia de contribuição](CONTRIBUTING.md).
@@ -152,7 +156,7 @@ O Lilo World **apoia** a terapia e não a substitui. Combine com a família um t
 
 ## English summary
 
-**Lilo World** is a free, open-source, non-commercial **3D open-world educational game for autistic children** (ages 5–12), running in any browser on tablets, phones and PCs. Kids explore a colorful low-poly island, customize their character and complete short, predictable everyday missions (grocery shopping, taking the bus, ordering at the bakery) with visual communication (AAC pictograms and voice). Mistakes never punish; hints just get clearer.
+**Lilo World** is a free, open-source, non-commercial **3D open-world educational game for autistic children** (ages 5–12), running in any browser on tablets, phones and PCs. Kids explore a colorful low-poly island, customize their character and complete short, predictable everyday missions (grocery shopping, taking the bus, ordering at the bakery) with visual communication (AAC pictograms and voice). Mistakes never punish: the game shows the right answer and the question comes back later.
 
 - **Run:** `pnpm install && pnpm dev`. **Check:** `pnpm check`. **Build:** `pnpm build` produces static files in `dist/`.
 - **Architecture:** Clean Architecture with dependency inversion, with layer boundaries enforced by ESLint. See [docs/architecture.md](docs/architecture.md).

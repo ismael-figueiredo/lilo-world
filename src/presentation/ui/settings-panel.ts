@@ -1,3 +1,5 @@
+import type { SkillOverview } from '@application/use-cases/plan-session';
+import type { SkillChoice } from '@domain/curriculum/session-plan';
 import { sessionLimits, type Settings } from '@domain/settings/settings';
 import { h } from '@presentation/ui/dom';
 import { holdButton } from '@presentation/ui/hold-button';
@@ -5,7 +7,15 @@ import { holdButton } from '@presentation/ui/hold-button';
 export interface SettingsPanelCallbacks {
   onChange(patch: Partial<Settings>, preview?: 'effects' | 'voice' | 'music'): void;
   onClose(): void;
+  loadSkills(): Promise<readonly SkillOverview[]>;
 }
+
+const statusLabels: Readonly<Record<SkillOverview['status'], string>> = {
+  new: '⚪ Novo',
+  practicing: '🌱 Praticando',
+  mastered: '✅ Dominado',
+  review: '🔁 Revisar',
+};
 
 type VolumeKey = 'masterVolume' | 'voiceVolume' | 'musicVolume' | 'effectsVolume';
 type FlagKey = 'voiceEnabled' | 'softColors' | 'reducedMotion' | 'showMinimap';
@@ -16,6 +26,7 @@ export class SettingsPanel {
   private readonly body = h('div', { className: 'settings__body' });
   private settings: Settings | undefined;
   private limitUnlocked = false;
+  private overview: readonly SkillOverview[] = [];
 
   constructor(private readonly callbacks: SettingsPanelCallbacks) {
     this.element = h('section', { className: 'overlay', attrs: { 'aria-label': 'Ajustes' } }, [
@@ -80,15 +91,6 @@ export class SettingsPanel {
           ],
           (cameraSensitivity) => ({ cameraSensitivity }),
         ),
-        this.choice(
-          'Movimento na cidade',
-          settings.worldActivity,
-          [
-            ['calm', '🌿 Calmo'],
-            ['normal', '🚗 Normal'],
-          ],
-          (worldActivity) => ({ worldActivity }),
-        ),
       ]),
       this.section('⏱️ Tempo de jogo', [
         this.limitUnlocked
@@ -111,14 +113,45 @@ export class SettingsPanel {
               holdButton(
                 '👪 Mudar',
                 () => {
-                  this.limitUnlocked = true;
-                  if (this.settings !== undefined) this.render(this.settings);
+                  void this.unlock();
                 },
                 { className: 'hold--subtle' },
               ),
             ]),
       ]),
+      ...(this.limitUnlocked ? this.skillSections(settings) : []),
     );
+  }
+
+  private async unlock(): Promise<void> {
+    this.overview = await this.callbacks.loadSkills();
+    this.limitUnlocked = true;
+    if (this.settings !== undefined) this.render(this.settings);
+  }
+
+  /** For adults: where each skill stands, and what the day's plan may offer. */
+  private skillSections(settings: Settings): HTMLElement[] {
+    const row = (line: SkillOverview) =>
+      this.choice(
+        `${line.needsHelp ? '🤝 Precisa de ajuda' : statusLabels[line.status]}: ${line.skill.name}`,
+        settings.skillChoices[line.skill.id] ?? 'auto',
+        [
+          ['auto', 'Automático'],
+          ['pin', '📌 Priorizar'],
+          ['hide', '🙈 Esconder'],
+        ],
+        (value) => {
+          const others = Object.entries(settings.skillChoices).filter(
+            ([id]) => id !== line.skill.id,
+          );
+          const chosen: [string, SkillChoice][] =
+            value === 'pin' || value === 'hide' ? [[line.skill.id, value]] : [];
+          return { skillChoices: Object.fromEntries([...others, ...chosen]) };
+        },
+      );
+    const section = (title: string, track: SkillOverview['skill']['track']) =>
+      this.section(title, this.overview.filter((l) => l.skill.track === track).map(row));
+    return [section('👪 Português', 'portuguese'), section('👪 Matemática', 'math')];
   }
 
   private section(title: string, rows: readonly HTMLElement[]): HTMLElement {

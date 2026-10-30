@@ -1,5 +1,11 @@
 import type { WardrobeItem, WardrobeItemId, WardrobeSlot } from '@domain/avatar/wardrobe-item';
-import { MAX_LEVEL, skills, type Skill } from '@domain/learning/challenge';
+import {
+  emptyRecord,
+  recordAnswer,
+  sanitizeRecord,
+  type SkillRecord,
+} from '@domain/curriculum/mastery';
+import { MAX_LEVEL, stations, type SkillId, type Station } from '@domain/curriculum/skill';
 import type { Mission, MissionId } from '@domain/mission/mission';
 import { Coins } from '@domain/reward/coins';
 import { noReward, type Reward } from '@domain/reward/reward';
@@ -31,10 +37,12 @@ export interface ProgressSnapshot {
   readonly completedMissionIds: readonly MissionId[];
   readonly missionStats?: Readonly<Record<MissionId, MissionStats>>;
   /** Level reached in each learning skill (1 when never played). */
-  readonly skillLevels?: Readonly<Partial<Record<Skill, number>>>;
+  readonly skillLevels?: Readonly<Partial<Record<Station, number>>>;
   readonly stickerIds?: readonly StickerId[];
   /** Letters collected for the alphabet album. */
   readonly letters?: readonly string[];
+  /** The story of each skill. Older saves have none: every skill then starts as new. */
+  readonly skillRecords?: Readonly<Record<SkillId, SkillRecord>>;
 }
 
 /** One answer at a learning station. */
@@ -61,13 +69,14 @@ interface State {
   readonly equipped: Readonly<Partial<Record<WardrobeSlot, WardrobeItemId>>>;
   readonly completed: ReadonlySet<MissionId>;
   readonly stats: Readonly<Record<MissionId, MissionStats>>;
-  readonly skillLevels: Readonly<Record<Skill, number>>;
+  readonly skillLevels: Readonly<Record<Station, number>>;
   readonly stickers: ReadonlySet<StickerId>;
   readonly letters: ReadonlySet<string>;
+  readonly skillRecords: Readonly<Record<SkillId, SkillRecord>>;
 }
 
-const startingLevels = (): Record<Skill, number> =>
-  Object.fromEntries(skills.map((skill) => [skill, 1])) as Record<Skill, number>;
+const startingLevels = (): Record<Station, number> =>
+  Object.fromEntries(stations.map((skill) => [skill, 1])) as Record<Station, number>;
 
 const wholeNumber = (value: unknown): number =>
   typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 0;
@@ -87,6 +96,7 @@ export class PlayerProgress {
       skillLevels: startingLevels(),
       stickers: new Set(),
       letters: new Set(),
+      skillRecords: {},
     });
   }
 
@@ -109,10 +119,16 @@ export class PlayerProgress {
       ]),
     );
     const skillLevels = startingLevels();
-    for (const skill of skills) {
+    for (const skill of stations) {
       const level = wholeNumber(snapshot.skillLevels?.[skill]);
       skillLevels[skill] = Math.min(Math.max(1, level), MAX_LEVEL);
     }
+    const skillRecords = Object.fromEntries(
+      Object.entries(snapshot.skillRecords ?? {}).flatMap(([id, raw]) => {
+        const record = sanitizeRecord(raw);
+        return record === undefined ? [] : [[id, record]];
+      }),
+    );
     return new PlayerProgress({
       coins: coins.ok ? coins.value : Coins.zero,
       stars: wholeNumber(snapshot.stars),
@@ -123,6 +139,7 @@ export class PlayerProgress {
       skillLevels,
       stickers: new Set(snapshot.stickerIds ?? []),
       letters: new Set((snapshot.letters ?? []).filter((l) => ALBUM_LETTERS.includes(l))),
+      skillRecords,
     });
   }
 
@@ -137,10 +154,27 @@ export class PlayerProgress {
       skillLevels: { ...this.state.skillLevels },
       stickerIds: [...this.state.stickers],
       letters: [...this.state.letters],
+      skillRecords: { ...this.state.skillRecords },
     };
   }
 
-  levelOf(skill: Skill): number {
+  skillRecord(id: SkillId): SkillRecord | undefined {
+    return this.state.skillRecords[id];
+  }
+
+  /** One answer of a skill, for mastery and reviews. Nothing here is shown to the child. */
+  recordSkill(id: SkillId, firstTry: boolean, now: number): PlayerProgress {
+    const record = recordAnswer(this.state.skillRecords[id] ?? emptyRecord, firstTry, now);
+    return this.with({ skillRecords: { ...this.state.skillRecords, [id]: record } });
+  }
+
+  /** The prize for finishing the day's plan. */
+  rewardSession(coins: number): PlayerProgress {
+    const earned = Coins.of(coins);
+    return earned.ok ? this.with({ coins: this.state.coins.add(earned.value) }) : this;
+  }
+
+  levelOf(skill: Station): number {
     return this.state.skillLevels[skill];
   }
 
@@ -162,7 +196,7 @@ export class PlayerProgress {
    * star (once each). Wrong answers change nothing.
    */
   recordChallenge(
-    skill: Skill,
+    skill: Station,
     record: ChallengeRecord,
   ): { progress: PlayerProgress; reward: Reward; sticker?: StickerId } {
     if (!record.correct) return { progress: this, reward: noReward };

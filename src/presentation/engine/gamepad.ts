@@ -30,6 +30,8 @@ export interface PadFrame {
   readonly look: { readonly x: number; readonly y: number };
   /** ▢: uses what is nearby and chooses in panels. */
   readonly select: boolean;
+  /** ▢ is down right now, for buttons that adults must hold. */
+  readonly selectHeld: boolean;
   /** ✕: jumps, and only that. */
   readonly jump: boolean;
   /** ◯: goes back in panels. */
@@ -109,6 +111,7 @@ export function readPad(previous: PadState, current: PadState): PadFrame {
     move,
     look: stickToLook(rx, ry),
     select: went(PadButton.x),
+    selectHeld: current.pressed[PadButton.x] === true,
     jump: went(PadButton.a),
     back: went(PadButton.b),
     menu: went(PadButton.y) || went(PadButton.start),

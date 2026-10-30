@@ -4,14 +4,16 @@ import type { SoundEffect } from '@application/ports/audio';
 import type { WorldMap } from '@application/use-cases/get-world-map';
 import type { Goal } from '@application/use-cases/suggest-next-goal';
 import { DEFAULT_AVATAR_ID, type PlayerProfile } from '@domain/profile/player-profile';
+import { sessionTimeStatus } from '@domain/session/session';
 import { defaultSettings, type Settings } from '@domain/settings/settings';
 import { Mascot } from '@presentation/actors/mascot';
 import { AvatarLibrary } from '@presentation/actors/avatar-library';
 import { avatarPictureUrl } from '@presentation/actors/avatar-rigs';
 import type { Player } from '@presentation/actors/player';
 import { MenuController } from '@presentation/controllers/menu-controller';
-import { LearningController } from '@presentation/controllers/learning-controller';
+import { ActivityController } from '@presentation/controllers/activity-controller';
 import { MissionController, missionPlaces } from '@presentation/controllers/mission-controller';
+import { SessionController } from '@presentation/controllers/session-controller';
 import { WardrobeController } from '@presentation/controllers/wardrobe-controller';
 import { CameraRig } from '@presentation/engine/camera-rig';
 import { GamepadReader, padIsActive } from '@presentation/engine/gamepad';
@@ -81,7 +83,8 @@ export class GameApp implements GameContext {
   private readonly profileScreen: ProfileScreen;
   private readonly restScreen: RestScreen;
   private readonly missions: MissionController;
-  private readonly learning: LearningController;
+  private readonly learning: ActivityController;
+  private readonly day: SessionController;
   private readonly wardrobe: WardrobeController;
   private readonly menus: MenuController;
   private readonly avatars: AvatarLibrary;
@@ -101,6 +104,7 @@ export class GameApp implements GameContext {
   private activeProfile: PlayerProfile | undefined;
   private playerServices: PlayerServices | undefined;
   private currentSettings: Settings = defaultSettings;
+  private readonly deviceReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   private worldMap: WorldMap | undefined;
   private goal: Goal = { kind: 'explore' };
   private destination: Interactable | undefined;
@@ -144,17 +148,28 @@ export class GameApp implements GameContext {
         this.playedMs = Math.max(0, this.playedMs - EXTRA_TIME_MS);
         this.warnedLastMission = false;
         this.restScreen.close();
+        this.services.audio.startMusic();
         this.backToExploring();
       },
     });
     this.avatars = new AvatarLibrary(options.baseUrl);
     this.missions = new MissionController(this);
-    this.learning = new LearningController(this);
+    this.learning = new ActivityController(this);
+    this.day = new SessionController(this, this.learning);
     this.wardrobe = new WardrobeController(this);
     this.menus = new MenuController(this, () => this.goalPlace()?.id);
   }
 
   // ---------- GameContext ----------
+
+  get restIsDue(): boolean {
+    const limit = this.currentSettings.sessionLimitMinutes;
+    return sessionTimeStatus(limit, this.playedMs, false).kind === 'time-to-rest';
+  }
+
+  get session(): SessionController {
+    return this.day;
+  }
 
   get player(): PlayerServices {
     if (this.playerServices === undefined) throw new Error('No player selected');
@@ -256,7 +271,8 @@ export class GameApp implements GameContext {
         : '';
     }
     this.root.classList.toggle('reduce-motion', settings.reducedMotion);
-    const motion = settings.reducedMotion ? 0.3 : 1;
+    // The device setting counts too: CSS follows it by itself, the 3D world does not.
+    const motion = settings.reducedMotion || this.deviceReducedMotion.matches ? 0.3 : 1;
     this.gameWorld?.setMotionScale(motion);
     this.mascot.motionScale = motion;
     this.marker.motionScale = motion;
@@ -274,8 +290,10 @@ export class GameApp implements GameContext {
   async switchPlayer(): Promise<void> {
     await this.saveSession();
     this.services.speech.stop();
+    this.services.audio.stopMusic();
     this.missions.close();
     this.learning.close();
+    this.day.close();
     this.wardrobe.close();
     this.menus.closeAll();
     this.restScreen.close();
@@ -320,6 +338,7 @@ export class GameApp implements GameContext {
       this.controls.element,
       this.missions.panel.element,
       this.learning.panel.element,
+      this.day.board.element,
       this.wardrobe.panel.element,
       ...this.menus.elements,
       this.restScreen.element,
@@ -449,11 +468,8 @@ export class GameApp implements GameContext {
     this.profileScreen.hide();
     this.services.audio.startMusic();
     this.backToExploringQuietly();
-    this.say(
-      isNew
-        ? `Oi, ${profile.name}! Eu sou o Lilo. ${this.goalMessage()}`
-        : `Que bom te ver, ${profile.name}! ${this.goalMessage()}`,
-    );
+    this.say(isNew ? `Oi, ${profile.name}! Eu sou o Lilo.` : `Que bom te ver, ${profile.name}!`);
+    await this.day.start();
   }
 
   private backToExploringQuietly(): void {
@@ -531,6 +547,7 @@ export class GameApp implements GameContext {
   private pollGamepad(dt: number, input: Input, exploring: boolean): void {
     const pad = this.gamepad.poll();
     if (pad === undefined) return;
+    if (!pad.selectHeld) this.padFocus.release();
     if (padIsActive(pad)) this.showPadControls(true);
     if (exploring) {
       input.applyPad(pad, dt);
@@ -561,6 +578,7 @@ export class GameApp implements GameContext {
       this.backToExploring();
     } else if (this.currentMode === 'mission') void this.missions.exit();
     else if (this.currentMode === 'learning') this.learning.exit();
+    else if (this.currentMode === 'session') this.day.later();
   }
 
   /** Calm street rules: a warning brings the child back, and safe trips earn coins. */
@@ -677,6 +695,7 @@ export class GameApp implements GameContext {
     const skill = skillOfStation(place.id);
     if (skill !== undefined) {
       this.sound('open');
+      if (await this.day.arrive(skill)) return;
       await this.learning.open(skill);
       return;
     }
@@ -812,8 +831,10 @@ export class GameApp implements GameContext {
         return;
       case 'time-to-rest':
         this.hud.setTimeLeft(0, true);
-        if (this.currentMode === 'explore') {
+        if (this.currentMode === 'explore' || this.currentMode === 'session') {
           await this.saveSession();
+          this.day.close();
+          this.services.audio.stopMusic();
           this.enterPanel('rest');
           this.restScreen.open(this.profile.name);
           this.say(`Hora de descansar, ${this.profile.name}. Você brincou muito bem!`);
@@ -838,8 +859,14 @@ export class GameApp implements GameContext {
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         this.services.speech.stop();
+        this.services.audio.stopMusic();
         void this.saveSession();
+      } else if (!['loading', 'profiles', 'rest'].includes(this.currentMode)) {
+        this.services.audio.startMusic();
       }
+    });
+    this.deviceReducedMotion.addEventListener('change', () => {
+      this.applySettings(this.currentSettings);
     });
     window.addEventListener('pagehide', () => {
       void this.saveSession();

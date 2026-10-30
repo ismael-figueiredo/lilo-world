@@ -1,9 +1,10 @@
 import { h } from '@presentation/ui/dom';
 
-export type MenuChoice = 'continue' | 'map' | 'progress' | 'settings' | 'switch-player';
+export type MenuChoice = 'continue' | 'today' | 'map' | 'progress' | 'settings' | 'switch-player';
 
 const choices: readonly { id: MenuChoice; icon: string; label: string; tone: string }[] = [
   { id: 'continue', icon: '▶️', label: 'Continuar', tone: 'green' },
+  { id: 'today', icon: '📅', label: 'Plano de hoje', tone: 'sky' },
   { id: 'map', icon: '🗺️', label: 'Mapa', tone: 'sky' },
   { id: 'progress', icon: '⭐', label: 'Meu progresso', tone: 'sun' },
   { id: 'settings', icon: '⚙️', label: 'Ajustes', tone: 'grape' },

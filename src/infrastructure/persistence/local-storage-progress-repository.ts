@@ -77,5 +77,9 @@ function parseSnapshot(raw: unknown): ProgressSnapshot {
       : {},
     stickerIds: isStringArray(data.stickerIds) ? data.stickerIds : [],
     letters: isStringArray(data.letters) ? data.letters : [],
+    // Each record is checked by PlayerProgress, which drops the broken ones.
+    skillRecords: isRecord(data.skillRecords)
+      ? (data.skillRecords as NonNullable<ProgressSnapshot['skillRecords']>)
+      : {},
   };
 }

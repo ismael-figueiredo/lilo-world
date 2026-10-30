@@ -26,6 +26,7 @@ export class MenuController {
     this.settingsPanel = new SettingsPanel({
       onChange: (patch, preview) => void this.changeSettings(patch, preview),
       onClose: back,
+      loadSkills: () => this.ctx.player.planSession.overview(),
     });
     this.map = new MapPanel({
       onSelect: (place) => {
@@ -65,6 +66,9 @@ export class MenuController {
       case 'continue':
         this.ctx.sound('close');
         this.ctx.backToExploring();
+        return;
+      case 'today':
+        this.ctx.session.open();
         return;
       case 'map':
         this.showMap();

@@ -22,7 +22,7 @@ A ideia central é **usar aquilo de que a criança gosta (videogame, mundo abert
 2. **Previsibilidade.** Todo desafio segue a mesma estrutura: **pedido → ação → comemoração**.
 3. **Uma instrução por vez.** Um mascote guia fala, aponta e mostra o que fazer.
 4. **Colorido, mas organizado.** O cenário é vivo, mas o objeto importante sempre se destaca (brilho, movimento, seta). Evitar poluição visual.
-5. **Errar não pune.** Não há som de erro forte nem "game over". O jogo só oferece uma nova tentativa, com uma dica mais clara.
+5. **Errar não pune.** Não há som de erro forte nem "game over". O jogo mostra a resposta certa, a criança a escolhe e a questão volta depois.
 6. **Missões curtas**, de 1 a 3 minutos, com recompensa imediata.
 7. **A criança escolhe.** Ela decide qual mundo e qual missão jogar, o que dá sensação de controle e aumenta o interesse.
 8. **Ajustável ao sensorial.** Volume, efeitos, velocidade e intensidade das cores são configuráveis.
@@ -50,7 +50,7 @@ A ideia central é **usar aquilo de que a criança gosta (videogame, mundo abert
 1. O mascote apresenta o pedido com uma figura e voz ("Vamos comprar maçã!").
 2. A criança executa (encontrar, tocar, arrastar, escolher).
 3. Se acertar, vem a comemoração: animação, som alegre, moedas e uma estrela.
-4. Se não acertar, vem uma dica mais clara (o objeto brilha e o mascote aponta). Nunca há punição.
+4. Se não acertar, só a resposta certa fica ativa, com brilho e uma seta, e o mascote explica. Nunca há punição.
 
 ## 5. Sistema de recompensas
 

@@ -68,9 +68,19 @@ O ESLint (`eslint-plugin-boundaries` + `no-restricted-imports`) bloqueia imports
 ## Como criar uma missão nova
 
 1. **Conteúdo:** adicione a missão em [src/infrastructure/catalog/content.ts](src/infrastructure/catalog/content.ts), com escolhas (pictogramas), passos (uma instrução curta cada) e recompensa. Ligue o id da missão ao mundo em `worlds`.
-2. **Lugar no mundo:** crie ou reaproveite um ponto de interesse em [src/presentation/world/city.ts](src/presentation/world/city.ts) e mapeie a missão para ele em `missionPlaces` ([src/presentation/game-app.ts](src/presentation/game-app.ts)).
-3. **Interface:** missões de "escolher itens" já funcionam com o `MissionPanel`. Tipos novos (montar frase CAA, sequência, emoções) ganham um painel próprio em `src/presentation/ui/`.
+2. **Lugar no mundo:** crie ou reaproveite um ponto de interesse em [src/presentation/world/city.ts](src/presentation/world/city.ts) e mapeie a missão para ele em `missionPlaces` ([src/presentation/controllers/mission-controller.ts](src/presentation/controllers/mission-controller.ts)).
+3. **Interface:** todos os tipos de missão usam o `MissionPanel`. Um tipo novo entra na tabela `layouts` de [src/presentation/ui/mission-panel.ts](src/presentation/ui/mission-panel.ts).
 4. **Testes:** o teste `tests/infrastructure/content.test.ts` confere ids e passos automaticamente. Regras novas ganham testes de domínio.
+
+## Como criar uma atividade de aprendizado nova
+
+1. **Habilidade:** uma atividade nova é uma entrada de dados em [src/infrastructure/catalog/curriculum/](src/infrastructure/catalog/curriculum/): `skill('math.count.5', { name, track, requires, station, level, interaction, games, activity })`.
+2. **Gerador:** reaproveite um de [src/domain/activity/generators.ts](src/domain/activity/generators.ts). Um gerador novo é uma função pura que devolve pergunta, estímulo, resposta e a frase que ensina.
+3. **Palavras:** entram em [word-bank.ts](src/infrastructure/catalog/curriculum/word-bank.ts) com sílabas e sons: `word('BO-LA', 'b-o-l-a', '⚽', ['toys'])`.
+4. **Mecânica nova:** só quando nenhuma serve. Acrescente o tipo em `Interaction` ([activity.ts](src/domain/activity/activity.ts)) e o componente em `src/presentation/ui/activity/interactions/`. Ele precisa funcionar com toque, controle e teclado.
+5. **Testes:** `tests/domain/curriculum.test.ts` confere ids, pré-requisitos, palavras e se a mecânica declarada é a real.
+
+Fonemas nunca podem sair da voz sintética: a fala isolada precisa de áudio gravado (`Spoken.clip`).
 
 ## Como adicionar um personagem
 

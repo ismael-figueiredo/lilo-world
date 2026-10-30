@@ -43,9 +43,11 @@ const crossingChoices: Readonly<Record<CrossingEvent, string>> = {
   rushed: 'stepped-on-red',
 };
 
-/** Runs a mission: request → action → celebration, with gentle hints. */
+/** Runs a mission: request → action → celebration, showing the answer after a mistake. */
 export class MissionController {
   readonly panel: MissionPanel;
+  /** The sentence that shows the answer, while the child is pressing the shown card. */
+  private modeling: string | undefined;
   private attempt: MissionAttempt | undefined;
   private busy = false;
   private crossing: CrossingTracker | undefined;
@@ -59,6 +61,10 @@ export class MissionController {
       onExit: () => void this.exit(),
       onReplay: () => {
         if (this.attempt !== undefined) void this.open(this.attempt.mission.id);
+      },
+      onRepeat: () => {
+        const instruction = this.modeling ?? this.attempt?.currentStep?.prompt;
+        if (instruction !== undefined) this.ctx.say(instruction);
       },
     });
   }
@@ -74,6 +80,7 @@ export class MissionController {
       return;
     }
     this.attempt = result.value;
+    this.modeling = undefined;
     const { mission } = this.attempt;
 
     if (mission.kind === 'world-task') {
@@ -219,9 +226,11 @@ export class MissionController {
           this.ctx.sound('hint');
           this.panel.showModel(outcome.step.targetId);
           if (this.indoors) this.ctx.world.market.hint(outcome.step.targetId);
-          this.ctx.dialog.say(modelSentence(this.attempt, outcome.step));
+          this.modeling = modelSentence(this.attempt, outcome.step);
+          this.ctx.dialog.say(this.modeling);
           break;
         case 'correct':
+          this.modeling = undefined;
           this.ctx.sound('correct');
           this.panel.next(this.attempt, choiceId);
           this.showIndoors(choiceId, outcome.nextStep.targetId);
@@ -229,6 +238,7 @@ export class MissionController {
           this.ctx.avatar.playEmote('Yes');
           break;
         case 'completed': {
+          this.modeling = undefined;
           const reward = result.value.reward ?? { coins: 0, stars: 0 };
           const { mission } = this.attempt;
           if (mission.kind === 'world-task') {
@@ -246,7 +256,7 @@ export class MissionController {
             this.ctx.say(`${sentence}.${answer}`);
           }
           this.ctx.sound(reward.stars > 0 ? 'star' : 'coin');
-          this.panel.celebrate(reward, mission.result);
+          this.panel.celebrate(reward, mission.result, this.ctx.restIsDue);
           if (this.indoors) {
             this.showIndoors(choiceId, undefined);
             this.cashier?.playEmote('Wave');

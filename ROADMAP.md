@@ -2,6 +2,8 @@
 
 Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e princípios do jogo: [docs/plano-jogo-autismo.md](docs/plano-jogo-autismo.md). Arquitetura: [docs/architecture.md](docs/architecture.md).
 
+**Próximos passos:** [docs/plano-vida-real.md](docs/plano-vida-real.md), um dia de vida real em camadas e tarefas. Ele substitui as seções "Etapa 2", "Etapa 3" e "Mundo vivo" abaixo, que ficam só como referência.
+
 ## Onde estamos
 
 | Sprint                                                                                   | Status     | Commit    |
@@ -19,7 +21,9 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | 4g: mundo Emoções (rostos, histórias, ficar calmo)                                       | ✅ feito   | `7d69f80` |
 | 4h: mercado 3D por dentro                                                                | ✅ feito   | `275d889` |
 | Vida real 1: controle, faixas, ensino sem adivinhação, CAA, ARASAAC                      | ✅ feito   | —         |
-| Vida real 2: casa e mercado para andar, agenda do dia, fim dos portais, receita completa | ⏭️ próximo | —         |
+| Currículo 0 a 2: voz, sensorial, motor único, arrastar, sessão de 10 minutos             | ✅ feito   | —         |
+| Currículo 3: áudio gravado, rimas, vogais e sílabas (depende da gravação)                | ⏭️ próximo | —         |
+| Vida real 2: casa e mercado para andar, agenda do dia, fim dos portais, receita completa | ⏳ depois  | —         |
 | Vida real 3: ônibus de verdade, escola e fazenda caminháveis, histórias em figuras       | ⏳ depois  | —         |
 | Mundo vivo                                                                               | ⏳ depois  | —         |
 
@@ -36,7 +40,7 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 - **Controle** (`src/presentation/engine/gamepad.ts`, testado): analógico esquerdo/direcional anda (borda ou RB/RT corre), analógico direito gira a câmera, A pula, B/X usa, Start abre o menu. Nos painéis o direcional move o foco (`ui/pad-focus.ts`), A confirma e B volta. Aviso "🎮 Controle conectado!".
 - Atalhos de dev novos: `window.lilo.teleport(x, z, yaw?)`, `window.lilo.where()`, `window.lilo.scene`.
 
-Pendências pequenas: testar com controle físico (só a lógica tem teste); a Área dos pais (segurar 3 s) não abre pelo controle, de propósito.
+Pendências pequenas: testar com controle físico (só a lógica tem teste). Botões de adulto valem no controle e no teclado só com o botão pressionado os 3 s inteiros, a mesma trava do toque.
 
 ## Sprint 4a: missões novas (feito)
 
@@ -124,6 +128,23 @@ Pendências pequenas: testar com controle físico (só a lógica tem teste); a �
 - `CameraRig.setFocus(position, lookAt, snap)`: `snap` pula direto para a vista; usar só atrás de um fade.
 - A saída volta à porta do mercado, com a câmera do lado da rua. O mascote agora diz o nome do lugar da próxima missão (antes dizia sempre "mercado").
 - Limite: a criança não anda dentro da loja; escolhe pelos cartões. Para andar seria preciso ensinar a `GameWorld.heightAt`/`isWalkable` sobre o piso interno.
+
+## Currículo: fases 0 a 2 (feito)
+
+Plano completo aprovado: sessão de 10 minutos, 8 trilhas de português, 8 de matemática e 8 mecânicas. As fases 3 a 6 serão revistas depois do primeiro teste com crianças.
+
+- **Motor único:** `domain/activity` (`ActivityItem`, `ActivityRound`, geradores) substitui `Challenge` e `ChallengeSession`. Habilidades são dados em `infrastructure/catalog/curriculum/`. Hoje são 13 habilidades e 23 palavras com sílabas e sons.
+- **Saves:** nada foi convertido. `skillLevels` continua igual e `skillRecords` só se soma ao que existe.
+- **Mecânicas:** `tap` e `drag`. Arrastar também funciona pressionando a peça, que é como o controle e o teclado jogam. "Pronto" responde, então dá para corrigir a conta.
+- **Domínio:** 80% de acerto de primeira nos últimos 8 itens, em pelo menos 2 dias. Revisão em 1, 3, 7 e 21 dias. Demonstrações e perguntas que voltam não contam.
+- **Ajuda:** habilidade nova começa com demonstração, a segunda pergunta ajuda em 3 s, e depois a voz repete em 8 s e o jogo mostra em 15 s. Três erros encerram a atividade com gentileza, sem placar.
+- **Sessão:** `planSession` (pura) escolhe aquecer, aprender e brincar, sempre com português e matemática. `SessionController` cuida do quadro, da caminhada até a estação, da pausa e do fim.
+- **Limite de 10 minutos** é o novo padrão. As estações e o "De novo" respeitam o limite, sem interromper o que está aberto.
+- **Adultos:** em Ajustes, depois de segurar "Mudar": situação de cada habilidade, priorizar ou esconder.
+
+Ficou de fora, por ordem de valor: modo calmo em um botão e redução de movimento nos objetos 3D restantes (moedas, fonte, fogueira, nuvens); moeda só de primeira nas missões; mini-jogos com cenário próprio (`games` já é dado, mas ainda não muda a tela); temas por interesse; fonte hospedada; pictogramas revisados para as 23 palavras (`withWordPicture` já usa quando o nome coincide); configuração sensorial no primeiro uso.
+
+Atenção: no quadro do dia a ordem é da criança, então a regra de não repetir a mecânica vale para a ordem sugerida. Falta testar com controle físico.
 
 ## Novo rumo: um dia de vida real
 

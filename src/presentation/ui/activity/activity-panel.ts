@@ -1,23 +1,36 @@
-import type { Challenge, ChallengeOption } from '@domain/learning/challenge';
-import { MAX_LEVEL } from '@domain/learning/challenge';
-import type { ChallengeSession } from '@domain/learning/challenge-session';
-import { ROUND_LENGTH, type RoundSummary } from '@domain/learning/challenge-session';
+import type { ActivityRound, RoundSummary } from '@domain/activity/activity-round';
+import type { Interaction } from '@domain/activity/activity';
+import { MAX_LEVEL } from '@domain/curriculum/skill';
 import type { Sticker } from '@domain/stickers/sticker';
+import { dragInteraction } from '@presentation/ui/activity/interactions/drag';
+import type { InteractionView } from '@presentation/ui/activity/interactions/interaction-view';
+import { tapInteraction } from '@presentation/ui/activity/interactions/tap';
+import { renderStimulus } from '@presentation/ui/activity/stimulus';
 import { h, replayAnimation } from '@presentation/ui/dom';
+import { repeatButton } from '@presentation/ui/repeat-button';
 import type { StationLook } from '@presentation/world/stations';
 
-export interface ChallengePanelCallbacks {
+export interface ActivityPanelCallbacks {
   onChoose(optionId: string): void;
   onAgain(): void;
   onExit(): void;
+  onRepeat(): void;
 }
 
+/** What the round's end offers: going on here, or the next thing of the day. */
+export type RoundEnding = 'again' | 'leave-only' | 'onward';
+
+const viewOf = (interaction: Interaction, onAnswer: (id: string) => void): InteractionView =>
+  interaction.kind === 'tap'
+    ? tapInteraction(interaction, onAnswer)
+    : dragInteraction(interaction, onAnswer);
+
 /**
- * A learning station: one big question and a few big cards, in rounds that
- * always end. Dots show how far the round has come. Cards carry no words: a
- * label under the picture would give the answer away.
+ * The same stage for every activity: the way of the day and the round on top,
+ * what to look at in the middle, how to answer below. Only that last part
+ * changes with the interaction, and rounds always end.
  */
-export class ChallengePanel {
+export class ActivityPanel {
   readonly element: HTMLElement;
   private readonly title = h('h2', { className: 'mission__title' });
   private readonly levelDots = h('div', {
@@ -25,15 +38,24 @@ export class ChallengePanel {
     attrs: { 'aria-hidden': 'true' },
   });
   private readonly streakDots = h('div', { className: 'challenge__dots challenge__dots--streak' });
-  private readonly show = h('p', { className: 'challenge__show' });
-  private readonly question = h('p', { className: 'challenge__question' });
-  private readonly options = h('div', { className: 'mission__shelf challenge__options' });
+  private readonly show = h('div', { className: 'challenge__show' });
+  private readonly question = h('p', { className: 'challenge__question instruction__text' });
+  private readonly options = h('div', { className: 'activity__answers' });
+  private view: InteractionView | undefined;
   private readonly toast = h('div', { className: 'challenge__toast' });
-  private readonly tiles = new Map<string, HTMLButtonElement>();
-  private readonly board = h('div', { className: 'challenge__board' }, [this.show, this.question]);
+  private readonly board: HTMLElement;
   private readonly result = h('div', { className: 'challenge__result is-hidden' });
 
-  constructor(private readonly callbacks: ChallengePanelCallbacks) {
+  constructor(private readonly callbacks: ActivityPanelCallbacks) {
+    this.board = h('div', { className: 'challenge__board' }, [
+      this.show,
+      h('div', { className: 'instruction' }, [
+        repeatButton(() => {
+          callbacks.onRepeat();
+        }),
+        this.question,
+      ]),
+    ]);
     const exit = h('button', {
       className: 'panel__close',
       text: '✕',
@@ -62,7 +84,7 @@ export class ChallengePanel {
     );
   }
 
-  open(look: StationLook, session: ChallengeSession): void {
+  open(look: StationLook, round: ActivityRound): void {
     this.title.dataset.icon = look.icon;
     this.element.style.setProperty('--station', look.color);
     this.title.textContent = `${look.icon} ${look.name}`;
@@ -70,7 +92,7 @@ export class ChallengePanel {
     this.result.classList.add('is-hidden');
     this.board.classList.remove('is-hidden');
     this.options.classList.remove('is-hidden');
-    this.render(session);
+    this.render(round);
     this.element.classList.add('is-visible');
   }
 
@@ -78,22 +100,23 @@ export class ChallengePanel {
     this.element.classList.remove('is-visible');
   }
 
-  /** Shows the session's current challenge (a new one after a right answer). */
-  render(session: ChallengeSession): void {
-    const { challenge } = session;
-    this.paintLevel(session.level);
+  /** Shows the round's current question (a new one after a right answer). */
+  render(round: ActivityRound): void {
+    const { item } = round;
+    this.paintLevel(round.level);
     this.streakDots.replaceChildren(
-      ...Array.from({ length: ROUND_LENGTH }, (_, index) =>
-        h('span', { className: `challenge__step${index < session.asked ? ' is-on' : ''}` }),
+      ...Array.from({ length: round.length }, (_, index) =>
+        h('span', { className: `challenge__step${index < round.asked ? ' is-on' : ''}` }),
       ),
     );
-    this.show.textContent = challenge.show;
-    this.show.classList.toggle('challenge__show--word', /^[A-ZÀ-Ú]+$/u.test(challenge.show));
-    this.question.textContent = challenge.question;
-    this.tiles.clear();
-    this.options.replaceChildren(
-      ...challenge.options.map((option) => this.createTile(challenge, option)),
-    );
+    const stimulus = renderStimulus(item.stimulus);
+    this.show.replaceChildren(...(stimulus === null ? [] : [stimulus]));
+    this.show.classList.toggle('is-hidden', item.stimulus.kind === 'none');
+    this.question.textContent = item.prompt.text;
+    this.view = viewOf(item.interaction, (answerId) => {
+      this.callbacks.onChoose(answerId);
+    });
+    this.options.replaceChildren(this.view.element);
     replayAnimation(this.options, 'is-new');
   }
 
@@ -106,19 +129,16 @@ export class ChallengePanel {
     this.levelDots.setAttribute('aria-label', `Nível ${level}`);
   }
 
-  /** Not this card: only the right one stays active, with an arrow. */
-  showAnswer(answerId: string): void {
-    for (const [id, tile] of this.tiles) {
-      const right = id === answerId;
-      tile.disabled = !right;
-      tile.classList.toggle('is-dimmed', !right);
-      tile.classList.toggle('is-hinted', right);
-      tile.classList.toggle('is-pointed', right);
-    }
+  /** The answer is shown: only the right way stays active. */
+  showAnswer(): void {
+    this.view?.showAnswer();
   }
 
-  /** The end of a round: how it went, and the choice to go on or stop. */
-  showResult(summary: RoundSummary, coins: number): void {
+  /**
+   * The end of a round: how it went, and the choice to go on or stop. A round
+   * cut short for being hard today shows no score: it just ends well.
+   */
+  showResult(summary: RoundSummary, coins: number, ending: RoundEnding): void {
     this.board.classList.add('is-hidden');
     this.options.classList.add('is-hidden');
     this.toast.classList.remove('is-visible');
@@ -129,25 +149,32 @@ export class ChallengePanel {
         text: '⭐',
       }),
     );
+    const score =
+      summary.shortened === true
+        ? []
+        : [
+            h('div', { className: 'challenge__result-stars' }, stars),
+            h('p', {
+              className: 'challenge__result-score',
+              text: `${summary.score} de ${summary.total}   🪙 +${coins}`,
+            }),
+          ];
     this.result.replaceChildren(
       h('p', { className: 'challenge__result-title', text: resultTitle(summary) }),
-      h('div', { className: 'challenge__result-stars' }, stars),
-      h('p', {
-        className: 'challenge__result-score',
-        text: `${summary.score} de ${summary.total}   🪙 +${coins}`,
-      }),
+      ...score,
       h('div', { className: 'celebration__actions' }, [
-        h('button', {
-          className: 'big-button big-button--green',
-          text: '🔁 Mais uma rodada',
-          attrs: { type: 'button' },
-          onTap: () => {
-            this.callbacks.onAgain();
-          },
-        }),
+        ending === 'again' &&
+          h('button', {
+            className: 'big-button big-button--green',
+            text: '🔁 Mais uma rodada',
+            attrs: { type: 'button' },
+            onTap: () => {
+              this.callbacks.onAgain();
+            },
+          }),
         h('button', {
           className: 'big-button',
-          text: '🌍 Sair',
+          text: ending === 'onward' ? '➡️ Continuar' : '🌍 Sair',
           attrs: { type: 'button' },
           onTap: () => {
             this.callbacks.onExit();
@@ -175,26 +202,10 @@ export class ChallengePanel {
   hideToast(): void {
     this.toast.classList.remove('is-visible');
   }
-
-  private createTile(challenge: Challenge, option: ChallengeOption): HTMLButtonElement {
-    const tile = h(
-      'button',
-      {
-        className: `tile challenge__tile challenge__tile--${challenge.skill}`,
-        attrs: { type: 'button', 'aria-label': option.label },
-        onTap: () => {
-          replayAnimation(tile, 'is-tapped');
-          this.callbacks.onChoose(option.id);
-        },
-      },
-      [h('span', { className: 'pictogram pictogram--big challenge__face', text: option.face })],
-    );
-    this.tiles.set(option.id, tile);
-    return tile;
-  }
 }
 
 const resultTitle = (summary: RoundSummary): string => {
+  if (summary.shortened === true) return '🌱 Por hoje está ótimo!';
   if (summary.reachedLevel !== undefined) return '🎉 Você subiu de nível!';
   return summary.score >= summary.total - 1 ? '🎉 Muito bem!' : '🌱 Você está aprendendo!';
 };

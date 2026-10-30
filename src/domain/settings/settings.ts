@@ -1,4 +1,6 @@
-/** Comfort and sensory settings, one set per child. Defaults are calm on purpose. */
+import type { SkillChoice } from '@domain/curriculum/session-plan';
+
+/** Comfort and sensory settings, one set per child. */
 export interface Settings {
   /** 0..1 */
   readonly masterVolume: number;
@@ -14,6 +16,8 @@ export interface Settings {
   readonly showMinimap: boolean;
   /** 0 = no limit. */
   readonly sessionLimitMinutes: SessionLimit;
+  /** Skills an adult pinned or hid, by id. */
+  readonly skillChoices: Readonly<Record<string, SkillChoice>>;
 }
 
 export type VoiceSpeed = 'slow' | 'normal';
@@ -35,7 +39,8 @@ export const defaultSettings: Settings = {
   cameraSensitivity: 'normal',
   worldActivity: 'normal',
   showMinimap: true,
-  sessionLimitMinutes: 0,
+  sessionLimitMinutes: 10,
+  skillChoices: {},
 };
 
 const volume = (value: unknown, fallback: number): number =>
@@ -46,6 +51,15 @@ const flag = (value: unknown, fallback: boolean): boolean =>
 
 const oneOf = <T>(options: readonly T[], value: unknown, fallback: T): T =>
   options.includes(value as T) ? (value as T) : fallback;
+
+const skillChoices = (value: unknown, fallback: Settings['skillChoices']) =>
+  typeof value === 'object' && value !== null
+    ? Object.fromEntries(
+        Object.entries(value).filter(
+          (entry): entry is [string, SkillChoice] => entry[1] === 'pin' || entry[1] === 'hide',
+        ),
+      )
+    : fallback;
 
 /** Accepts anything (stored data, a UI patch) and returns valid settings. */
 export function sanitizeSettings(raw: unknown, base: Settings = defaultSettings): Settings {
@@ -67,6 +81,7 @@ export function sanitizeSettings(raw: unknown, base: Settings = defaultSettings)
     worldActivity: oneOf(['calm', 'normal'], data.worldActivity, base.worldActivity),
     showMinimap: flag(data.showMinimap, base.showMinimap),
     sessionLimitMinutes: oneOf(sessionLimits, data.sessionLimitMinutes, base.sessionLimitMinutes),
+    skillChoices: skillChoices(data.skillChoices, base.skillChoices),
   };
 }
 

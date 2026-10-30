@@ -9,7 +9,7 @@ import type { ProgressRepository } from '@application/ports/progress-repository'
 import type { SessionRepository } from '@application/ports/session-repository';
 import type { SettingsRepository } from '@application/ports/settings-repository';
 import type { Speech } from '@application/ports/speech';
-import { AnswerChallenge } from '@application/use-cases/answer-challenge';
+import { AnswerActivity } from '@application/use-cases/answer-activity';
 import { ApplySettings } from '@application/use-cases/apply-settings';
 import { BuyWardrobeItem } from '@application/use-cases/buy-wardrobe-item';
 import { ChangeAvatar } from '@application/use-cases/change-avatar';
@@ -32,7 +32,8 @@ import { RenameProfile } from '@application/use-cases/rename-profile';
 import { RewardSafeTrip } from '@application/use-cases/reward-safe-trip';
 import { SaveSession } from '@application/use-cases/save-session';
 import { SelectProfile } from '@application/use-cases/select-profile';
-import { StartChallenge } from '@application/use-cases/start-challenge';
+import { PlanSession } from '@application/use-cases/plan-session';
+import { StartActivity } from '@application/use-cases/start-activity';
 import { StartMission } from '@application/use-cases/start-mission';
 import { SuggestNextGoal } from '@application/use-cases/suggest-next-goal';
 import { ToggleWardrobeItem } from '@application/use-cases/toggle-wardrobe-item';
@@ -89,8 +90,9 @@ export function createServices(adapters: Adapters): GameServices {
       chooseMissionAnswer: new ChooseMissionAnswer(progress, speech, clock),
       leaveMission: new LeaveMission(progress, clock),
       rewardSafeTrip: new RewardSafeTrip(progress),
-      startChallenge: new StartChallenge(catalog, progress, speech, random),
-      answerChallenge: new AnswerChallenge(catalog, progress, speech, random),
+      startActivity: new StartActivity(catalog, progress, speech, random),
+      answerActivity: new AnswerActivity(catalog, progress, speech, random, clock),
+      planSession: new PlanSession(catalog, progress, settings, clock),
       getAlbum: new GetAlbum(progress),
       getWardrobe: new GetWardrobe(catalog, progress),
       buyWardrobeItem: new BuyWardrobeItem(catalog, progress),

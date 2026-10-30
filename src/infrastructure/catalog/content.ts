@@ -4,8 +4,8 @@ import type { Mission, MissionVariant } from '@domain/mission/mission';
 import type { World } from '@domain/world/world';
 
 /**
- * Initial game content (Phase 1). Pictograms are emoji placeholders; they will be
- * replaced by ARASAAC pictograms so children see the same images used in therapy.
+ * Game content. Cards show reviewed ARASAAC pictograms (pictograms.json), the same
+ * images used in therapy; a card without one still shows its emoji.
  */
 export const worlds: readonly World[] = [
   {

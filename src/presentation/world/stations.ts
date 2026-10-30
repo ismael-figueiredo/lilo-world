@@ -1,25 +1,25 @@
 import * as THREE from 'three';
-import type { Skill } from '@domain/learning/challenge';
+import type { Station } from '@domain/curriculum/skill';
 import { circle, type Collider } from '@presentation/world/collision';
 import type { Interactable } from '@presentation/world/interactable';
 import { lowPoly, solid } from '@presentation/world/materials';
 import { createPostSign } from '@presentation/world/sign';
 
-export const stationId = (skill: Skill): string => `station:${skill}`;
+export const stationId = (skill: Station): string => `station:${skill}`;
 
-export const skillOfStation = (placeId: string): Skill | undefined => {
+export const skillOfStation = (placeId: string): Station | undefined => {
   const skill = placeId.startsWith('station:') ? placeId.slice('station:'.length) : '';
   return skill === 'letters' || skill === 'numbers' || skill === 'coins' ? skill : undefined;
 };
 
 export interface StationLook {
-  readonly skill: Skill;
+  readonly skill: Station;
   readonly icon: string;
   readonly name: string;
   readonly color: string;
 }
 
-export const stationLooks: Readonly<Record<Skill, StationLook>> = {
+export const stationLooks: Readonly<Record<Station, StationLook>> = {
   letters: { skill: 'letters', icon: '🔤', name: 'Letras', color: '#9b6bf2' },
   numbers: { skill: 'numbers', icon: '🔢', name: 'Números', color: '#ff8a3d' },
   coins: { skill: 'coins', icon: '🪙', name: 'Moedas', color: '#e8b10f' },
@@ -101,7 +101,7 @@ function coinsProp(): { group: THREE.Group; coin: THREE.Object3D } {
 }
 
 /** Where the stations stand in the town (city coordinates), facing the street. */
-const placements: readonly (readonly [Skill, number, number])[] = [
+const placements: readonly (readonly [Station, number, number])[] = [
   ['letters', -27, -12],
   ['numbers', 10, -12],
   ['coins', -11, 26],

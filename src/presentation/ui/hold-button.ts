@@ -1,4 +1,5 @@
 import { h } from '@presentation/ui/dom';
+import { HOLD_END, HOLD_START } from '@presentation/ui/pad-focus';
 
 /**
  * A button that must be held for a few seconds. Used for adult-only actions
@@ -27,16 +28,27 @@ export function holdButton(
     timer = undefined;
     button.classList.remove('is-holding');
   };
-  button.addEventListener('pointerdown', (event) => {
-    event.preventDefault();
+  const start = () => {
+    if (timer !== undefined) return;
     button.style.setProperty('--hold-ms', `${holdMs}ms`);
     button.classList.add('is-holding');
     timer = window.setTimeout(() => {
       cancel();
       onConfirm();
     }, holdMs);
+  };
+  button.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    start();
   });
-  for (const type of ['pointerup', 'pointerleave', 'pointercancel']) {
+  // Keyboard and controller must also stay down the whole time: same gate as a finger.
+  button.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    start();
+  });
+  button.addEventListener(HOLD_START, start);
+  for (const type of ['pointerup', 'pointerleave', 'pointercancel', 'keyup', 'blur', HOLD_END]) {
     button.addEventListener(type, cancel);
   }
   return button;

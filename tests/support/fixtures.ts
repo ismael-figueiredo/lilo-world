@@ -1,3 +1,4 @@
+import { word } from '@domain/language/word';
 import type { AudioPlayer, AudioVolumes, SoundEffect } from '@application/ports/audio';
 import type { Clock } from '@application/ports/clock';
 import type { IdGenerator } from '@application/ports/id-generator';
@@ -64,10 +65,10 @@ export const content: GameContent = {
     { id: 'bunny', name: 'Coelho', kind: 'animal', recolorable: false },
   ],
   words: [
-    { text: 'BOLA', pictogram: '⚽' },
-    { text: 'GATO', pictogram: '🐱' },
-    { text: 'PATO', pictogram: '🦆' },
-    { text: 'UVA', pictogram: '🍇' },
+    word('BO-LA', 'b-o-l-a', '⚽'),
+    word('GA-TO', 'g-a-t-o', '🐱'),
+    word('PA-TO', 'p-a-t-o', '🦆'),
+    word('U-VA', 'u-v-a', '🍇'),
   ],
 };
 

@@ -100,8 +100,8 @@ sequenceDiagram
   C->>G: toca na banana (errado)
   G->>S: chooseMissionAnswer.execute(attempt, "banana")
   S->>D: attempt.choose("banana")
-  D-->>S: outcome "hint" (nível 1, depois 2)
-  S-->>G: a maçã brilha; no nível 2 aparece a seta
+  D-->>S: outcome "model"
+  S-->>G: só a maçã fica ativa, com brilho e seta
   C->>G: toca na maçã, no leite e no pão
   D-->>S: outcome "completed"
   S->>R: save(progress.completeMission())

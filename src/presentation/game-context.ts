@@ -4,14 +4,23 @@ import type { PlayerProfile } from '@domain/profile/player-profile';
 import type { Settings } from '@domain/settings/settings';
 import type { Player } from '@presentation/actors/player';
 import type { CameraRig } from '@presentation/engine/camera-rig';
+import type { SessionController } from '@presentation/controllers/session-controller';
 import type { Dialog } from '@presentation/ui/dialog';
 import type { GameWorld } from '@presentation/world/game-world';
 import type { Interactable } from '@presentation/world/interactable';
 
 export type Mode =
-  'loading' | 'profiles' | 'explore' | 'mission' | 'learning' | 'wardrobe' | 'menu' | 'rest';
+  | 'loading'
+  | 'profiles'
+  | 'explore'
+  | 'mission'
+  | 'learning'
+  | 'session'
+  | 'wardrobe'
+  | 'menu'
+  | 'rest';
 
-export type PanelMode = 'mission' | 'learning' | 'wardrobe' | 'menu' | 'rest';
+export type PanelMode = 'mission' | 'learning' | 'session' | 'wardrobe' | 'menu' | 'rest';
 
 /** What controllers can use. Implemented by GameApp; keeps controllers small and focused. */
 export interface GameContext {
@@ -25,6 +34,10 @@ export interface GameContext {
   readonly rig: CameraRig;
   readonly dialog: Dialog;
   readonly mode: Mode;
+  /** The time limit has passed: finish what is open, but start nothing new. */
+  readonly restIsDue: boolean;
+  /** The day's plan, also reachable from the menu. */
+  readonly session: SessionController;
   enterPanel(mode: PanelMode): void;
   backToExploring(): void;
   say(message: string): void;

@@ -59,6 +59,10 @@ const LAYERS =
   '.overlay.is-visible, .mission.is-visible, .wardrobe.is-visible, .start:not(.is-hidden)';
 const FOCUSABLE = 'button:not([disabled]), input, select, [tabindex]:not([tabindex="-1"])';
 
+/** Sent to a hold button while the controller's button is down, as a finger would hold it. */
+export const HOLD_START = 'lilo:hold-start';
+export const HOLD_END = 'lilo:hold-end';
+
 const isShown = (element: HTMLElement): boolean => {
   const rect = element.getBoundingClientRect();
   if (rect.width === 0 || rect.height === 0) return false;
@@ -79,6 +83,7 @@ const focusOn = (element: HTMLElement | undefined): void => {
 export class PadFocus {
   private layer: HTMLElement | undefined;
   private lastBox: Box | undefined;
+  private holding: HTMLElement | undefined;
 
   constructor(private readonly root: HTMLElement) {}
 
@@ -98,8 +103,8 @@ export class PadFocus {
       return;
     }
     if (elements.length === 0) return;
-    // Never land on the close button by itself: one more press would leave the panel.
-    const choices = elements.filter((element) => !element.classList.contains('panel__close'));
+    // Start on a choice: one more press on the close button would leave the panel.
+    const choices = elements.filter((element) => !element.matches('.panel__close, .repeat-button'));
     const options = choices.length > 0 ? choices : elements;
     if (this.lastBox === undefined) {
       focusOn(options[0]);
@@ -126,7 +131,19 @@ export class PadFocus {
   press(): void {
     this.keep();
     const active = document.activeElement;
-    if (active instanceof HTMLElement && this.topLayer().contains(active)) active.click();
+    if (!(active instanceof HTMLElement) || !this.topLayer().contains(active)) return;
+    if (active.classList.contains('hold')) {
+      this.holding = active;
+      active.dispatchEvent(new Event(HOLD_START));
+      return;
+    }
+    active.click();
+  }
+
+  /** The controller's button came up: a hold in progress stops here. */
+  release(): void {
+    this.holding?.dispatchEvent(new Event(HOLD_END));
+    this.holding = undefined;
   }
 
   private topLayer(): HTMLElement {
