@@ -104,17 +104,17 @@ Dependências principais: C0 → C1 e C2 → C3 → C4. Depois disso, C5 a C8 se
 
 Objetivo: base confiável antes da mudança grande.
 
-- [ ] **C0.1 Registrar o trabalho atual.** Fazer commit do currículo que está pendente. Pronto: `pnpm check` e `pnpm build` passam e o `git status` fica limpo.
-- [ ] **C0.2 Separar fala e escrita.** `prompt` passa a ter `spoken` e `written`, e o balão do Lilo obedece. Pronto: "Com qual letra começa rato?" é falado, e na tela aparece só a figura e "Com qual letra começa?".
-- [ ] **C0.3 Auditoria de respostas entregues.** Revisar as 13 habilidades e as 16 missões e anotar o que cada uma ensina (ouvir, ler, associar). Pronto: tabela em `docs/` e correções feitas.
-- [ ] **C0.4 Teste que impede a volta do erro.** Um teste percorre todos os geradores e missões. Pronto: falha se o texto escrito contém a resposta quando o objetivo não é copiar.
-- [ ] **C0.5 Frases por id.** Criar `phrases` e migrar pedidos, elogios e dicas. Pronto: nenhum texto falado solto no código de apresentação.
-- [ ] **C0.6 Ajuda sem tirar a tarefa.** Ajuda em `Levar` mostra só a primeira peça, e a contagem da ajuda considera a criança ativa. Pronto: criança no meio da contagem nunca perde as peças.
-- [ ] **C0.7 Placar gentil.** Ajuda e demonstração não aparecem como erro. Pronto: a tela final mostra o que foi feito, sem "1 de 4".
-- [ ] **C0.8 Figurinhas certas.** Figurinha ligada à habilidade jogada. Pronto: "Conta até 10" só vem depois de contar até 10.
-- [ ] **C0.9 Dificuldade em degraus.** Sem saltos de 1 para 5 e sem repetir a mesma resposta três vezes. Pronto: teste com semente nos geradores.
-- [ ] **C0.10 Atividade em celular em pé.** Peças em grade e Pronto sempre visível. Pronto: conferido em 375×812 e 812×375.
-- [ ] **C0.11 Detalhes do teste.** Resposta em rodada encerrada ignorada, bolinhas completas no fim, nomes para leitor de tela nos cartões, botão da estação anterior escondido durante a caminhada.
+- [x] **C0.1 Registrar o trabalho atual.** Fazer commit do currículo que está pendente. Pronto: `pnpm check` e `pnpm build` passam e o `git status` fica limpo.
+- [x] **C0.2 Separar fala e escrita.** `prompt` passa a ter `spoken` e `written`, e o balão do Lilo obedece. Pronto: "Com qual letra começa rato?" é falado, e na tela aparece só a figura e "Com qual letra começa?".
+- [x] **C0.3 Auditoria de respostas entregues.** Revisar as 13 habilidades e as 16 missões e anotar o que cada uma ensina (ouvir, ler, associar). Pronto: tabela em `docs/` e correções feitas.
+- [x] **C0.4 Teste que impede a volta do erro.** Um teste percorre todos os geradores e missões. Pronto: falha se o texto escrito contém a resposta quando o objetivo não é copiar.
+- [x] **C0.5 Frases por id.** Criar `phrases` e migrar pedidos, elogios e dicas. Pronto: nenhum texto falado solto no código de apresentação.
+- [x] **C0.6 Ajuda sem tirar a tarefa.** Ajuda em `Levar` mostra só a primeira peça, e a contagem da ajuda considera a criança ativa. Pronto: criança no meio da contagem nunca perde as peças.
+- [x] **C0.7 Placar gentil.** Ajuda e demonstração não aparecem como erro. Pronto: a tela final mostra o que foi feito, sem "1 de 4".
+- [x] **C0.8 Figurinhas certas.** Figurinha ligada à habilidade jogada. Pronto: "Conta até 10" só vem depois de contar até 10.
+- [x] **C0.9 Dificuldade em degraus.** Sem saltos de 1 para 5 e sem repetir a mesma resposta três vezes. Pronto: teste com semente nos geradores.
+- [x] **C0.10 Atividade em celular em pé.** Peças em grade e Pronto sempre visível. Pronto: conferido em 375×812 e 812×375.
+- [x] **C0.11 Detalhes do teste.** Resposta em rodada encerrada ignorada, bolinhas completas no fim, nomes para leitor de tela nos cartões, botão da estação anterior escondido durante a caminhada.
 
 ### C1. Controles de console
 

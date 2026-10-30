@@ -206,6 +206,8 @@ export class ActivityController {
       this.panel.hideToast();
       if (outcome.summary !== undefined) {
         if (this.plan !== undefined) this.plan.finished = true;
+        // The answers are gone from the screen, and nothing can answer this round again.
+        this.round = undefined;
         this.panel.showResult(outcome.summary, this.roundCoins, this.ending());
         if (outcome.summary.reachedLevel !== undefined) this.ctx.avatar.playEmote('Dance');
         this.ctx.dialog.say(

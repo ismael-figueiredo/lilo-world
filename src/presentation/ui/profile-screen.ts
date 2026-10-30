@@ -75,7 +75,7 @@ export class ProfileScreen {
       'button',
       {
         className: 'profile-card profile-card--new',
-        attrs: { type: 'button' },
+        attrs: { type: 'button', 'aria-label': 'Novo jogador' },
         onTap: () => {
           this.showForm();
         },

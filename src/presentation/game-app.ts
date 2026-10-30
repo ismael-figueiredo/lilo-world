@@ -218,7 +218,7 @@ export class GameApp implements GameContext {
     }
   }
 
-  backToExploring(): void {
+  backToExploring(message?: string): void {
     this.services.speech.stop();
     this.ui.classList.remove('has-panel');
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
@@ -231,7 +231,7 @@ export class GameApp implements GameContext {
       this.input.enabled = true;
     }
     void this.refresh().then(() => {
-      if (this.destination === undefined) this.say(this.goalMessage());
+      if (this.destination === undefined) this.say(message ?? this.goalMessage());
     });
   }
 
@@ -629,7 +629,7 @@ export class GameApp implements GameContext {
   }
 
   private updateExploration(position: THREE.Vector3, input: Input): void {
-    const nearby = this.nearbyPlace(position);
+    const nearby = this.offeredPlace(position);
     if (nearby === undefined) this.controls.hideAction();
     else this.controls.showAction(nearby.icon, nearby.label);
 
@@ -646,6 +646,17 @@ export class GameApp implements GameContext {
       }
     }
     if (input.consumeAction() && nearby !== undefined) void this.use(nearby);
+  }
+
+  /** On the way to a station, the others do not offer themselves along the road. */
+  private offeredPlace(position: THREE.Vector3): Interactable | undefined {
+    const nearby = this.nearbyPlace(position);
+    const passing =
+      this.destination !== undefined &&
+      nearby !== this.destination &&
+      nearby !== undefined &&
+      skillOfStation(nearby.id) !== undefined;
+    return passing ? undefined : nearby;
   }
 
   private nearbyPlace(position: THREE.Vector3): Interactable | undefined {

@@ -39,7 +39,8 @@ export interface GameContext {
   /** The day's plan, also reachable from the menu. */
   readonly session: SessionController;
   enterPanel(mode: PanelMode): void;
-  backToExploring(): void;
+  /** Back to the world. `message` is said instead of the suggestion of what to do next. */
+  backToExploring(message?: string): void;
   /** Says `message` and writes it, or `written` when the two must differ. */
   say(message: string, written?: string): void;
   sound(effect: SoundEffect): void;

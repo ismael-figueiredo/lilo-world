@@ -111,7 +111,11 @@ export class DayBoard {
       'button',
       {
         className: `day__card${step.done ? ' is-done' : ''}`,
-        attrs: { type: 'button', style: `--station:${step.color}` },
+        attrs: {
+          type: 'button',
+          style: `--station:${step.color}`,
+          'aria-label': step.done ? `${step.name}: feito` : step.name,
+        },
         onTap: () => {
           this.callbacks.onChoose(index);
         },

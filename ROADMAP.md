@@ -22,6 +22,7 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | 4h: mercado 3D por dentro                                                                | ✅ feito   | `275d889` |
 | Vida real 1: controle, faixas, ensino sem adivinhação, CAA, ARASAAC                      | ✅ feito   | —         |
 | Currículo 0 a 2: voz, sensorial, motor único, arrastar, sessão de 10 minutos             | ✅ feito   | —         |
+| Vida real C0: nada entrega a resposta, frases por id, ajuda gentil, degraus              | ✅ feito   | —         |
 | Currículo 3: áudio gravado, rimas, vogais e sílabas (depende da gravação)                | ⏭️ próximo | —         |
 | Vida real 2: casa e mercado para andar, agenda do dia, fim dos portais, receita completa | ⏳ depois  | —         |
 | Vida real 3: ônibus de verdade, escola e fazenda caminháveis, histórias em figuras       | ⏳ depois  | —         |

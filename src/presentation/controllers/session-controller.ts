@@ -59,8 +59,7 @@ export class SessionController {
 
   open(): void {
     if (this.steps.length === 0 || this.steps.every((step) => step.done)) {
-      this.ctx.backToExploring();
-      this.ctx.say(phrases.dayAllDone);
+      this.ctx.backToExploring(phrases.dayAllDone);
       return;
     }
     this.heading = undefined;
