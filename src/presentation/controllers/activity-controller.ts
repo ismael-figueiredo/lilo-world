@@ -54,7 +54,7 @@ export class ActivityController {
       written: (spoken) => this.written(spoken),
     });
     // Any move of the child means they are working: the help can wait.
-    for (const type of ['pointerdown', 'keydown']) {
+    for (const type of ['pointerdown', 'pointerup', 'keydown']) {
       this.panel.element.addEventListener(type, () => {
         this.watchForHelp();
       });
@@ -146,8 +146,14 @@ export class ActivityController {
       });
     }
     later(secondOfNew ? SHOW_SOON_MS : SHOW_AFTER_MS, () => {
-      this.demonstrate();
+      this.help();
     });
+  }
+
+  /** Help comes without taking the task away: the child keeps what they already did. */
+  private help(): void {
+    if (this.panel.nudge()) this.watchForHelp();
+    else this.demonstrate();
   }
 
   /** Shows how it is done. Not a mistake: nothing counts against the child. */
@@ -203,9 +209,7 @@ export class ActivityController {
         this.panel.showResult(outcome.summary, this.roundCoins, this.ending());
         if (outcome.summary.reachedLevel !== undefined) this.ctx.avatar.playEmote('Dance');
         this.ctx.dialog.say(
-          outcome.summary.shortened === true
-            ? phrases.roundShort
-            : phrases.roundScore(outcome.summary.score, outcome.summary.total),
+          outcome.summary.shortened === true ? phrases.roundShort : phrases.roundDone,
         );
         return;
       }

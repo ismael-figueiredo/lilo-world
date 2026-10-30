@@ -1009,10 +1009,6 @@ button {
   font-weight: 900;
 }
 
-.challenge__result-stars .challenge__dot {
-  font-size: 2.6rem;
-}
-
 .challenge__result-score {
   margin: 0;
   font-size: 1.6rem;
@@ -1958,7 +1954,8 @@ img.stimulus__picture {
   opacity: 0.45;
 }
 
-.big-button.is-hinted {
+.big-button.is-hinted,
+.drag__piece.is-hinted {
   outline: 8px solid var(--sun);
 }
 
@@ -2317,6 +2314,27 @@ img.stimulus__picture {
 }
 
 /* Families can reduce motion in the device settings; the game respects it. */
+/* A phone held upright: answers stack, and "Pronto" stays on the screen. */
+@media (max-width: 760px) and (min-height: 521px) {
+  .drag {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .drag__tray,
+  .drag__target {
+    min-height: 88px;
+    padding: 6px;
+    gap: 6px;
+  }
+  .drag__piece {
+    width: 64px;
+    height: 64px;
+  }
+  .drag__picture {
+    font-size: 2rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

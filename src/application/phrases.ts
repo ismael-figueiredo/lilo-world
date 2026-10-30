@@ -12,7 +12,7 @@ export const phrases = {
   sticker: 'Ganhou uma figurinha!',
   practiced: 'Agora você viu como é.',
   roundShort: 'Por hoje está ótimo!',
-  roundScore: (score: number, total: number) => `Você acertou ${score} de ${total}.`,
+  roundDone: 'Você terminou! Muito bem!',
 
   padConnected: '🎮 Controle conectado!',
   padDisconnected: 'O controle desligou.',

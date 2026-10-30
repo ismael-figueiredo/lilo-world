@@ -136,34 +136,27 @@ export class ActivityPanel {
     this.view?.showAnswer();
   }
 
+  /** False when this way of answering has no gentler help than showing the answer. */
+  nudge(): boolean {
+    this.view?.nudge?.();
+    return this.view?.nudge !== undefined;
+  }
+
   /**
-   * The end of a round: how it went, and the choice to go on or stop. A round
-   * cut short for being hard today shows no score: it just ends well.
+   * The end of a round: what was done, and the choice to go on or stop. It
+   * never counts points: help and demonstrations are not mistakes.
    */
   showResult(summary: RoundSummary, coins: number, ending: RoundEnding): void {
     this.board.classList.add('is-hidden');
     this.options.classList.add('is-hidden');
     this.toast.classList.remove('is-visible');
     if (summary.reachedLevel !== undefined) this.paintLevel(summary.reachedLevel);
-    const stars = Array.from({ length: summary.total }, (_, index) =>
-      h('span', {
-        className: `challenge__dot${index < summary.score ? ' is-on' : ''}`,
-        text: '⭐',
-      }),
-    );
-    const score =
-      summary.shortened === true
-        ? []
-        : [
-            h('div', { className: 'challenge__result-stars' }, stars),
-            h('p', {
-              className: 'challenge__result-score',
-              text: `${summary.score} de ${summary.total}   🪙 +${coins}`,
-            }),
-          ];
+    for (const step of this.streakDots.children) step.classList.add('is-on');
     this.result.replaceChildren(
       h('p', { className: 'challenge__result-title', text: resultTitle(summary) }),
-      ...score,
+      ...(coins > 0
+        ? [h('p', { className: 'challenge__result-score', text: `🪙 +${coins}` })]
+        : []),
       h('div', { className: 'celebration__actions' }, [
         ending === 'again' &&
           h('button', {
@@ -209,5 +202,5 @@ export class ActivityPanel {
 const resultTitle = (summary: RoundSummary): string => {
   if (summary.shortened === true) return '🌱 Por hoje está ótimo!';
   if (summary.reachedLevel !== undefined) return '🎉 Você subiu de nível!';
-  return summary.score >= summary.total - 1 ? '🎉 Muito bem!' : '🌱 Você está aprendendo!';
+  return summary.score >= summary.total - 1 ? '🎉 Muito bem!' : '🌱 Você praticou!';
 };

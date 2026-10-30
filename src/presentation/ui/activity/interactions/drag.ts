@@ -88,5 +88,12 @@ export const dragInteraction: InteractionFactory<'drag'> = (interaction, onAnswe
       done.disabled = false;
       done.classList.add('is-hinted');
     },
+    nudge: () => {
+      const missing = interaction.goal - carried().length;
+      const next = [...tray.querySelectorAll<HTMLButtonElement>('.drag__piece')][0];
+      for (const piece of pieces) piece.classList.remove('is-hinted');
+      next?.classList.toggle('is-hinted', missing > 0);
+      done.classList.toggle('is-hinted', missing === 0);
+    },
   };
 };
