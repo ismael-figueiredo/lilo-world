@@ -18,7 +18,7 @@ import { SessionController } from '@presentation/controllers/session-controller'
 import { WardrobeController } from '@presentation/controllers/wardrobe-controller';
 import { CameraRig } from '@presentation/engine/camera-rig';
 import { GamepadReader, padIsActive } from '@presentation/engine/gamepad';
-import { Input } from '@presentation/engine/input';
+import { gameKey, Input, isTyping } from '@presentation/engine/input';
 import { seededRandom } from '@presentation/engine/math';
 import { cameraRelative } from '@presentation/engine/movement';
 import { createRenderer, fitToContainer } from '@presentation/engine/renderer';
@@ -28,7 +28,15 @@ import { Dialog } from '@presentation/ui/dialog';
 import { h } from '@presentation/ui/dom';
 import { Hud } from '@presentation/ui/hud';
 import { Minimap } from '@presentation/ui/minimap';
+import type { Gesture } from '@presentation/ui/controls';
 import { PadFocus } from '@presentation/ui/pad-focus';
+import {
+  colliderOf,
+  nearestPerson,
+  neighborSpots,
+  standingGround,
+  type Person,
+} from '@presentation/world/neighbors';
 import { PadHints } from '@presentation/ui/pad-hints';
 import { ProfileScreen } from '@presentation/ui/profile-screen';
 import { RestScreen } from '@presentation/ui/rest-screen';
@@ -59,6 +67,9 @@ const TIME_CHECK_MS = 5_000;
 const EXTRA_TIME_MS = 5 * 60_000;
 /** Seconds between two spoken street warnings. */
 const ROAD_WARNING_GAP = 6;
+/** Seconds between greetings: one wave at a time, even if the button is pressed again. */
+const GREET_GAP = 2.5;
+const still = { x: 0, z: 0 };
 const cameraSpeeds = { low: 0.55, normal: 1, high: 1.6 } as const;
 
 /**
@@ -119,6 +130,8 @@ export class GameApp implements GameContext {
   private safeTrip = false;
   private returningToSidewalk = false;
   private lastRoadWarning = -Infinity;
+  private lastGreeting = -Infinity;
+  private people: readonly Person[] = [];
 
   constructor(
     private readonly root: HTMLElement,
@@ -128,7 +141,10 @@ export class GameApp implements GameContext {
     this.padFocus = new PadFocus(this.root);
     this.controls = new Controls({
       onMove: (move) => this.input?.setJoystick(move),
-      onJump: () => this.input?.requestJump(),
+      onGesture: () => this.input?.requestGesture(),
+      onAgenda: () => {
+        if (this.currentMode === 'explore') this.day.open();
+      },
       onAction: () => this.input?.requestAction(),
     });
     this.profileScreen = new ProfileScreen({
@@ -380,6 +396,7 @@ export class GameApp implements GameContext {
       );
       this.cameraRig.yaw = world.spawnYaw;
       this.cameraRig.snapTo(player.position);
+      void this.addNeighbors(world);
       this.input = new Input(renderer.domElement);
       this.enterPanel('menu');
       this.currentMode = 'profiles';
@@ -509,11 +526,10 @@ export class GameApp implements GameContext {
     if (exploring) rig.rotate(look.x, look.y);
 
     const move = exploring ? input.move : { x: 0, y: 0, running: false };
-    if (exploring && input.consumeJump() && player.isGrounded) {
-      player.jump();
-      this.sound('jump');
-    }
+    if (exploring && input.consumeGesture()) this.gesture(player, world);
     player.update(dt, cameraRelative(move, rig.yaw), move.running, world);
+    const standing = standingGround(world);
+    for (const person of this.people) person.character.update(dt, still, false, standing);
 
     const cameraYaw = Math.atan2(
       this.camera.position.x - player.position.x,
@@ -525,7 +541,7 @@ export class GameApp implements GameContext {
     rig.update(dt, player.position);
 
     if (exploring) {
-      this.updateExploration(player.position, input);
+      this.updateExploration(player.position, input, world);
       this.watchTheRoad(player.position, world);
       this.missions.update(player.position);
       const goal = this.goalPlace();
@@ -553,6 +569,7 @@ export class GameApp implements GameContext {
     if (exploring) {
       input.applyPad(pad, dt);
       if (pad.menu) this.goBack();
+      if (pad.agenda) this.day.open();
       return;
     }
     if (!document.body.classList.contains('is-pad')) return;
@@ -560,6 +577,7 @@ export class GameApp implements GameContext {
     if (pad.navigate !== undefined) this.padFocus.move(pad.navigate);
     if (pad.select) this.padFocus.press();
     if (pad.back || pad.menu) this.goBack();
+    if (pad.agenda && this.currentMode === 'session') this.goBack();
   }
 
   /** Shows the controller's buttons on screen and hides the touch controls. */
@@ -628,7 +646,49 @@ export class GameApp implements GameContext {
     await this.refresh();
   }
 
-  private updateExploration(position: THREE.Vector3, input: Input): void {
+  /** ▢: greets who is close. On a playground with nobody around, jumps. */
+  private gesture(player: Player, world: GameWorld): void {
+    if (this.gestureNow(player.position, world) === 'jump') {
+      if (player.isGrounded) {
+        player.jump();
+        this.sound('jump');
+      }
+      return;
+    }
+    if (this.elapsed - this.lastGreeting < GREET_GAP) return;
+    this.lastGreeting = this.elapsed;
+    player.playEmote('Wave');
+    const person = nearestPerson(this.people, player.position);
+    if (person === undefined) return;
+    player.faceTowards(person.character.position);
+    person.character.faceTowards(player.position);
+    person.character.playEmote('Wave');
+    this.say(person.reply);
+  }
+
+  private gestureNow(position: THREE.Vector3, world: GameWorld): Gesture {
+    const someoneHere = nearestPerson(this.people, position) !== undefined;
+    return !someoneHere && world.canJumpAt(position.x, position.z) ? 'jump' : 'greet';
+  }
+
+  /** Neighbors arrive after the world: nobody waits for them to start playing. */
+  private async addNeighbors(world: GameWorld): Promise<void> {
+    const replies = [phrases.replyHello, phrases.replyGoodDay];
+    const people = await Promise.all(
+      neighborSpots.map(async ({ avatarId, x, z, facing }, index) => {
+        const character = await this.createCharacter(avatarId);
+        character.placeAt(new THREE.Vector3(x, world.heightAt(x, z), z), facing);
+        return { character, reply: replies[index % replies.length] ?? phrases.replyHello };
+      }),
+    );
+    world.addColliders(neighborSpots.map(({ x, z }) => colliderOf(x, z)));
+    this.people = people;
+  }
+
+  private updateExploration(position: THREE.Vector3, input: Input, world: GameWorld): void {
+    const gesture = this.gestureNow(position, world);
+    this.controls.setGesture(gesture);
+    this.padHints.setGesture(gesture);
     const nearby = this.offeredPlace(position);
     if (nearby === undefined) this.controls.hideAction();
     else this.controls.showAction(nearby.icon, nearby.label);
@@ -878,6 +938,14 @@ export class GameApp implements GameContext {
     });
     window.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') this.goBack();
+      if (isTyping(event.target) || event.repeat) return;
+      const key = gameKey(event.code);
+      if (this.currentMode !== 'explore') return;
+      if (key === 'menu') this.goBack();
+      if (key === 'agenda') {
+        event.preventDefault();
+        this.day.open();
+      }
     });
     window.addEventListener('pointerdown', () => {
       this.showPadControls(false);

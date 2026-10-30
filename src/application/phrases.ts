@@ -57,4 +57,7 @@ export const phrases = {
     farewell === undefined ? phrases.completed : `${farewell} ${phrases.completed}`,
 
   voicePreview: 'Oi! Assim está bom?',
+
+  replyHello: 'Oi! Que bom te ver!',
+  replyGoodDay: 'Oi! Tudo bem com você?',
 } as const;

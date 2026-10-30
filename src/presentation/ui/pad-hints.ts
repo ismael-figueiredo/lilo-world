@@ -1,5 +1,6 @@
 import { padGlyphs, type PadRole, type PadStyle } from '@presentation/engine/gamepad';
 import { h } from '@presentation/ui/dom';
+import type { Gesture } from '@presentation/ui/controls';
 
 const paint = (element: Element, style: PadStyle, role: PadRole): void => {
   if (!(element instanceof HTMLElement)) return;
@@ -8,20 +9,28 @@ const paint = (element: Element, style: PadStyle, role: PadRole): void => {
   element.style.backgroundColor = color;
 };
 
-const hint = (role: PadRole, text: string, className: string): HTMLElement =>
+const hint = (role: PadRole, text: HTMLElement | string, className: string): HTMLElement =>
   h('span', { className: `pad-hints__item ${className}` }, [
     h('span', { className: 'pad-glyph', attrs: { 'data-role': role } }),
-    h('span', { text }),
+    typeof text === 'string' ? h('span', { text }) : text,
   ]);
+
+const gestureWords: Readonly<Record<Gesture, string>> = { greet: 'acenar', jump: 'pular' };
 
 /** What each button does right now, always in the same place while using a controller. */
 export class PadHints {
+  private readonly gesture = h('span');
   readonly element = h('div', { className: 'pad-hints', attrs: { 'aria-hidden': 'true' } }, [
     hint('select', 'escolher', 'pad-hints__item--panel'),
     hint('back', 'voltar', 'pad-hints__item--panel'),
-    hint('jump', 'pular', 'pad-hints__item--world'),
+    hint('gesture', this.gesture, 'pad-hints__item--world'),
+    hint('agenda', 'agenda', 'pad-hints__item--world'),
     hint('menu', 'menu', 'pad-hints__item--world'),
   ]);
+
+  setGesture(gesture: Gesture): void {
+    this.gesture.textContent = gestureWords[gesture];
+  }
 
   setStyle(style: PadStyle): void {
     for (const glyph of this.element.querySelectorAll('[data-role]')) {

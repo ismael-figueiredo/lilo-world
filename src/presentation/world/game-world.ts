@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import type { TrafficPhase } from '@domain/city/traffic-light';
 import type { WorldMapEntry } from '@application/use-cases/get-world-map';
 import type { Random } from '@presentation/engine/math';
-import { CITY, City, isInsideCity, SOUTH_DISTRICT } from '@presentation/world/city';
-import type { Collider } from '@presentation/world/collision';
+import { CITY, City, isInsideCity, PLAYGROUND, SOUTH_DISTRICT } from '@presentation/world/city';
+import { isInsideAny, type Area, type Collider } from '@presentation/world/collision';
 import type { Interactable } from '@presentation/world/interactable';
 import { lowPoly } from '@presentation/world/materials';
 import { Nature } from '@presentation/world/nature';
@@ -11,7 +11,7 @@ import { EMOTIONS_GARDEN, EmotionsGarden } from '@presentation/world/emotions-ga
 import { HOME_AREA, HomeArea } from '@presentation/world/home-area';
 import { MARKET_INTERIOR, MarketInterior } from '@presentation/world/market-interior';
 import { NATURE_CAMP, NatureCamp } from '@presentation/world/nature-camp';
-import { SCHOOL_AREA, SchoolArea } from '@presentation/world/school-area';
+import { SCHOOL_AREA, SchoolArea, SchoolPlace } from '@presentation/world/school-area';
 import { PORTAL_PLAZA, Portals } from '@presentation/world/portals';
 import type { RoadSafety } from '@presentation/world/road-safety';
 import { Sky } from '@presentation/world/sky';
@@ -123,6 +123,22 @@ export class GameWorld {
 
   isWalkable(x: number, z: number): boolean {
     return this.shape.isWalkable(x, z);
+  }
+
+  /** Jumping belongs to play: on playgrounds, not on the way to places. */
+  canJumpAt(x: number, z: number): boolean {
+    const park = this.places.find((place) => place.id === SchoolPlace.park);
+    const areas: readonly Area[] = [
+      PLAYGROUND,
+      ...(park === undefined ? [] : [{ x: park.position.x, z: park.position.z, radius: 6.5 }]),
+    ];
+    return isInsideAny(areas, x, z);
+  }
+
+  /** Solid things that were added after the world was built. */
+  addColliders(colliders: readonly Collider[]): void {
+    this.staticColliders.push(...colliders);
+    this.colliders = [...this.colliders, ...colliders];
   }
 
   setMotionScale(scale: number): void {

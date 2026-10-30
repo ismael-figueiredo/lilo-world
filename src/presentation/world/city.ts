@@ -65,6 +65,8 @@ const AVENUE = { width: 6, sidewalk: 2 } as const;
 const AVENUE_LOT_START = AVENUE_Z + AVENUE.width / 2 + AVENUE.sidewalk + 0.5;
 /** The town square, between the main street's lots and the avenue. */
 export const SQUARE = { x: 2, z: 24, radius: 6.8 } as const;
+/** Soft rubber floor beside the square. */
+export const PLAYGROUND = { x: 17.5, z: 22, radius: 6.5 } as const;
 
 const ROADS: readonly Road[] = [
   { axis: 'x', at: 0, from: -CITY.radius, to: CITY.radius, width: ROAD_WIDTH, sidewalk: SIDEWALK },
@@ -573,7 +575,7 @@ export class City {
     this.colliders.push(circle(sx + 4, sz - radius - 1, 0.5));
 
     // Playground beside the square, on soft rubber floor.
-    const play = { x: 17.5, z: 22 };
+    const play = PLAYGROUND;
     this.group.add(
       solid(new THREE.BoxGeometry(9, 0.08, 9), lowPoly(0x7ec8a3), [play.x, 0.04, play.z]),
     );

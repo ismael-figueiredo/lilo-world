@@ -28,16 +28,20 @@ export interface PadFrame {
   readonly move: MoveInput;
   /** Right stick, each axis in [-1, 1] (right and down are positive, like a mouse drag). */
   readonly look: { readonly x: number; readonly y: number };
-  /** ▢: uses what is nearby and chooses in panels. */
+  /** ✕: the main button, as on any console: uses what is nearby and chooses in panels. */
   readonly select: boolean;
-  /** ▢ is down right now, for buttons that adults must hold. */
+  /** ✕ is down right now, for buttons that adults must hold. */
   readonly selectHeld: boolean;
-  /** ✕: jumps, and only that. */
-  readonly jump: boolean;
+  /** ▢: greets, or jumps in places made for it. */
+  readonly gesture: boolean;
   /** ◯: goes back in panels. */
   readonly back: boolean;
-  /** △ or Options. */
+  /** △: the day's plan. */
+  readonly agenda: boolean;
+  /** Options. */
   readonly menu: boolean;
+  /** L1: a calm pause, from anywhere. */
+  readonly pause: boolean;
   /** Direction pressed this frame, for moving the focus in panels. */
   readonly navigate: PadDirection | undefined;
 }
@@ -110,11 +114,13 @@ export function readPad(previous: PadState, current: PadState): PadFrame {
   return {
     move,
     look: stickToLook(rx, ry),
-    select: went(PadButton.x),
-    selectHeld: current.pressed[PadButton.x] === true,
-    jump: went(PadButton.a),
+    select: went(PadButton.a),
+    selectHeld: current.pressed[PadButton.a] === true,
+    gesture: went(PadButton.x),
     back: went(PadButton.b),
-    menu: went(PadButton.y) || went(PadButton.start),
+    agenda: went(PadButton.y),
+    menu: went(PadButton.start),
+    pause: went(PadButton.lb),
     navigate:
       direction !== undefined && direction !== directionOf(previous) ? direction : undefined,
   };
@@ -125,9 +131,11 @@ const emptyPad: PadState = { axes: [], pressed: [] };
 /** True when the child is using the controller this frame. */
 export const padIsActive = (frame: PadFrame): boolean =>
   frame.select ||
-  frame.jump ||
+  frame.gesture ||
   frame.back ||
+  frame.agenda ||
   frame.menu ||
+  frame.pause ||
   frame.navigate !== undefined ||
   frame.move !== idleInput;
 
@@ -137,7 +145,7 @@ export type PadStyle = 'playstation' | 'xbox';
 export const padStyleOf = (id: string): PadStyle =>
   /xbox|xinput|045e/iu.test(id) ? 'xbox' : 'playstation';
 
-export type PadRole = 'select' | 'jump' | 'back' | 'menu';
+export type PadRole = 'select' | 'gesture' | 'back' | 'agenda' | 'menu' | 'pause';
 
 export interface PadGlyph {
   readonly symbol: string;
@@ -147,16 +155,20 @@ export interface PadGlyph {
 /** Each button as it looks on the controller, with its own color. */
 export const padGlyphs: Readonly<Record<PadStyle, Readonly<Record<PadRole, PadGlyph>>>> = {
   playstation: {
-    select: { symbol: '▢', color: '#e0559e' },
-    jump: { symbol: '✕', color: '#2f6fe0' },
+    select: { symbol: '✕', color: '#2f6fe0' },
+    gesture: { symbol: '▢', color: '#e0559e' },
     back: { symbol: '◯', color: '#e03a2f' },
-    menu: { symbol: '△', color: '#16a36b' },
+    agenda: { symbol: '△', color: '#16a36b' },
+    menu: { symbol: '☰', color: '#5b6b82' },
+    pause: { symbol: 'L1', color: '#e8892f' },
   },
   xbox: {
-    select: { symbol: 'X', color: '#7fb0ff' },
-    jump: { symbol: 'A', color: '#4ed39a' },
+    select: { symbol: 'A', color: '#4ed39a' },
+    gesture: { symbol: 'X', color: '#7fb0ff' },
     back: { symbol: 'B', color: '#ff6b5e' },
-    menu: { symbol: 'Y', color: '#ffd23f' },
+    agenda: { symbol: 'Y', color: '#ffd23f' },
+    menu: { symbol: '☰', color: '#5b6b82' },
+    pause: { symbol: 'LB', color: '#e8892f' },
   },
 };
 

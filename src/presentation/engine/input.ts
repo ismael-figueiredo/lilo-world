@@ -6,8 +6,21 @@ const BLOCKED_KEYS = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'Arr
 /** Camera turn from a fully pushed right stick, in "mouse pixels" per second. */
 const PAD_LOOK_SPEED = 420;
 
-const isTyping = (target: EventTarget | null): boolean =>
+export const isTyping = (target: EventTarget | null): boolean =>
   target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+
+/** Keys that work anywhere in the game, the same jobs as on a controller. */
+export type GameKey = 'agenda' | 'menu' | 'pause';
+
+export function gameKey(code: string): GameKey | undefined {
+  if (code === 'Tab') return 'agenda';
+  if (code === 'KeyP') return 'menu';
+  if (code === 'KeyC') return 'pause';
+  return undefined;
+}
+
+const isActionKey = (code: string): boolean => code === 'KeyE' || code === 'Enter';
+const isGestureKey = (code: string): boolean => code === 'KeyQ' || code === 'Space';
 
 /**
  * Collects input from keyboard, mouse and touch into one simple state.
@@ -18,7 +31,7 @@ export class Input {
   private joystick: MoveInput = idleInput;
   private pad: MoveInput = idleInput;
   private waitingForRelease = false;
-  private jumpQueued = false;
+  private gestureQueued = false;
   private actionQueued = false;
   private look = { x: 0, y: 0 };
   private dragPointer: number | null = null;
@@ -58,7 +71,7 @@ export class Input {
     this.pad = frame.move;
     this.look.x += frame.look.x * PAD_LOOK_SPEED * dt;
     this.look.y += frame.look.y * PAD_LOOK_SPEED * dt;
-    if (frame.jump) this.jumpQueued = true;
+    if (frame.gesture) this.gestureQueued = true;
     if (frame.select) this.actionQueued = true;
   }
 
@@ -66,17 +79,17 @@ export class Input {
     this.joystick = input;
   }
 
-  requestJump(): void {
-    this.jumpQueued = true;
+  requestGesture(): void {
+    this.gestureQueued = true;
   }
 
   requestAction(): void {
     this.actionQueued = true;
   }
 
-  consumeJump(): boolean {
-    const queued = this.jumpQueued && this.enabled;
-    this.jumpQueued = false;
+  consumeGesture(): boolean {
+    const queued = this.gestureQueued && this.enabled;
+    this.gestureQueued = false;
     return queued;
   }
 
@@ -91,7 +104,7 @@ export class Input {
     this.keys.clear();
     this.joystick = idleInput;
     this.pad = idleInput;
-    this.jumpQueued = false;
+    this.gestureQueued = false;
     this.actionQueued = false;
     this.look = { x: 0, y: 0 };
   }
@@ -118,8 +131,8 @@ export class Input {
     if (BLOCKED_KEYS.has(event.code)) event.preventDefault();
     if (event.repeat) return;
     this.keys.add(event.code);
-    if (event.code === 'Space') this.jumpQueued = true;
-    if (event.code === 'KeyE' || event.code === 'Enter') this.actionQueued = true;
+    if (isGestureKey(event.code)) this.gestureQueued = true;
+    if (isActionKey(event.code)) this.actionQueued = true;
   };
 
   private readonly onKeyUp = (event: KeyboardEvent): void => {
