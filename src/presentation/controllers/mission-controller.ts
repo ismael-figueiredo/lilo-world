@@ -34,9 +34,8 @@ export const missionPlaces: Readonly<Record<string, string>> = {
   'emotions-calm': EmotionsPlace.calm,
 };
 
-/** The mission played inside the market, and who works at the cashier. */
+/** The mission played inside the market. */
 const MARKET_MISSION = 'city-market';
-const CASHIER_AVATAR = 'lis';
 
 /** What the crosswalk task reports, as the mission's choice ids. */
 const crossingChoices: Readonly<Record<CrossingEvent, string>> = {
@@ -165,9 +164,7 @@ export class MissionController {
   /** Into the market: today's groceries on the shelves, the cart, the cashier. */
   private async goInside(attempt: MissionAttempt): Promise<void> {
     const market = await this.ctx.whileLoading(this.ctx.world.prepareMarket());
-    this.cashier ??= await this.ctx.createCharacter(
-      this.ctx.avatar.avatarId === CASHIER_AVATAR ? 'sam' : CASHIER_AVATAR,
-    );
+    this.cashier ??= this.ctx.addPerson('cashier');
     const cashier = this.cashier;
     await this.ctx.transition(() => {
       market.stock(attempt.mission.choices.filter((choice) => choice.group === undefined));

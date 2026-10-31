@@ -13,6 +13,7 @@ import { AnswerActivity } from '@application/use-cases/answer-activity';
 import { ApplySettings } from '@application/use-cases/apply-settings';
 import { BuyWardrobeItem } from '@application/use-cases/buy-wardrobe-item';
 import { ChangeAvatar } from '@application/use-cases/change-avatar';
+import { ChangeChild } from '@application/use-cases/change-child';
 import { CheckSessionTime } from '@application/use-cases/check-session-time';
 import { ChooseMissionAnswer } from '@application/use-cases/choose-mission-answer';
 import { CreateProfile } from '@application/use-cases/create-profile';
@@ -115,6 +116,7 @@ export function createServices(adapters: Adapters): GameServices {
     getActiveProfile: new GetActiveProfile(profiles),
     listAvatars: new ListAvatars(catalog),
     changeAvatar: new ChangeAvatar(profiles, catalog),
+    changeChild: new ChangeChild(profiles),
     speech,
     audio,
     forPlayer(profileId) {

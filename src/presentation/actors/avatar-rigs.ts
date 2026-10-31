@@ -26,6 +26,8 @@ const kid: AvatarRig = { height: 1.55, flatShading: false };
 const bunnyFit = { headTop: 0.77, eyes: 0.6, headWidth: 0.4 } as const;
 
 export const avatarRigs: Readonly<Record<string, AvatarRig>> = {
+  child: { height: 1.4, flatShading: false, fit: { headTop: 1, eyes: 0.82, headWidth: 0.39 } },
+  adult: { height: 1.85, flatShading: false, fit: { headTop: 1, eyes: 0.88, headWidth: 0.26 } },
   robot: {
     height: 1.9,
     bodyMaterial: 'Main',

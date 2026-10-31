@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { prepareMission } from '@domain/mission/prepare-mission';
 import { DEFAULT_AVATAR_ID } from '@domain/profile/player-profile';
 import { seededRandom } from '@domain/shared/random';
+import { CHILD_AVATAR_ID } from '@domain/avatar/child';
 import { avatars, missions, wardrobeItems, worlds } from '@infrastructure/catalog/content';
 import pictograms from '@infrastructure/catalog/pictograms.json';
 import { withPictograms } from '@infrastructure/catalog/static-content-catalog';
@@ -152,9 +153,10 @@ describe('bundled content', () => {
 });
 
 describe('bundled avatars', () => {
-  it('has unique ids, starting with the default avatar', () => {
+  it('has unique ids, starting with the child itself, and keeps the old default costume', () => {
     expect(new Set(avatars.map((a) => a.id)).size).toBe(avatars.length);
-    expect(avatars[0]?.id).toBe(DEFAULT_AVATAR_ID);
+    expect(avatars[0]?.id).toBe(CHILD_AVATAR_ID);
+    expect(avatars.map((a) => a.id)).toContain(DEFAULT_AVATAR_ID);
   });
 });
 

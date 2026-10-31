@@ -4,13 +4,22 @@ import type { GameServices, PlayerServices } from '@application/game-services';
 import type { SoundEffect } from '@application/ports/audio';
 import type { WorldMap } from '@application/use-cases/get-world-map';
 import type { Goal } from '@application/use-cases/suggest-next-goal';
-import { DEFAULT_AVATAR_ID, type PlayerProfile } from '@domain/profile/player-profile';
+import {
+  CHILD_AVATAR_ID,
+  defaultChildChoices,
+  type ChildChoices,
+  type OutfitId,
+} from '@domain/avatar/child';
+import { startRoutine, stepRoutine } from '@domain/people/routine';
+import type { PlayerProfile } from '@domain/profile/player-profile';
 import { sessionTimeStatus } from '@domain/session/session';
 import { defaultSettings, type Settings } from '@domain/settings/settings';
 import { Mascot } from '@presentation/actors/mascot';
 import { AvatarLibrary } from '@presentation/actors/avatar-library';
 import { avatarPictureUrl } from '@presentation/actors/avatar-rigs';
-import type { Player } from '@presentation/actors/player';
+import { cast, childPerson, type CastMember } from '@presentation/actors/cast';
+import { outfitClothes, type Expression } from '@presentation/actors/child-figure';
+import type { Emote, Ground, Player } from '@presentation/actors/player';
 import { MenuController } from '@presentation/controllers/menu-controller';
 import { ActivityController } from '@presentation/controllers/activity-controller';
 import { MissionController, missionPlaces } from '@presentation/controllers/mission-controller';
@@ -31,12 +40,14 @@ import { Hud } from '@presentation/ui/hud';
 import { Minimap } from '@presentation/ui/minimap';
 import type { Gesture } from '@presentation/ui/controls';
 import { CalmPause } from '@presentation/ui/calm-pause';
+import { ChildCreator } from '@presentation/ui/child-creator';
+import { ChildStudio } from '@presentation/ui/child-studio';
 import { LoadingScreen } from '@presentation/ui/loading-screen';
 import { PadFocus } from '@presentation/ui/pad-focus';
 import {
   colliderOf,
   nearestPerson,
-  neighborSpots,
+  neighbors,
   standingGround,
   type Person,
 } from '@presentation/world/neighbors';
@@ -44,7 +55,7 @@ import { PadHints } from '@presentation/ui/pad-hints';
 import { ProfileScreen } from '@presentation/ui/profile-screen';
 import { RestScreen } from '@presentation/ui/rest-screen';
 import { CityPlace } from '@presentation/world/city';
-import { firstObstruction } from '@presentation/world/collision';
+import { firstObstruction, resolveCollisions } from '@presentation/world/collision';
 import { GameWorld } from '@presentation/world/game-world';
 import { GoalMarker } from '@presentation/world/goal-marker';
 import type { Interactable } from '@presentation/world/interactable';
@@ -78,6 +89,8 @@ const EXTRA_TIME_MS = 5 * 60_000;
 const ROAD_WARNING_GAP = 6;
 /** Seconds between greetings: one wave at a time, even if the button is pressed again. */
 const GREET_GAP = 2.5;
+/** The child's body and a person's: they meet, but never overlap. */
+const PERSON_SPACE = 0.45;
 const still = { x: 0, z: 0 };
 /** How fast the number shown in the dev stats follows each frame. */
 const FPS_SMOOTHING = 0.05;
@@ -156,6 +169,11 @@ export class GameApp implements GameContext {
   private readonly loading = new LoadingScreen();
   private fps = 60;
   private people: readonly Person[] = [];
+  private readonly studio = new ChildStudio();
+  private readonly creator = new ChildCreator(this.studio, {
+    onSpeak: (text) => void this.services.speech.speak(text),
+  });
+  private characterKey: string | undefined;
 
   constructor(
     private readonly root: HTMLElement,
@@ -173,9 +191,8 @@ export class GameApp implements GameContext {
     });
     this.profileScreen = new ProfileScreen({
       onSelect: (profile) => void this.selectProfile(profile),
-      onCreate: (name, avatarId) => void this.createProfile(name, avatarId),
-      onPreviewAvatar: (avatarId) => {
-        this.avatars.preload(avatarId);
+      onCreate: (name) => {
+        this.newChild(name);
       },
       onRename: (profile, name) => void this.renameProfile(profile, name),
       onDelete: (profile) => void this.deleteProfile(profile),
@@ -348,18 +365,68 @@ export class GameApp implements GameContext {
     const result = await this.services.changeAvatar.execute(this.profile.id, avatarId);
     if (!result.ok) return;
     this.activeProfile = result.value;
-    await this.useAvatar(avatarId);
+    await this.useAvatar(result.value);
     await this.refresh();
   }
 
+  async changeOutfit(outfit: OutfitId): Promise<void> {
+    const result = await this.services.changeChild.execute(this.profile.id, { outfit });
+    if (!result.ok) return;
+    this.activeProfile = result.value;
+    this.character?.wear(outfitClothes[outfit]);
+  }
+
+  editChild(changed: () => void): void {
+    const { profile } = this;
+    this.creator.open(
+      profile,
+      '✓ Pronto',
+      (choices) => {
+        void this.saveChild(choices).then(changed);
+      },
+      () => undefined,
+    );
+  }
+
+  private async saveChild(choices: ChildChoices): Promise<void> {
+    const result = await this.services.changeChild.execute(this.profile.id, choices);
+    if (!result.ok) return;
+    this.activeProfile = result.value;
+    await this.useAvatar(result.value);
+    await this.refresh();
+    this.say(phrases.childChanged);
+  }
+
   avatarPicture(avatarId: string): string {
+    if (avatarId === CHILD_AVATAR_ID && this.activeProfile !== undefined) {
+      return this.profilePicture({ ...this.activeProfile, avatarId });
+    }
     return avatarPictureUrl(this.options.baseUrl, avatarId);
   }
 
+  outfitPicture(outfit: OutfitId): string {
+    return this.studio.picture(childPerson(this.profile.look, outfit), 'body');
+  }
+
+  private profilePicture(profile: PlayerProfile): string {
+    return profile.avatarId === CHILD_AVATAR_ID
+      ? this.studio.picture(childPerson(profile.look, profile.outfit), 'face')
+      : avatarPictureUrl(this.options.baseUrl, profile.avatarId);
+  }
+
   /** Replaces the 3D character in place (same spot, same direction). */
-  private async useAvatar(avatarId: string): Promise<void> {
-    if (this.character?.avatarId === avatarId) return;
-    const next = await this.avatars.create(avatarId);
+  private async useAvatar(profile: PlayerProfile): Promise<void> {
+    const { avatarId, look, outfit } = profile;
+    const isChild = avatarId === CHILD_AVATAR_ID;
+    const key = isChild ? JSON.stringify(look) : avatarId;
+    if (this.characterKey === key) {
+      this.character?.wear(outfitClothes[outfit]);
+      return;
+    }
+    const next = isChild
+      ? this.avatars.createPerson(childPerson(look, outfit))
+      : await this.avatars.create(avatarId);
+    this.characterKey = key;
     const previous = this.character;
     if (previous !== undefined) {
       next.placeAt(previous.position, previous.facing);
@@ -387,7 +454,7 @@ export class GameApp implements GameContext {
       this.padHints.element,
       this.fade,
     );
-    this.root.append(this.ui, this.profileScreen.element);
+    this.root.append(this.ui, this.profileScreen.element, this.creator.element);
     this.ui.addEventListener(
       'click',
       (event) => {
@@ -410,7 +477,9 @@ export class GameApp implements GameContext {
       });
       const world = new GameWorld(this.scene, seededRandom(this.options.seed ?? 20261028), assets);
       this.gameWorld = world;
-      const player = await this.avatars.create(DEFAULT_AVATAR_ID);
+      const player = this.avatars.createPerson(
+        childPerson(defaultChildChoices.look, defaultChildChoices.outfit),
+      );
       this.character = player;
       player.placeAt(world.spawn, Math.PI / 2);
       this.mascot.placeNear(world.spawn);
@@ -423,7 +492,7 @@ export class GameApp implements GameContext {
       );
       this.cameraRig.yaw = world.spawnYaw;
       this.cameraRig.snapTo(player.position);
-      void this.addNeighbors(world);
+      this.addNeighbors(world);
       void world.prepareIsland();
       this.input = new Input(renderer.domElement);
       this.enterPanel('menu');
@@ -437,9 +506,7 @@ export class GameApp implements GameContext {
       this.loading.hide();
       if (import.meta.env.DEV) this.exposeDevTools();
 
-      this.profileScreen.setAvatars(await this.services.listAvatars.execute(), (id) =>
-        this.avatarPicture(id),
-      );
+      this.profileScreen.setPictures((profile) => this.profilePicture(profile));
       this.profileScreen.show(await this.services.listProfiles.execute());
     } catch (error) {
       console.error(error);
@@ -455,8 +522,18 @@ export class GameApp implements GameContext {
     if (result.ok) await this.beginProfile(result.value, false);
   }
 
-  private async createProfile(name: string, avatarId: string): Promise<void> {
-    const result = await this.services.createProfile.execute(name, avatarId);
+  /** After the name, the child creates themself. Costumes are in the wardrobe. */
+  private newChild(name: string): void {
+    this.creator.open(
+      defaultChildChoices,
+      '▶ Começar',
+      (choices) => void this.createProfile(name, choices),
+      () => undefined,
+    );
+  }
+
+  private async createProfile(name: string, choices: ChildChoices): Promise<void> {
+    const result = await this.services.createProfile.execute(name, CHILD_AVATAR_ID, choices);
     if (result.ok) await this.beginProfile(result.value, true);
   }
 
@@ -477,7 +554,7 @@ export class GameApp implements GameContext {
     this.activeProfile = profile;
     this.playerServices = this.services.forPlayer(profile.id);
     this.profileScreen.setLoading(`Preparando ${profile.name}…`);
-    await this.useAvatar(profile.avatarId);
+    await this.useAvatar(profile);
     this.applySettings(await this.player.applySettings.execute());
 
     const session = await this.player.loadSession.execute();
@@ -564,8 +641,7 @@ export class GameApp implements GameContext {
     const move = exploring ? input.move : { x: 0, y: 0, running: false };
     if (exploring && input.consumeGesture()) this.gesture(player, world);
     player.update(dt, cameraRelative(move, rig.yaw), move.running, world);
-    const standing = standingGround(world);
-    for (const person of this.people) person.character.update(dt, still, false, standing);
+    this.updatePeople(dt, player, standingGround(world));
 
     const cameraYaw = Math.atan2(
       this.camera.position.x - player.position.x,
@@ -646,7 +722,8 @@ export class GameApp implements GameContext {
 
   /** Esc, or B / Start on a controller: opens the menu or closes what is open. */
   private goBack(): void {
-    if (this.currentMode === 'pause') this.togglePause();
+    if (this.creator.isOpen) this.creator.back();
+    else if (this.currentMode === 'pause') this.togglePause();
     else if (this.currentMode === 'explore') this.menus.open();
     else if (this.currentMode === 'menu') {
       this.menus.closeAll();
@@ -735,18 +812,43 @@ export class GameApp implements GameContext {
     return !someoneHere && world.canJumpAt(position.x, position.z) ? 'jump' : 'greet';
   }
 
-  /** Neighbors arrive after the world: nobody waits for them to start playing. */
-  private async addNeighbors(world: GameWorld): Promise<void> {
+  private addNeighbors(world: GameWorld): void {
     const replies = [phrases.replyHello, phrases.replyGoodDay];
-    const people = await Promise.all(
-      neighborSpots.map(async ({ avatarId, x, z, facing }, index) => {
-        const character = await this.createCharacter(avatarId);
-        character.placeAt(new THREE.Vector3(x, world.heightAt(x, z), z), facing);
-        return { character, reply: replies[index % replies.length] ?? phrases.replyHello };
-      }),
-    );
-    world.addColliders(neighborSpots.map(({ x, z }) => colliderOf(x, z)));
-    this.people = people;
+    this.people = neighbors.map(({ member, route, facing }, index) => {
+      const character = this.addPerson(member);
+      const start = route[0] ?? { x: 0, z: 0 };
+      character.placeAt(
+        new THREE.Vector3(start.x, world.heightAt(start.x, start.z), start.z),
+        facing,
+      );
+      return {
+        character,
+        reply: replies[index % replies.length] ?? phrases.replyHello,
+        route,
+        routine: startRoutine,
+      };
+    });
+  }
+
+  /** Daily life goes on around the child, and nobody walks through anybody. */
+  private updatePeople(dt: number, player: Player, ground: Ground): void {
+    for (const person of this.people) {
+      const { character, route, routine } = person;
+      if (route === undefined || routine === undefined) {
+        character.update(dt, still, false, ground);
+        continue;
+      }
+      const step = stepRoutine(routine, route, character.position, player.position, dt);
+      person.routine = step.routine;
+      if (step.lookAtChild) character.faceTowards(player.position);
+      if (step.wave) character.playEmote('Wave');
+      character.update(dt, step.walk, false, ground);
+      const pushed = resolveCollisions(player.position, PERSON_SPACE, [
+        colliderOf(character.position.x, character.position.z),
+      ]);
+      player.position.x = pushed.x;
+      player.position.z = pushed.z;
+    }
   }
 
   private updateExploration(position: THREE.Vector3, input: Input, world: GameWorld): void {
@@ -885,10 +987,28 @@ export class GameApp implements GameContext {
     return this.loading.during(work);
   }
 
-  async createCharacter(avatarId: string): Promise<Player> {
-    const character = await this.avatars.create(avatarId);
+  addPerson(member: CastMember): Player {
+    const character = this.avatars.createPerson(cast[member]);
     this.scene.add(character.root);
     return character;
+  }
+
+  /** Dev only: rows of the cast or outfits in front of the camera, for checking them by eye. */
+  private showPeople(rows: readonly (readonly [string, Emote?, number?, Expression?])[]): void {
+    const start = this.character?.position;
+    if (start === undefined) return;
+    rows.forEach(([who, emote, time, expression], index) => {
+      const person =
+        who in cast ? cast[who as CastMember] : childPerson(this.profile.look, who as OutfitId);
+      const shown = this.avatars.createPerson(person);
+      const x = start.x + (index - (rows.length - 1) / 2) * 1.5;
+      shown.placeAt(new THREE.Vector3(x, start.y, start.z - 3), 0);
+      this.scene.add(shown.root);
+      this.people = [...this.people, { character: shown, reply: '' }];
+      if (emote !== undefined) shown.playEmote(emote);
+      if (time !== undefined) shown.freezeAt(time);
+      if (expression !== undefined) shown.feel(expression);
+    });
   }
 
   // ---------- Goal arrow ----------
@@ -1047,6 +1167,12 @@ export class GameApp implements GameContext {
         use: (placeId: string) => {
           const place = this.gameWorld?.places.find((p) => p.id === placeId);
           if (place !== undefined) void this.use(place);
+        },
+        people: (rows: readonly (readonly [string, Emote?, number?, Expression?])[]) => {
+          this.showPeople(rows);
+        },
+        look: (from: readonly [number, number, number], at: readonly [number, number, number]) => {
+          this.rig.setFocus(new THREE.Vector3(...from), new THREE.Vector3(...at), true);
         },
         stats: () => {
           const { render, memory } = this.renderer?.info ?? { render: {}, memory: {} };

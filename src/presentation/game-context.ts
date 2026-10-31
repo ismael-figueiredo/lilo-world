@@ -1,3 +1,5 @@
+import type { OutfitId } from '@domain/avatar/child';
+import type { CastMember } from '@presentation/actors/cast';
 import type { GameServices, PlayerServices } from '@application/game-services';
 import type { SoundEffect } from '@application/ports/audio';
 import type { PlayerProfile } from '@domain/profile/player-profile';
@@ -53,11 +55,16 @@ export interface GameContext {
   switchPlayer(): Promise<void>;
   /** Swaps the 3D character and remembers the choice for this child. */
   changeAvatar(avatarId: string): Promise<void>;
+  /** Saves the clothes of the child and changes them on the same body. */
+  changeOutfit(outfit: OutfitId): Promise<void>;
+  /** Opens the child creator; `changed` runs after the new look is saved. */
+  editChild(changed: () => void): void;
   avatarPicture(avatarId: string): string;
+  outfitPicture(outfit: OutfitId): string;
   /** Runs `change` behind a short fade, e.g. to step into a building. */
   transition(change: () => void): Promise<void>;
   /** Shows the loading screen while something takes longer than a blink. */
   whileLoading<T>(work: Promise<T>): Promise<T>;
-  /** Adds another character to the scene, e.g. the market's cashier. */
-  createCharacter(avatarId: string): Promise<Player>;
+  /** Adds someone of the town to the scene, e.g. the market's cashier. */
+  addPerson(member: CastMember): Player;
 }

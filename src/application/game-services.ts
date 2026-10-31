@@ -4,6 +4,7 @@ import type { AnswerActivity } from '@application/use-cases/answer-activity';
 import type { ApplySettings } from '@application/use-cases/apply-settings';
 import type { BuyWardrobeItem } from '@application/use-cases/buy-wardrobe-item';
 import type { ChangeAvatar } from '@application/use-cases/change-avatar';
+import type { ChangeChild } from '@application/use-cases/change-child';
 import type { CheckSessionTime } from '@application/use-cases/check-session-time';
 import type { ChooseMissionAnswer } from '@application/use-cases/choose-mission-answer';
 import type { CreateProfile } from '@application/use-cases/create-profile';
@@ -72,6 +73,7 @@ export interface GameServices {
   readonly getActiveProfile: GetActiveProfile;
   readonly listAvatars: ListAvatars;
   readonly changeAvatar: ChangeAvatar;
+  readonly changeChild: ChangeChild;
   readonly speech: Speech;
   readonly audio: AudioPlayer;
   forPlayer(profileId: ProfileId): PlayerServices;

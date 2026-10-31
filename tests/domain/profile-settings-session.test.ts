@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { defaultChildChoices } from '@domain/avatar/child';
 import {
   createProfile,
   normalizeName,
@@ -24,7 +25,14 @@ describe('player profile', () => {
     const created = createProfile('p1', 'Leo', 'robot', 10);
     expect(created).toEqual({
       ok: true,
-      value: { id: 'p1', name: 'Leo', avatarId: 'robot', createdAt: 10, lastPlayedAt: 10 },
+      value: {
+        id: 'p1',
+        name: 'Leo',
+        avatarId: 'robot',
+        createdAt: 10,
+        lastPlayedAt: 10,
+        ...defaultChildChoices,
+      },
     });
     if (!created.ok) return;
     expect(
@@ -37,8 +45,9 @@ describe('player profile', () => {
   });
 
   it('lists the most recently played first', () => {
-    const a = { id: 'a', name: 'A', avatarId: 'robot', createdAt: 0, lastPlayedAt: 5 };
-    const b = { id: 'b', name: 'B', avatarId: 'robot', createdAt: 0, lastPlayedAt: 9 };
+    const base = { name: 'A', avatarId: 'robot', createdAt: 0, ...defaultChildChoices };
+    const a = { ...base, id: 'a', lastPlayedAt: 5 };
+    const b = { ...base, id: 'b', lastPlayedAt: 9 };
     expect(sortProfiles([a, b]).map((p) => p.id)).toEqual(['b', 'a']);
   });
 });

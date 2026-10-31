@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { defaultChildChoices } from '@domain/avatar/child';
 import { defaultSettings } from '@domain/settings/settings';
 import { LocalStorageProfileRepository } from '@infrastructure/persistence/local-storage-profile-repository';
 import { LocalStorageSessionRepository } from '@infrastructure/persistence/local-storage-session-repository';
@@ -18,6 +19,7 @@ const profile = (id: string, name = id) => ({
   avatarId: 'robot',
   createdAt: 1,
   lastPlayedAt: 1,
+  ...defaultChildChoices,
 });
 
 describe('LocalStorageProfileRepository', () => {
@@ -61,6 +63,26 @@ describe('LocalStorageProfileRepository', () => {
     expect(storage.getItem(profileKey('b', 'progress'))).toBe('{}');
   });
 
+  it('opens a profile saved before the child creator as it was, keeping the costume', async () => {
+    const old = { id: 'a', name: 'Ana', avatarId: 'panda', createdAt: 3, lastPlayedAt: 9 };
+    storage.setItem(PROFILES_KEY, JSON.stringify({ profiles: [old], activeId: 'a' }));
+
+    expect(await repository.list()).toEqual([{ ...old, ...defaultChildChoices }]);
+    expect(await repository.activeId()).toBe('a');
+  });
+
+  it('keeps the choices that were saved and repairs the broken ones', async () => {
+    const look = { ...defaultChildChoices.look, hairStyle: 'afro', skin: 123 };
+    const saved = { ...profile('a'), look, outfit: 'swim', guardian: 'nobody' };
+    storage.setItem(PROFILES_KEY, JSON.stringify({ profiles: [saved] }));
+
+    const [child] = await repository.list();
+    expect(child?.look.hairStyle).toBe('afro');
+    expect(child?.look.skin).toBe(defaultChildChoices.look.skin);
+    expect(child?.outfit).toBe('swim');
+    expect(child?.guardian).toBe(defaultChildChoices.guardian);
+  });
+
   it('ignores broken stored data', async () => {
     storage.setItem(PROFILES_KEY, JSON.stringify({ profiles: [{ id: 3 }], activeId: 'ghost' }));
     expect(await repository.list()).toEqual([]);
@@ -97,7 +119,14 @@ describe('migrateLegacyProgress', () => {
 
     const profiles = new LocalStorageProfileRepository(storage);
     expect(await profiles.list()).toEqual([
-      { id: 'id-1', name: 'Jogador', avatarId: 'robot', createdAt: 7, lastPlayedAt: 7 },
+      {
+        id: 'id-1',
+        name: 'Jogador',
+        avatarId: 'robot',
+        createdAt: 7,
+        lastPlayedAt: 7,
+        ...defaultChildChoices,
+      },
     ]);
     expect(await profiles.activeId()).toBe('id-1');
     expect(storage.getItem(profileKey('id-1', 'progress'))).toBe('{"coins":15}');

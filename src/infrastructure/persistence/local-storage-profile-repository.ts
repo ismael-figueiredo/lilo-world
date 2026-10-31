@@ -1,5 +1,9 @@
 import type { ProfileRepository } from '@application/ports/profile-repository';
-import type { PlayerProfile, ProfileId } from '@domain/profile/player-profile';
+import {
+  completeProfile,
+  type PlayerProfile,
+  type ProfileId,
+} from '@domain/profile/player-profile';
 import { JsonStore } from '@infrastructure/persistence/json-store';
 import { PROFILES_KEY, profilePrefix } from '@infrastructure/persistence/storage-keys';
 
@@ -8,7 +12,9 @@ interface StoredProfiles {
   readonly activeId?: ProfileId;
 }
 
-const isProfile = (value: unknown): value is PlayerProfile => {
+type SavedProfile = Parameters<typeof completeProfile>[0];
+
+const isProfile = (value: unknown): value is SavedProfile => {
   if (typeof value !== 'object' || value === null) return false;
   const p = value as Record<string, unknown>;
   return (
@@ -60,7 +66,7 @@ export class LocalStorageProfileRepository implements ProfileRepository {
     const data = this.store.read(PROFILES_KEY);
     if (typeof data !== 'object' || data === null) return { profiles: [] };
     const { profiles, activeId } = data as Record<string, unknown>;
-    const valid = Array.isArray(profiles) ? profiles.filter(isProfile) : [];
+    const valid = Array.isArray(profiles) ? profiles.filter(isProfile).map(completeProfile) : [];
     return typeof activeId === 'string' && valid.some((p) => p.id === activeId)
       ? { profiles: valid, activeId }
       : { profiles: valid };

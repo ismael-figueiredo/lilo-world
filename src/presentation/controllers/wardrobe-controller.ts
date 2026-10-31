@@ -2,6 +2,7 @@ import { phrases } from '@application/phrases';
 import * as THREE from 'three';
 import type { WardrobeEntry } from '@application/use-cases/get-wardrobe';
 import type { AvatarDefinition } from '@domain/avatar/avatar';
+import { outfits, type OutfitId } from '@domain/avatar/child';
 import type { GameContext } from '@presentation/game-context';
 import { WardrobePanel, type WardrobeView } from '@presentation/ui/wardrobe-panel';
 
@@ -14,6 +15,10 @@ export class WardrobeController {
     this.panel = new WardrobePanel({
       onSelect: (entry) => void this.select(entry),
       onSelectAvatar: (avatar) => void this.selectAvatar(avatar),
+      onSelectOutfit: (outfit) => void this.selectOutfit(outfit),
+      onEditChild: () => {
+        this.editChild();
+      },
       onClose: () => {
         this.panel.close();
         this.ctx.backToExploring();
@@ -42,7 +47,9 @@ export class WardrobeController {
       wardrobe,
       avatars,
       avatarId: this.ctx.profile.avatarId,
+      outfit: this.ctx.profile.outfit,
       pictureOf: (id) => this.ctx.avatarPicture(id),
+      outfitPicture: (id) => this.ctx.outfitPicture(id),
     };
   }
 
@@ -66,6 +73,33 @@ export class WardrobeController {
     } finally {
       this.busy = false;
     }
+  }
+
+  private async selectOutfit(outfit: OutfitId): Promise<void> {
+    if (this.busy || outfit === this.ctx.profile.outfit) return;
+    this.busy = true;
+    try {
+      await this.ctx.changeOutfit(outfit);
+      this.ctx.avatar.playEmote('Yes');
+      this.ctx.sound('correct');
+      const name = outfits.find((o) => o.id === outfit)?.name ?? '';
+      this.ctx.say(phrases.outfitWorn(name));
+      this.panel.show(await this.view());
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  private editChild(): void {
+    this.ctx.editChild(() => {
+      void this.afterEdit();
+    });
+  }
+
+  private async afterEdit(): Promise<void> {
+    this.frameCharacter();
+    this.ctx.avatar.playEmote('Wave');
+    this.panel.show(await this.view());
   }
 
   private async select(entry: WardrobeEntry): Promise<void> {

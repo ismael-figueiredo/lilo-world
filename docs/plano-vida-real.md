@@ -155,15 +155,15 @@ Objetivo: o jogo cresce sem pesar.
 
 Objetivo: uma criança que representa quem joga e que sabe fazer as ações do dia.
 
-- [ ] **C3.1 Prova de personagem.** Testar [Universal Base Characters](https://quaternius.itch.io/universal-base-characters) e a Universal Animation Library no nosso pipeline: proporção de criança, peso, cabelo, cor da pele. Pronto: um personagem andando no jogo com até 800 kB, ou decisão pelo plano B (kit próprio montado sobre Lis/Sam).
-- [ ] **C3.2 Pipeline do personagem.** Manifesto, otimização e crédito. Pronto: `pnpm assets` gera tudo e `CREDITS.md` atualizado.
-- [ ] **C3.3 Criador de criança.** Pele, cabelo, cor do cabelo, olhos, gênero visual e neutro, com prévia 3D. Pronto: escolhas salvas no perfil, com uso completo por controle e toque.
-- [ ] **C3.4 Migração de saves.** Avatares antigos viram fantasias. Pronto: perfil antigo abre igual, sem perder nada, e com teste.
-- [ ] **C3.5 Roupas por camada.** Pijama, roupa de casa, uniforme, casaco, capa de chuva, bermuda, roupa de banho. Pronto: trocar roupa sem recarregar o modelo e sem atravessar o corpo.
-- [ ] **C3.6 Biblioteca de ações.** Sentar, deitar, levantar, comer, beber, escovar, lavar, pegar, carregar, arremessar, chutar, nadar. Pronto: animações CC0 ou feitas por código, todas conferidas por vídeo curto.
-- [ ] **C3.7 Rostos que mudam.** Olhos e boca trocados por textura. Pronto: feliz, triste, bravo, com medo, surpreso e calmo legíveis à distância de jogo.
-- [ ] **C3.8 Família e NPCs.** Adulto da casa, professora, colegas, caixa, motorista, gerados a partir do mesmo personagem. Pronto: 8 pessoas diferentes sem novo arquivo pesado.
-- [ ] **C3.9 Comportamento de NPC.** Andar por rota, parar, olhar para a criança, acenar. Pronto: lógica pura com teste.
+- [x] **C3.1 Prova de personagem.** Universal Base Characters descartado sem baixar: adulto, musculoso e com pele só na versão paga. Lis, Sam, Ana e Téo também não são crianças. Decisão aprovada: criança própria montada por código, com 0 kB de modelo.
+- [x] **C3.2 Pipeline do personagem.** Não é mais necessário: a criança não tem arquivo de modelo, então não há manifesto, otimização nem crédito novo.
+- [x] **C3.3 Criador de criança.** Pele, cabelo, cor do cabelo, olhos, gênero visual e neutro, com prévia 3D. Pronto: escolhas salvas no perfil, com uso completo por controle e toque.
+- [x] **C3.4 Migração de saves.** Avatares antigos viram fantasias. Pronto: perfil antigo abre igual, sem perder nada, e com teste.
+- [x] **C3.5 Roupas por camada.** Pijama, roupa de casa, uniforme, casaco, capa de chuva, bermuda, roupa de banho. Pronto: trocar roupa sem recarregar o modelo e sem atravessar o corpo.
+- [x] **C3.6 Biblioteca de ações.** Sentar, deitar, levantar, comer, beber, escovar, lavar, pegar, carregar, arremessar, chutar, nadar. Pronto: animações feitas por código, conferidas por poses congeladas no jogo.
+- [x] **C3.7 Rostos que mudam.** Olhos e boca trocados por textura. Pronto: feliz, triste, bravo, com medo, surpreso e calmo legíveis à distância de jogo.
+- [x] **C3.8 Família e NPCs.** Adulto da casa, professora, colegas, caixa, motorista, gerados a partir do mesmo personagem. Pronto: 8 pessoas diferentes sem novo arquivo pesado.
+- [x] **C3.9 Comportamento de NPC.** Andar por rota, parar, olhar para a criança, acenar. Pronto: lógica pura com teste.
 
 ### C4. Casa: o jogo começa aqui
 
@@ -326,7 +326,7 @@ Objetivo: fechar o dia e preparar o jogo para crianças reais.
 
 | Risco                                              | Resposta                                                                               |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| O personagem base não parece criança ou é pesado   | C3.1 vem antes de tudo que depende dele. Plano B: kit próprio sobre Lis/Sam            |
+| O personagem base não parece criança ou é pesado   | Resolvido na C3.1: criança própria feita por código, sem arquivo de modelo             |
 | Faltam animações CC0 para ações específicas        | Animar por código as simples; aceitar ações com câmera mais aberta                     |
 | Faltam animais CC0 consistentes                    | Validar em C12.1 antes de começar a zona. O zoológico pode trocar de lugar com a praia |
 | O escopo cresce sem nunca chegar a um jogo inteiro | Ao fim de C4, C8 e C10 existe um jogo jogável, que pode ser mostrado a crianças        |

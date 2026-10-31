@@ -1,5 +1,6 @@
 import type { Clock } from '@application/ports/clock';
 import type { IdGenerator } from '@application/ports/id-generator';
+import { defaultChildChoices } from '@domain/avatar/child';
 import { DEFAULT_AVATAR_ID, type PlayerProfile } from '@domain/profile/player-profile';
 import { JsonStore } from '@infrastructure/persistence/json-store';
 import {
@@ -32,6 +33,7 @@ export function migrateLegacyProgress(
     avatarId: DEFAULT_AVATAR_ID,
     createdAt: now,
     lastPlayedAt: now,
+    ...defaultChildChoices,
   };
   store.write(profileKey(profile.id, 'progress'), legacy);
   store.write(PROFILES_KEY, { profiles: [profile], activeId: profile.id });

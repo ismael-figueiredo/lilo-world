@@ -1,4 +1,5 @@
 import type { AvatarDefinition } from '@domain/avatar/avatar';
+import { CHILD_AVATAR_ID } from '@domain/avatar/child';
 import type { WardrobeItem } from '@domain/avatar/wardrobe-item';
 import type { Mission, MissionVariant } from '@domain/mission/mission';
 import type { World } from '@domain/world/world';
@@ -966,8 +967,9 @@ export const wardrobeItems: readonly WardrobeItem[] = [
   },
 ];
 
-/** Characters to play as (3D models by Quaternius, CC0). The first one is the default. */
+/** The child itself, then the costumes (3D models by Quaternius, CC0). */
 export const avatars: readonly AvatarDefinition[] = [
+  { id: CHILD_AVATAR_ID, name: 'Eu', kind: 'kid', recolorable: true },
   { id: 'robot', name: 'Robô', kind: 'robot', recolorable: true },
   { id: 'anne', name: 'Ana', kind: 'kid', recolorable: false },
   { id: 'lis', name: 'Lis', kind: 'kid', recolorable: false },
