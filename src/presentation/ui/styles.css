@@ -3170,3 +3170,27 @@ body:has(.challenge.is-visible) .dialog {
   background: #f08a3c;
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
 }
+
+/* ---------- How I am ---------- */
+.agenda__mood-title {
+  margin: 0;
+  font-weight: 800;
+  text-align: center;
+}
+
+.agenda__moods {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agenda__mood {
+  width: var(--touch);
+  height: var(--touch);
+  border: none;
+  border-radius: 50%;
+  background: #fff6db;
+  font-size: 2rem;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+}

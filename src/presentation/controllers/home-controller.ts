@@ -58,6 +58,9 @@ const IN_SHOWER = { x: 6.6, z: -4.4, facing: 0 } as const;
 const AT_MIRROR = { x: -3.8, z: -3.7, facing: Math.PI } as const;
 const WINDOW = { x: -6.2, z: -5.9 } as const;
 const WINDOW_LOOK_MS = 3200;
+const CALM_SEAT = { x: -3.6, z: 3.4, facing: Math.PI } as const;
+const CALM_HEIGHT = 0.12;
+const CALM_BREATH_MS = 4000;
 const CHAIR_HEIGHT = 0.2;
 const BED_HEIGHT = 0.42;
 /** A close look at the thing being used; the rest of the time the camera follows. */
@@ -92,6 +95,10 @@ const views: Readonly<
     [7.3, 2.3, 5],
     [7, 1.15, 1],
   ],
+  calm: [
+    [-3.6, 1.9, 0.4],
+    [-3.6, 0.5, 3.4],
+  ],
   stove: [
     [2.6, 2.3, 4.6],
     [3.5, 1, 0.6],
@@ -114,10 +121,16 @@ export class HomeController {
   private walking: { readonly to: THREE.Vector3; readonly arrive: () => void } | undefined;
 
   constructor(private readonly ctx: GameContext) {
-    this.agenda = new AgendaPanel(() => {
-      this.agenda.close();
-      this.ctx.backToExploring();
-    });
+    this.agenda = new AgendaPanel(
+      () => {
+        this.agenda.close();
+        this.ctx.backToExploring();
+      },
+      (mood) => {
+        void this.ctx.player.noteMood.execute(mood);
+        this.ctx.say(phrases.moodSaved);
+      },
+    );
   }
 
   private get house() {
@@ -253,6 +266,9 @@ export class HomeController {
         return;
       case 'fridge':
         await this.fridge();
+        return;
+      case 'calm':
+        await this.calmCorner();
         return;
       case 'stove':
         if (this.isOpen('lunch') && this.errand?.stage === 'cook') await this.ctx.errand.cook();
@@ -663,6 +679,31 @@ export class HomeController {
     if (stage === undefined || stage === 'ask') await this.ctx.errand.ask();
     else if (stage === 'bring') await this.ctx.errand.deliver();
     else this.ctx.say(this.tip ?? phrases.fridgeNow);
+  }
+
+  /** A corner that asks for nothing: it opens at any time and ends when the child wants. */
+  async calmCorner(): Promise<void> {
+    if (this.busy) return;
+    await this.scene('calm', async () => {
+      const { avatar } = this.ctx;
+      this.sitAt(CALM_SEAT, CALM_HEIGHT);
+      this.house.setCalmLight(true);
+      this.ctx.say(phrases.calmHere);
+      const breaths: readonly Picture[] = [1, 2, 3].map(() => ({
+        icon: '🌬️',
+        label: 'Respirar',
+      }));
+      for (let breath = 0; breath < breaths.length; breath += 1) {
+        await this.sheet.press(breaths, breath);
+        this.ctx.say(phrases.calmBreathe);
+        await wait(CALM_BREATH_MS);
+      }
+      await this.sheet.press([{ icon: '🧸', label: 'Voltar' }], 0);
+      this.house.setCalmLight(false);
+      this.standUp(standSpots.calm);
+      avatar.feel('calm');
+      return phrases.calmDone;
+    });
   }
 
   /** Everybody at the table: what the child helped to make. */

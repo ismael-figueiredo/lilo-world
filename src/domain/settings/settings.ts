@@ -26,6 +26,8 @@ export interface Settings {
   readonly pace: Readonly<Partial<Record<Track, Pace>>>;
   /** An adult can shorten the bus trip for a child who gets tired of it. */
   readonly shortRides: boolean;
+  /** Scenes about feelings stay off until they pass a professional's review. */
+  readonly feelingScenes: boolean;
   /** 'auto' lets each day have its own weather. */
   readonly fixedWeather: Weather | 'auto';
 }
@@ -54,6 +56,7 @@ export const defaultSettings: Settings = {
   skillChoices: {},
   pace: {},
   shortRides: false,
+  feelingScenes: false,
   fixedWeather: 'auto',
 };
 
@@ -110,6 +113,7 @@ export function sanitizeSettings(raw: unknown, base: Settings = defaultSettings)
     skillChoices: skillChoices(data.skillChoices, base.skillChoices),
     pace: paceOf(data.pace, base.pace),
     shortRides: flag(data.shortRides, base.shortRides),
+    feelingScenes: flag(data.feelingScenes, base.feelingScenes),
     fixedWeather: oneOf(['auto', ...weathers], data.fixedWeather, base.fixedWeather),
   };
 }

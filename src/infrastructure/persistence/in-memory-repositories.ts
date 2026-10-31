@@ -1,3 +1,5 @@
+import type { MoodRepository } from '@application/ports/mood-repository';
+import type { MoodNote } from '@domain/feelings/mood';
 import type { DayRepository } from '@application/ports/day-repository';
 import type { ProfileRepository } from '@application/ports/profile-repository';
 import type { SessionRepository } from '@application/ports/session-repository';
@@ -74,6 +76,19 @@ export class InMemorySessionRepository implements SessionRepository {
 
   save(state: SessionState): Promise<void> {
     this.state = state;
+    return Promise.resolve();
+  }
+}
+
+export class InMemoryMoodRepository implements MoodRepository {
+  private notes: readonly MoodNote[] = [];
+
+  load(): Promise<readonly MoodNote[]> {
+    return Promise.resolve(this.notes);
+  }
+
+  save(notes: readonly MoodNote[]): Promise<void> {
+    this.notes = notes;
     return Promise.resolve();
   }
 }

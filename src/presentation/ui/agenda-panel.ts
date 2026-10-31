@@ -7,6 +7,7 @@ import {
 } from '@domain/day/day-plan';
 import type { Weather } from '@domain/day/weather';
 import type { Errand } from '@domain/errand/errand';
+import { moods, type Mood } from '@domain/feelings/mood';
 import { groceryOf } from '@domain/errand/groceries';
 import { total, written } from '@domain/money/money';
 import { stepLooks } from '@presentation/ui/day-looks';
@@ -27,7 +28,10 @@ export class AgendaPanel {
   readonly element: HTMLElement;
   private readonly sheet = h('div', { className: 'sheet agenda' });
 
-  constructor(private readonly onClose: () => void) {
+  constructor(
+    private readonly onClose: () => void,
+    private readonly onMood: (mood: Mood) => void,
+  ) {
     this.element = h(
       'section',
       { className: 'overlay', attrs: { 'aria-label': 'Agenda do dia' } },
@@ -71,6 +75,21 @@ export class AgendaPanel {
         ),
       ),
       ...(day.errand === undefined ? [] : [this.shopping(day.errand)]),
+      h('p', { className: 'agenda__mood-title', text: '💛 Como eu estou' }),
+      h(
+        'div',
+        { className: 'agenda__moods' },
+        moods.map(({ id, icon, label }) =>
+          h('button', {
+            className: 'agenda__mood',
+            text: icon,
+            attrs: { type: 'button', 'aria-label': label },
+            onTap: () => {
+              this.onMood(id);
+            },
+          }),
+        ),
+      ),
       h('button', {
         className: 'big-button big-button--green',
         text: '✓ Entendi',

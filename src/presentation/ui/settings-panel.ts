@@ -1,5 +1,6 @@
 import type { SkillOverview } from '@application/use-cases/plan-session';
 import type { Track } from '@domain/curriculum/skill';
+import { moods, type MoodNote } from '@domain/feelings/mood';
 import type { SkillChoice } from '@domain/curriculum/session-plan';
 import { sessionLimits, type Settings } from '@domain/settings/settings';
 import { h } from '@presentation/ui/dom';
@@ -10,6 +11,7 @@ export interface SettingsPanelCallbacks {
   onClose(): void;
   onSkipBlock(): void;
   loadSkills(): Promise<readonly SkillOverview[]>;
+  loadMoods(): Promise<readonly MoodNote[]>;
 }
 
 const statusLabels: Readonly<Record<SkillOverview['status'], string>> = {
@@ -30,6 +32,7 @@ export class SettingsPanel {
   private settings: Settings | undefined;
   private limitUnlocked = false;
   private overview: readonly SkillOverview[] = [];
+  private moods: readonly MoodNote[] = [];
 
   constructor(private readonly callbacks: SettingsPanelCallbacks) {
     this.element = h('section', { className: 'overlay', attrs: { 'aria-label': 'Ajustes' } }, [
@@ -128,6 +131,8 @@ export class SettingsPanel {
             this.skipRow(),
             this.weatherRow(settings),
             this.rideRow(settings),
+            this.feelingsRow(settings),
+            this.moodsRow(),
             ...this.skillSections(settings),
           ]
         : []),
@@ -162,6 +167,28 @@ export class SettingsPanel {
     );
   }
 
+  /** Off by default: the scenes wait for the review of a speech therapist. */
+  private feelingsRow(settings: Settings): HTMLElement {
+    return this.choice(
+      'Cenas de sentimentos (em revisão)',
+      settings.feelingScenes ? 'on' : 'off',
+      [
+        ['off', 'Desligadas'],
+        ['on', 'Ligadas'],
+      ],
+      (value) => ({ feelingScenes: value === 'on' }),
+    );
+  }
+
+  /** What the child told about themselves: only here, only on this device. */
+  private moodsRow(): HTMLElement {
+    const icons = this.moods.map((note) => moods.find((mood) => mood.id === note.mood)?.icon ?? '');
+    return h('div', { className: 'settings__row' }, [
+      h('span', { className: 'settings__label', text: 'Como a criança disse que está' }),
+      h('span', { text: icons.length === 0 ? 'Ainda nada' : icons.join(' ') }),
+    ]);
+  }
+
   private skipRow(): HTMLElement {
     return h('div', { className: 'settings__row' }, [
       h('span', { className: 'settings__label', text: 'Parte do dia' }),
@@ -178,6 +205,7 @@ export class SettingsPanel {
 
   private async unlock(): Promise<void> {
     this.overview = await this.callbacks.loadSkills();
+    this.moods = await this.callbacks.loadMoods();
     this.limitUnlocked = true;
     if (this.settings !== undefined) this.render(this.settings);
   }
