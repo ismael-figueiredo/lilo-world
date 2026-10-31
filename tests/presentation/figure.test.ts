@@ -46,9 +46,9 @@ describe('clothes', () => {
 });
 
 describe('the people of the town', () => {
-  it('has eight different people without any model to download', () => {
+  it('has ten different people without any model to download', () => {
     const people = Object.values(cast).map((person) => JSON.stringify(person));
-    expect(new Set(people).size).toBe(8);
+    expect(new Set(people).size).toBe(10);
   });
 
   it('gives each adult at home the family skin and eyes', () => {

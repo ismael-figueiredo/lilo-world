@@ -11,7 +11,7 @@ import {
 } from '@domain/avatar/child';
 import { firstDay, type DayState } from '@domain/day/day-plan';
 import { comfortIn, phaseOf, weatherOf, type Phase, type Weather } from '@domain/day/weather';
-import { startRoutine, stepRoutine } from '@domain/people/routine';
+import { startRoutine, stepRoutine, type Spot } from '@domain/people/routine';
 import type { PlayerProfile } from '@domain/profile/player-profile';
 import type { Station } from '@domain/curriculum/skill';
 import { sessionTimeStatus } from '@domain/session/session';
@@ -63,6 +63,7 @@ import { GameWorld } from '@presentation/world/game-world';
 import { skyLook } from '@presentation/world/sky-looks';
 import type { Town } from '@presentation/world/town';
 import { GoalMarker } from '@presentation/world/goal-marker';
+import { GuideArrow } from '@presentation/world/guide-arrow';
 import type { Interactable } from '@presentation/world/interactable';
 import { captureMap } from '@presentation/world/map-snapshot';
 import type { RoadEvent } from '@presentation/world/road-safety';
@@ -81,6 +82,13 @@ const TIME_CHECK_MS = 5_000;
 const EXTRA_TIME_MS = 5 * 60_000;
 /** Seconds between two spoken street warnings. */
 const ROAD_WARNING_GAP = 6;
+/** In the calm town the engines are quieter and nobody honks. */
+const CALM_STREET = 0.4;
+/** Rare, and only from a distance. */
+const HORN_EVERY = 60;
+
+const isHeardInside = (sound: Ambience): boolean => sound !== 'birds' && sound !== 'street';
+
 /** Seconds between greetings: one wave at a time, even if the button is pressed again. */
 const GREET_GAP = 2.5;
 /** Rooms are smaller than streets: the arrow and Lilo fit them. */
@@ -120,6 +128,7 @@ export class GameApp implements GameContext {
   private beforePause: Mode | undefined;
   readonly dialog = new Dialog();
   private readonly marker = new GoalMarker();
+  private readonly guide = new GuideArrow();
   private readonly mascot = new Mascot();
   private readonly minimap = new Minimap(() => {
     if (this.currentMode === 'explore') this.menus.openMap();
@@ -164,6 +173,7 @@ export class GameApp implements GameContext {
   private returningToSidewalk = false;
   private lastRoadWarning = -Infinity;
   private lastGreeting = -Infinity;
+  private nextHorn = HORN_EVERY;
   private readonly governor = new QualityGovernor();
   private readonly loading = new LoadingScreen();
   private fps = 60;
@@ -340,6 +350,7 @@ export class GameApp implements GameContext {
     // The device setting counts too: CSS follows it by itself, the 3D world does not.
     const motion = settings.reducedMotion || this.deviceReducedMotion.matches ? 0.3 : 1;
     this.gameWorld?.setMotionScale(motion);
+    this.gameWorld?.setCalm(settings.worldActivity === 'calm');
     this.mascot.motionScale = motion;
     this.marker.motionScale = motion;
     if (this.cameraRig !== undefined) {
@@ -487,11 +498,11 @@ export class GameApp implements GameContext {
   private playAmbience(): void {
     const { weather } = this;
     const night = phaseOf(this.today) === 'night';
-    const sounds: Ambience[] = [night ? 'crickets' : 'birds'];
+    const sounds: Ambience[] = [night ? 'crickets' : 'birds', 'street'];
     if (weather === 'rain') sounds.push('rain');
     if (weather === 'wind') sounds.push('wind');
     const indoors = this.gameWorld?.indoors === true;
-    this.services.audio.setAmbience(indoors ? sounds.filter((s) => s !== 'birds') : sounds);
+    this.services.audio.setAmbience(indoors ? sounds.filter(isHeardInside) : sounds);
   }
 
   private breathSpot(player: Player): THREE.Vector3 {
@@ -609,7 +620,7 @@ export class GameApp implements GameContext {
       const start = world.house.world(standSpots.bed);
       player.placeAt(start, standSpots.bed.facing);
       this.mascot.placeNear(start);
-      this.scene.add(player.root, this.mascot.root, this.marker.group);
+      this.scene.add(player.root, this.mascot.root, this.marker.group, this.guide.group);
 
       this.cameraRig = new CameraRig(
         this.camera,
@@ -756,6 +767,7 @@ export class GameApp implements GameContext {
     if (steered !== undefined) player.update(dt, steered, true, standing);
     else player.update(dt, cameraRelative(move, rig.yaw), move.running, world);
     this.updatePeople(dt, player, standing);
+    this.watchTheStreet(player, world);
 
     const cameraYaw = Math.atan2(
       this.camera.position.x - player.position.x,
@@ -763,6 +775,7 @@ export class GameApp implements GameContext {
     );
     this.mascot.update(this.elapsed, dt, player.position, cameraYaw);
     this.marker.update(this.elapsed);
+    this.showGuide(player, world, exploring);
     world.update(this.elapsed, dt, player.position, this.breathSpot(player));
     rig.update(dt, player.position);
 
@@ -969,7 +982,9 @@ export class GameApp implements GameContext {
         character.update(dt, still, false, ground);
         continue;
       }
-      const step = stepRoutine(routine, route, character.position, player.position, dt);
+      const step = stepRoutine(routine, route, character.position, player.position, dt, (curb) =>
+        this.mayCross(curb),
+      );
       person.routine = step.routine;
       if (step.lookAtChild) character.faceTowards(player.position);
       if (step.wave) character.playEmote('Wave');
@@ -980,6 +995,10 @@ export class GameApp implements GameContext {
       player.position.x = pushed.x;
       player.position.z = pushed.z;
     }
+  }
+
+  private mayCross(curb: Spot): boolean {
+    return this.gameWorld?.outside?.mayCross(curb) ?? true;
   }
 
   private updateExploration(position: THREE.Vector3, input: Input, world: GameWorld): void {
@@ -1100,11 +1119,32 @@ export class GameApp implements GameContext {
     return this.gameWorld?.places.find((p) => p.id === placeId);
   }
 
+  /** The street as the child hears it and as the cars see it. */
+  private watchTheStreet(player: Player, world: GameWorld): void {
+    const town = world.outside;
+    if (town === undefined || world.indoors) return;
+    town.people = this.people
+      .filter((person) => person.route !== undefined)
+      .map((person) => person.character.position);
+    const calm = this.currentSettings.worldActivity === 'calm';
+    const noise = town.streetNoise(player.position);
+    this.services.audio.setStreet(calm ? noise * CALM_STREET : noise);
+    if (calm || this.elapsed < this.nextHorn) return;
+    this.nextHorn = this.elapsed + HORN_EVERY + Math.random() * HORN_EVERY;
+    if (noise > 0 && noise < 0.6) this.sound('horn');
+  }
+
   private showMarker(): void {
     const place = this.goalPlace();
     if (place === undefined) this.marker.hide();
     else this.marker.show(place.markerPosition, place.position);
     if (this.currentMode !== 'explore') this.marker.group.visible = false;
+  }
+
+  /** Near the child's feet, where a far-away arrow could never be missed. */
+  private showGuide(player: Player, world: GameWorld, exploring: boolean): void {
+    if (exploring && !world.indoors) this.guide.update(player.position, this.goalPlace()?.position);
+    else this.guide.hide();
   }
 
   private goalMessage(): string {

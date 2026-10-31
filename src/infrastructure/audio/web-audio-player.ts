@@ -40,6 +40,8 @@ const effects: Record<SoundEffect, readonly Note[]> = {
     note(2093, 0.24, 0.36, 'sine', 0.2),
   ],
   jump: [note(300, 0, 0.16, 'sine', 0.18, 620)],
+  // Far away and round: a town's horn, never a warning.
+  horn: [note(392, 0, 0.22, 'sine', 0.06), note(494, 0, 0.22, 'sine', 0.05)],
 };
 
 /** C major pentatonic: every combination sounds pleasant and calm. */
@@ -56,7 +58,9 @@ const BEAT = 60 / 72;
 const NOISES: Readonly<Partial<Record<Ambience, { frequency: number; gain: number }>>> = {
   rain: { frequency: 1800, gain: 0.16 },
   wind: { frequency: 320, gain: 0.3 },
+  street: { frequency: 170, gain: 0 },
 };
+const ENGINE_GAIN = 0.32;
 const CALLS_EVERY_MS = 900;
 
 /** Sound effects and a gentle generative background tune, made with Web Audio (no files). */
@@ -64,7 +68,7 @@ export class WebAudioPlayer implements AudioPlayer {
   private context: AudioContext | undefined;
   private effectsGain: GainNode | undefined;
   private musicGain: GainNode | undefined;
-  private volumes: AudioVolumes = { effects: 0.5, music: 0.3 };
+  private volumes: AudioVolumes = { effects: 0.5, music: 0.3, ambience: 0.4 };
   private musicTimer: number | undefined;
   private nextBeatTime = 0;
   private beat = 0;
@@ -121,6 +125,13 @@ export class WebAudioPlayer implements AudioPlayer {
     }, CALLS_EVERY_MS);
   }
 
+  setStreet(level: number): void {
+    const context = this.context;
+    const engine = this.noises.get('street');
+    if (context === undefined || engine === undefined) return;
+    engine.gain.gain.setTargetAtTime(level * ENGINE_GAIN, context.currentTime, 0.4);
+  }
+
   private startNoise(
     context: AudioContext,
     sound: Ambience,
@@ -171,7 +182,7 @@ export class WebAudioPlayer implements AudioPlayer {
     this.volumes = volumes;
     const now = this.context?.currentTime ?? 0;
     this.effectsGain?.gain.setTargetAtTime(volumes.effects, now, 0.05);
-    this.ambienceGain?.gain.setTargetAtTime(volumes.effects, now, 0.3);
+    this.ambienceGain?.gain.setTargetAtTime(volumes.ambience, now, 0.3);
     this.musicGain?.gain.setTargetAtTime(volumes.music * 0.5, now, 0.3);
   }
 
@@ -185,7 +196,7 @@ export class WebAudioPlayer implements AudioPlayer {
         this.effectsGain.gain.value = this.volumes.effects;
         this.effectsGain.connect(context.destination);
         this.ambienceGain = context.createGain();
-        this.ambienceGain.gain.value = this.volumes.effects;
+        this.ambienceGain.gain.value = this.volumes.ambience;
         this.ambienceGain.connect(context.destination);
 
         // Music goes through a soft low-pass filter: no sharp, bright sounds.

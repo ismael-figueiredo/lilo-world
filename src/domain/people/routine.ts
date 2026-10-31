@@ -1,6 +1,8 @@
 export interface Spot {
   readonly x: number;
   readonly z: number;
+  /** At the curb: walking between two curbs is crossing the street. */
+  readonly curb?: boolean;
 }
 
 /** How far away someone notices the child, and stops to say hello. */
@@ -10,6 +12,8 @@ const GREET_AGAIN_AFTER = 25;
 /** Standing at each end of the route before walking again. */
 const PAUSE_AT_STOP = 3;
 const REACHED = 0.25;
+/** Still at the curb, so not on the street yet. */
+const AT_CURB = 0.6;
 
 export interface Routine {
   /** Index of the stop being walked to. */
@@ -52,7 +56,9 @@ function nextStop(routine: Routine, length: number): Routine {
 /**
  * One moment in the life of a person of the neighborhood: walks a route back
  * and forth, rests at each stop, and stops to look at the child who comes near,
- * waving once. A route with one stop is someone who stays there.
+ * waving once. At a curb they wait until it is safe, and once they started
+ * crossing nothing stops them halfway. A route with one stop is someone who
+ * stays there.
  */
 export function stepRoutine(
   routine: Routine,
@@ -60,13 +66,18 @@ export function stepRoutine(
   position: Spot,
   child: Spot,
   dt: number,
+  mayCross: (curb: Spot) => boolean = () => true,
 ): RoutineStep {
   const cooled = {
     ...routine,
     greetCooldown: Math.max(0, routine.greetCooldown - dt),
     pause: Math.max(0, routine.pause - dt),
   };
-  if (Math.hypot(child.x - position.x, child.z - position.z) <= NOTICE_RANGE) {
+  const stop = route[cooled.target];
+  const from = route[cooled.target + (cooled.returning ? 1 : -1)];
+  const crossing = stop?.curb === true && from?.curb === true;
+  const started = crossing && Math.hypot(from.x - position.x, from.z - position.z) > AT_CURB;
+  if (!started && Math.hypot(child.x - position.x, child.z - position.z) <= NOTICE_RANGE) {
     const wave = cooled.greetCooldown === 0;
     return {
       routine: wave ? { ...cooled, greetCooldown: GREET_AGAIN_AFTER } : cooled,
@@ -75,8 +86,8 @@ export function stepRoutine(
       wave,
     };
   }
-  const stop = route[cooled.target];
-  if (stop === undefined || cooled.pause > 0) {
+  const waiting = crossing && !started && !mayCross(from);
+  if (stop === undefined || (cooled.pause > 0 && !started) || waiting) {
     return { routine: cooled, walk: STILL, lookAtChild: false, wave: false };
   }
   const dx = stop.x - position.x;

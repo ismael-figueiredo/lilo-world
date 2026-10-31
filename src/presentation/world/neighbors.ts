@@ -21,7 +21,7 @@ export interface Neighbor {
   readonly route: readonly Spot[];
 }
 
-/** Who lives around here. Their routes run along open ground, away from the crossing. */
+/** Who lives around here. Their routes run along the sidewalks and cross on the zebra. */
 export const neighbors: readonly Neighbor[] = [
   {
     member: 'gardener',
@@ -37,6 +37,26 @@ export const neighbors: readonly Neighbor[] = [
     route: [
       { x: 24.5, z: -8.2 },
       { x: 30.5, z: -8.2 },
+    ],
+  },
+  {
+    member: 'walker',
+    facing: Math.PI / 2,
+    route: [
+      { x: -2, z: 5 },
+      { x: 8.5, z: 4.4, curb: true },
+      { x: 8.5, z: -4.4, curb: true },
+      { x: 15, z: -5.2 },
+    ],
+  },
+  {
+    member: 'student',
+    facing: -Math.PI / 2,
+    route: [
+      { x: 6, z: 32 },
+      { x: -13, z: 32.3, curb: true },
+      { x: -13, z: 39.7, curb: true },
+      { x: -24, z: 40 },
     ],
   },
 ];

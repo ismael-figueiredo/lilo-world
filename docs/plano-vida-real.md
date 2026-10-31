@@ -214,16 +214,16 @@ Objetivo: gramática, matemática e conhecimentos gerais dentro da rotina.
 
 Objetivo: a rua parece real, é segura e não atrapalha.
 
-- [ ] **C7.1 Faixa de mobiliário.** Regras e constantes: postes, placas e abrigos ficam na borda, sobrando corredor livre. Pronto: placa do ônibus e postes reposicionados, com colisão igual ao desenho.
-- [ ] **C7.2 Teste de corredor.** Teste percorre as calçadas com colisões reais. Pronto: falha se a passagem ficar abaixo de 1,6 m.
-- [ ] **C7.3 Seguidor de rotas.** Lógica pura de waypoints e distância. Pronto: testada.
-- [ ] **C7.4 Carros.** Param no semáforo, na faixa e para a criança. Pronto: nenhum toque em nenhum cenário de teste.
-- [ ] **C7.5 Pedestres.** Andam, esperam, cumprimentam. Pronto: reagem ao ▢.
-- [ ] **C7.6 Pássaros e animais.** Pássaros voando, pombos que levantam voo, cachorro e gato. Pronto: instanciados, dentro da meta.
-- [ ] **C7.7 Som de rua.** Motor, buzina rara, pássaros, conforme a posição. Pronto: som ambiente com volume próprio.
-- [ ] **C7.8 Modo calmo na rua.** `worldActivity` reduz carros e sons. Pronto: ajuste já existente passa a ter efeito.
-- [ ] **C7.9 Vizinhança.** Casa da criança na rua, placas curtas, caminho claro até mercado e ponto. Pronto: da porta ao ponto em até 30 s.
-- [ ] **C7.10 Seta perto da criança.** Guia junto do personagem apontando o caminho. Pronto: resolve a "seta" invisível de longe.
+- [x] **C7.1 Faixa de mobiliário.** Postes, placas e abrigos ficam na borda ou fora da calçada, numa lista só (`street-layout.ts`) usada para desenhar e colidir. O abrigo do ônibus foi para trás da calçada e a placa para o meio-fio.
+- [x] **C7.2 Teste de corredor.** O teste percorre as calçadas com as colisões da mobília e falha abaixo de 1,6 m. As duas ruas laterais têm calçada de 1,5 m; nelas o teste exige que nada fique no caminho.
+- [x] **C7.3 Seguidor de rotas.** Lógica pura e testada em `domain/city/route.ts`.
+- [x] **C7.4 Carros.** Quatro carros dão a volta nos quarteirões do sul, sempre no mesmo sentido. Param no semáforo, na faixa, para a criança e para outros carros; testes cobrem quem entra na frente em cima da hora. A rua norte e o sentido contrário continuam sem trânsito, por causa do ônibus parado.
+- [x] **C7.5 Pedestres.** Duas pessoas novas andam pelas calçadas, esperam no meio-fio e atravessam na faixa sem parar no meio. Respondem ao ▢ como os vizinhos.
+- [x] **C7.6 Pássaros e animais.** Bando e pombos instanciados, que dormem à noite; pombos voam quando a criança chega perto. Cachorro passeia e abana o rabo; gato fica no banco. Modelos simples feitos em código.
+- [x] **C7.7 Som de rua.** Motor conforme a distância do carro mais próximo, buzina rara e distante, e um volume próprio nos Ajustes para os sons da rua e do tempo.
+- [x] **C7.8 Modo calmo na rua.** `worldActivity` deixa um carro, menos pássaros, motor mais baixo e nenhuma buzina.
+- [x] **C7.9 Vizinhança.** Placa curta no portão de casa para o mercado e o ônibus. Da porta ao ponto, pela faixa, dá cerca de 7 s de caminhada.
+- [x] **C7.10 Seta perto da criança.** Seta no chão junto dos pés, apontando em linha reta para o objetivo. Some perto dele.
 
 ### C8. Almoço, mercado e troco
 

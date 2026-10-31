@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Point } from '@domain/city/route';
 import type { TrafficPhase } from '@domain/city/traffic-light';
 import type { Random } from '@presentation/engine/math';
 import { CITY, City, isInsideCity, PLAYGROUND, SOUTH_DISTRICT } from '@presentation/world/city';
@@ -27,6 +28,8 @@ export class Town {
   readonly shape: TerrainShape;
   colliders: readonly Collider[] = [];
   places: readonly Interactable[] = [];
+  /** Who is out on the streets, besides the child. */
+  people: readonly Point[] = [];
   /** Inside the market, far beyond the sea, once the child has been there. */
   market: MarketInterior | undefined;
 
@@ -87,7 +90,11 @@ export class Town {
   }
 
   private collectZones(): void {
-    this.colliders = [...this.staticColliders, ...this.zones.colliders];
+    this.colliders = [
+      ...this.staticColliders,
+      ...this.city.movingColliders,
+      ...this.zones.colliders,
+    ];
     this.places = [...this.city.places, ...this.zones.places];
   }
 
@@ -116,6 +123,19 @@ export class Town {
     this.collectZones();
   }
 
+  /** The calm town: fewer cars and birds. */
+  setCalm(calm: boolean): void {
+    this.city.setCalm(calm);
+  }
+
+  mayCross(spot: Point): boolean {
+    return this.city.mayCross(spot);
+  }
+
+  streetNoise(point: Point): number {
+    return this.city.streetNoise(point);
+  }
+
   setMotionScale(scale: number): void {
     this.water.motionScale = scale;
   }
@@ -125,6 +145,7 @@ export class Town {
     lampGlass().emissiveIntensity = night > 0.3 ? 2.4 : 0.6;
     this.city.setLightsOn(night > 0.3);
     this.city.setPuddles(wet);
+    this.city.setNight(night > 0.3);
     this.nature.setClouds(shade);
   }
 
@@ -138,7 +159,7 @@ export class Town {
 
   update(time: number, dt: number, focus: THREE.Vector3): void {
     this.water.update(time);
-    this.city.update(time);
+    this.city.update(time, dt, [focus, ...this.people], focus);
     this.zones.update(time, dt, focus);
     this.nature.update(dt);
   }

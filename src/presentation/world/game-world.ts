@@ -29,6 +29,7 @@ export class GameWorld {
   private town: Town | undefined;
   private assets: Promise<WorldAssets> | undefined;
   private building: Promise<Town> | undefined;
+  private calm = false;
   private motion = 1;
   private quality: Quality = 'high';
 
@@ -69,6 +70,7 @@ export class GameWorld {
     town.group.visible = !this.indoors;
     this.scene.add(town.group);
     town.setMotionScale(this.motion);
+    town.setCalm(this.calm);
     town.setDetailed(this.quality !== 'low');
     this.showOutside();
     await town.prepareIsland();
@@ -121,6 +123,12 @@ export class GameWorld {
     if (this.town !== undefined) this.town.group.visible = !indoors;
     this.sky.setIndoors(indoors);
     this.showOutside();
+  }
+
+  /** The calm town: fewer cars and birds. */
+  setCalm(calm: boolean): void {
+    this.calm = calm;
+    this.town?.setCalm(calm);
   }
 
   setMotionScale(scale: number): void {

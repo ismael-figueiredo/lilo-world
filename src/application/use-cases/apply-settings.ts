@@ -23,6 +23,7 @@ export class ApplySettings {
     this.audio.setVolumes({
       effects: effectiveVolume(settings, 'effects'),
       music: effectiveVolume(settings, 'music'),
+      ambience: effectiveVolume(settings, 'ambience'),
     });
     this.speech.configure({
       enabled: settings.voiceEnabled,

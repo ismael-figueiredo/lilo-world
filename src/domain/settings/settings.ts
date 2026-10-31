@@ -9,6 +9,8 @@ export interface Settings {
   readonly voiceVolume: number;
   readonly musicVolume: number;
   readonly effectsVolume: number;
+  /** Rain, birds and the street. */
+  readonly ambienceVolume: number;
   readonly voiceEnabled: boolean;
   readonly voiceSpeed: VoiceSpeed;
   readonly reducedMotion: boolean;
@@ -38,6 +40,7 @@ export const defaultSettings: Settings = {
   voiceVolume: 1,
   musicVolume: 0.35,
   effectsVolume: 0.6,
+  ambienceVolume: 0.6,
   voiceEnabled: true,
   voiceSpeed: 'normal',
   reducedMotion: false,
@@ -88,6 +91,7 @@ export function sanitizeSettings(raw: unknown, base: Settings = defaultSettings)
     voiceVolume: volume(data.voiceVolume, base.voiceVolume),
     musicVolume: volume(data.musicVolume, base.musicVolume),
     effectsVolume: volume(data.effectsVolume, base.effectsVolume),
+    ambienceVolume: volume(data.ambienceVolume, base.ambienceVolume),
     voiceEnabled: flag(data.voiceEnabled, base.voiceEnabled),
     voiceSpeed: oneOf(['slow', 'normal'], data.voiceSpeed, base.voiceSpeed),
     reducedMotion: flag(data.reducedMotion, base.reducedMotion),
@@ -112,12 +116,13 @@ export const updateSettings = (current: Settings, patch: Partial<Settings>): Set
 /** Final loudness of a channel: the master volume scales every channel. */
 export const effectiveVolume = (
   settings: Settings,
-  channel: 'voice' | 'music' | 'effects',
+  channel: 'voice' | 'music' | 'effects' | 'ambience',
 ): number => {
   const channelVolume = {
     voice: settings.voiceEnabled ? settings.voiceVolume : 0,
     music: settings.musicVolume,
     effects: settings.effectsVolume,
+    ambience: settings.ambienceVolume,
   }[channel];
   return settings.masterVolume * channelVolume;
 };

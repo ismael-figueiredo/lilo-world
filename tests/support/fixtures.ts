@@ -110,6 +110,10 @@ export class FakeAudio implements AudioPlayer {
     this.musicOn = false;
   }
 
+  setStreet(): void {
+    // Nothing to play.
+  }
+
   setAmbience(): void {
     // Nothing to record.
   }

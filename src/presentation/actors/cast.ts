@@ -63,6 +63,8 @@ export const cast = {
   driver: adult('boy', 5, hair(0), 'buzz', clothes(0x2f6fb5, 0x2b3550, 0x33333d)),
   gardener: adult('boy', 1, GREY_HAIR, 'short', clothes(0x4f9a56, 0x7a5a3a, 0x5a4030)),
   neighbor: adult('girl', 6, hair(0), 'afro', clothes(0xe8a93a, 0x6a4a8a, 0xf4f1ea)),
+  walker: adult('boy', 3, hair(2), 'short', clothes(0x3d8fa8, 0x4a4f63, 0x5a4030)),
+  student: adult('girl', 0, hair(3), 'pigtails', clothes(0xd86fa0, 0x39507a, 0xf4f1ea)),
   classmateAna: classmate('girl', 5, hair(0), 'braids'),
   classmateTeo: classmate('boy', 1, hair(4), 'short'),
   classmateJu: classmate('girl', 3, hair(1), 'curly'),

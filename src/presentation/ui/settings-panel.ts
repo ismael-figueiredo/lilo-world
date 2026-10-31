@@ -19,7 +19,8 @@ const statusLabels: Readonly<Record<SkillOverview['status'], string>> = {
   review: '🔁 Revisar',
 };
 
-type VolumeKey = 'masterVolume' | 'voiceVolume' | 'musicVolume' | 'effectsVolume';
+type VolumeKey =
+  'masterVolume' | 'voiceVolume' | 'musicVolume' | 'effectsVolume' | 'ambienceVolume';
 type FlagKey = 'voiceEnabled' | 'softColors' | 'reducedMotion' | 'showMinimap';
 
 /** Comfort settings with big controls. The time limit is for adults only. */
@@ -67,6 +68,7 @@ export class SettingsPanel {
         this.slider('Voz do Lilo', 'voiceVolume', 'voice'),
         this.slider('Música', 'musicVolume', 'music'),
         this.slider('Efeitos', 'effectsVolume', 'effects'),
+        this.slider('Sons da rua e do tempo', 'ambienceVolume', 'effects'),
         this.toggle('Lilo fala em voz alta', 'voiceEnabled'),
         this.choice(
           'Velocidade da voz',
