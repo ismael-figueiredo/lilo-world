@@ -12,6 +12,8 @@ import type { Settings } from '@domain/settings/settings';
 import type { Player } from '@presentation/actors/player';
 import type { CameraRig } from '@presentation/engine/camera-rig';
 import type { Station } from '@domain/curriculum/skill';
+import type { ErrandController } from '@presentation/controllers/errand-controller';
+import type { MarketInterior } from '@presentation/world/market-interior';
 import type { SessionController } from '@presentation/controllers/session-controller';
 import type { Dialog } from '@presentation/ui/dialog';
 import type { GameWorld } from '@presentation/world/game-world';
@@ -49,6 +51,14 @@ export interface GameContext {
   readonly restIsDue: boolean;
   /** The day's plan, also reachable from the menu. */
   readonly session: SessionController;
+  readonly errand: ErrandController;
+  /** The adult at home, when there is one. */
+  readonly guardian: Player | undefined;
+  guardianStandsAt(where: 'kitchen' | 'fridge' | 'stove' | 'table'): void;
+  enterShop(market: MarketInterior): void;
+  leaveShop(): void;
+  /** The goal changed: arrows and the map show the new one. */
+  refreshGoal(): void;
   /** Free study of a subject, at the desk. */
   practice(subject: Station, onLeave: () => void): Promise<void>;
   /** Life inside the house. */

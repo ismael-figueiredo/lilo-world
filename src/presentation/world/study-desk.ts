@@ -167,7 +167,7 @@ function canvasOf(width: number, height: number) {
 const FONT = '"Nunito", "Arial Rounded MT Bold", system-ui, sans-serif';
 
 /** A thing the desk has no model for stands there as its picture. */
-function pictureOf(card: Picture): THREE.Object3D {
+export function pictureOf(card: Picture): THREE.Object3D {
   const { context, texture } = canvasOf(128, 128);
   context.font = `100px ${FONT}`;
   context.textAlign = 'center';

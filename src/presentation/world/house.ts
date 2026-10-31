@@ -6,14 +6,15 @@ import { box, type Collider } from '@presentation/world/collision';
 import { paintRain, paintWindow } from '@presentation/world/window-view';
 import { routeInside, type HouseSpot } from '@presentation/world/house-plan';
 import type { Interactable } from '@presentation/world/interactable';
-import { StudyDesk } from '@presentation/world/study-desk';
+import { pictureOf, StudyDesk } from '@presentation/world/study-desk';
 import { lowPoly, solid } from '@presentation/world/materials';
 import { mergeStatic } from '@presentation/world/merge-static';
 
 /** The house stands far beyond the sea, where it is never seen from the island. */
 export const HOUSE = { x: 460, z: 0 } as const;
 
-export type HouseThing = 'bed' | 'table' | 'sink' | 'shower' | 'wardrobe' | 'desk' | 'door';
+export type HouseThing =
+  'bed' | 'table' | 'sink' | 'shower' | 'wardrobe' | 'desk' | 'door' | 'fridge' | 'stove';
 
 export type FoodId = 'bread' | 'fruit' | 'cereal' | 'egg';
 
@@ -34,6 +35,8 @@ export const standSpots: Readonly<Record<HouseThing, HouseSpot>> = {
   wardrobe: { x: -2.2, z: -4.1, facing: Math.PI },
   desk: { x: -6.6, z: -1.5, facing: 0 },
   door: { x: -4, z: 5, facing: 0 },
+  fridge: { x: 6, z: 2, facing: 2.4 },
+  stove: { x: 3.3, z: 1.5, facing: Math.PI },
 };
 
 const looks: Readonly<Record<HouseThing, { icon: string; label: string; name: string }>> = {
@@ -44,6 +47,8 @@ const looks: Readonly<Record<HouseThing, { icon: string; label: string; name: st
   wardrobe: { icon: '👕', label: 'Armário', name: 'Armário' },
   desk: { icon: '✏️', label: 'Escrivaninha', name: 'Escrivaninha' },
   door: { icon: '🚪', label: 'Porta da rua', name: 'Porta da rua' },
+  fridge: { icon: '🧊', label: 'Geladeira', name: 'Geladeira' },
+  stove: { icon: '🍳', label: 'Fogão', name: 'Fogão' },
 };
 
 export type MirrorId = 'bedroom' | 'bathroom';
@@ -93,6 +98,9 @@ export class House {
   private readonly trail: THREE.Mesh[] = [];
   private readonly meal = new THREE.Group();
   private readonly desk = new THREE.Group();
+  private readonly fridgeDoor = new THREE.Group();
+  private readonly fridgeInside = new THREE.Group();
+  private readonly cooking = new THREE.Group();
   readonly study = new StudyDesk(this.desk);
   private readonly sinkWater: THREE.Mesh;
   private readonly showerWater: THREE.Mesh;
@@ -133,13 +141,16 @@ export class House {
     this.sunbeam.position.set(-6.2, 1.5, -4.1);
     this.sunbeam.visible = false;
     this.group.add(this.sunbeam);
-    this.group.add(this.meal, this.desk, this.study.group);
+    this.group.add(this.meal, this.desk, this.study.group, this.fridgeInside, this.cooking);
 
     for (const thing of Object.keys(standSpots) as HouseThing[]) this.addPlace(thing);
     mergeStatic(this.group, [
       this.meal,
       this.desk,
       this.study.group,
+      this.fridgeDoor,
+      this.fridgeInside,
+      this.cooking,
       this.sinkWater,
       this.showerWater,
       this.curtain,
@@ -255,6 +266,57 @@ export class House {
   }
 
   /** Takes one piece of food away. */
+  /** Opens the fridge on what is there, with an empty place for each missing thing. */
+  openFridge(icons: readonly string[], missing: number): void {
+    this.fridgeInside.clear();
+    const shown = [...icons, ...Array.from({ length: missing }, () => '❓')];
+    shown.forEach((pictogram, index) => {
+      const item = pictureOf({ pictogram });
+      item.scale.setScalar(1.7);
+      item.position.set(7 + (index % 2) * 0.6, 0.5 + Math.floor(index / 2) * 0.66, 1.08);
+      this.fridgeInside.add(item);
+    });
+    this.fridgeDoor.rotation.y = 1.9;
+  }
+
+  closeFridge(): void {
+    this.fridgeInside.clear();
+    this.fridgeDoor.rotation.y = 0;
+  }
+
+  /** What is in the pot, while it cooks. */
+  setCooking(icon: string | undefined): void {
+    this.cooking.clear();
+    if (icon === undefined) return;
+    const dish = pictureOf({ pictogram: icon });
+    dish.position.set(3.3, 1.28, 0.55);
+    this.cooking.add(dish);
+  }
+
+  /** Lunch on the table, for the child and the adult. */
+  serveDish(icon: string): void {
+    this.meal.clear();
+    const plate = (x: number): void => {
+      const mesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.34, 0.26, 0.05, 16),
+        lowPoly(0xffffff),
+      );
+      mesh.position.set(x, 0.8, 3.45);
+      this.meal.add(mesh);
+    };
+    plate(2.9);
+    plate(3.8);
+    const theirs = pictureOf({ pictogram: icon });
+    theirs.position.set(2.9, 0.72, 3.45);
+    this.meal.add(theirs);
+    for (let bite = 0; bite < BITES; bite += 1) {
+      const food = pictureOf({ pictogram: icon });
+      food.scale.setScalar(0.7);
+      food.position.set(3.8 + (bite - 1) * 0.15, 0.74, 3.45);
+      this.meal.add(food);
+    }
+  }
+
   bite(): void {
     this.meal.children.at(-1)?.removeFromParent();
   }
@@ -487,15 +549,30 @@ export class House {
     this.piece([3.7, 0.06, 0.8], 0xd9c6a3, [4.2, 0.92, 0.5]);
     for (const x of [3.3, 3.9]) {
       this.group.add(
-        solid(new THREE.CylinderGeometry(0.18, 0.18, 0.03, 12), lowPoly(0x2d3142), [x, 0.97, 0.5]),
+        solid(new THREE.CylinderGeometry(0.18, 0.18, 0.03, 12), this.shining('stove', 0x2d3142), [
+          x,
+          0.97,
+          0.5,
+        ]),
       );
     }
     this.group.add(
       solid(new THREE.CylinderGeometry(0.2, 0.18, 0.28, 14), lowPoly(0xe8433b), [3.3, 1.12, 0.5]),
     );
     this.block(4.2, 0.5, 3.7, 0.85);
-    this.piece([1.1, 2.1, 0.8], 0xf0f4f8, [7.3, 1.05, 0.6]);
+    this.piece([1.1, 2.1, 0.8], 0xdfe7ee, [7.3, 1.05, 0.6]);
     this.block(7.3, 0.6, 1.2, 0.9);
+    // The door turns on its hinge, and shows what there is inside.
+    const door = solid(
+      new THREE.BoxGeometry(1.1, 2.1, 0.06),
+      this.shining('fridge', 0xf0f4f8),
+      [-0.55, 1.05, 0],
+    );
+    this.fridgeDoor.add(door);
+    this.fridgeDoor.position.set(7.85, 0, 1.02);
+    this.group.add(this.fridgeDoor);
+    // A second chair at the table, for the adult.
+    this.piece([0.55, 0.42, 0.55], 0x5fa883, [2.85, 0.21, 2.75]);
     // Table for the family; the child sits facing the camera.
     this.piece([2.2, 0.08, 1.3], this.shining('table', 0xd08c4a), [3.8, 0.74, 3.7]);
     for (const [dx, dz] of [

@@ -11,6 +11,7 @@ import {
   type StepId,
 } from '@domain/day/day-plan';
 import { fitsWeather, phaseOf } from '@domain/day/weather';
+import type { Errand } from '@domain/errand/errand';
 import type { Station } from '@domain/curriculum/skill';
 import type { GameContext } from '@presentation/game-context';
 import { AgendaPanel } from '@presentation/ui/agenda-panel';
@@ -28,6 +29,7 @@ const stepThings: Readonly<Record<StepId, HouseThing>> = {
   teeth: 'sink',
   dress: 'wardrobe',
   backpack: 'desk',
+  lunch: 'fridge',
   study: 'desk',
   outside: 'door',
   shower: 'shower',
@@ -84,6 +86,14 @@ const views: Readonly<
     [-6.4, 2.4, 2.4],
     [-6.6, 0.8, -1],
   ],
+  fridge: [
+    [7.3, 2.3, 5],
+    [7, 1.15, 1],
+  ],
+  stove: [
+    [2.6, 2.3, 4.6],
+    [3.5, 1, 0.6],
+  ],
 };
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -118,13 +128,34 @@ export class HomeController {
   }
 
   get goalPlaceId(): string | undefined {
+    const thing = this.goalThing;
+    return thing === undefined ? undefined : placeOf(thing);
+  }
+
+  /** What is lit now: lunch moves around the kitchen as its task goes on. */
+  private get goalThing(): HouseThing | undefined {
     const { step } = this;
-    return step === undefined ? undefined : placeOf(stepThings[step]);
+    if (step === undefined) return undefined;
+    if (step !== 'lunch') return stepThings[step];
+    const stage = this.errand?.stage;
+    if (stage === 'shop') return 'door';
+    return stage === 'cook' ? 'stove' : 'fridge';
   }
 
   get tip(): string | undefined {
     const { step } = this;
+    if (step === 'lunch') return this.ctx.errand.tip ?? stepTips.lunch;
     return step === undefined ? undefined : stepTips[step];
+  }
+
+  get errand(): Errand | undefined {
+    return this.day.errand;
+  }
+
+  /** The task saved something: what is lit follows it. */
+  setDay(day: DayState): void {
+    this.day = day;
+    this.showGoal();
   }
 
   /** Where the child starts: in bed in a new morning, or back at home. */
@@ -152,7 +183,7 @@ export class HomeController {
     const { step } = this;
     const here = this.ctx.world.indoors;
     this.house.show(
-      here && step !== undefined ? stepThings[step] : undefined,
+      here && step !== undefined ? this.goalThing : undefined,
       this.ctx.avatar.position,
     );
   }
@@ -209,6 +240,13 @@ export class HomeController {
       case 'door':
         await this.door();
         return;
+      case 'fridge':
+        await this.fridge();
+        return;
+      case 'stove':
+        if (this.isOpen('lunch') && this.errand?.stage === 'cook') await this.ctx.errand.cook();
+        else this.ctx.say(phrases.stoveNow);
+        return;
     }
   }
 
@@ -222,7 +260,8 @@ export class HomeController {
   async comeHome(): Promise<void> {
     await this.ctx.goInside();
     this.ctx.avatar.placeAt(this.house.world(standSpots.door), Math.PI);
-    await this.complete('outside');
+    // Shopping is part of lunch: going out to play is still to come.
+    if (!this.isOpen('lunch')) await this.complete('outside');
     this.ctx.backToExploring(this.tip ?? phrases.backHome);
   }
 
@@ -232,7 +271,7 @@ export class HomeController {
   }
 
   /** Saves a step; a block that ends is a calm place to stop. */
-  private async complete(step: StepId): Promise<void> {
+  async complete(step: StepId): Promise<void> {
     const result = await this.ctx.player.followDay.complete(step);
     this.day = result.day;
     this.ctx.showDay(this.day);
@@ -241,7 +280,7 @@ export class HomeController {
   }
 
   /** Runs a scene with the controls resting, and gives them back at the end. */
-  private async scene(thing: HouseThing, run: () => Promise<string | undefined>): Promise<void> {
+  async scene(thing: HouseThing, run: () => Promise<string | undefined>): Promise<void> {
     this.busy = true;
     this.ctx.enterPanel('home');
     this.house.show(undefined);
@@ -595,12 +634,55 @@ export class HomeController {
     this.showGoal();
   }
 
+  private async fridge(): Promise<void> {
+    if (!this.isOpen('lunch')) {
+      this.ctx.say(phrases.fridgeNow);
+      return;
+    }
+    const stage = this.errand?.stage;
+    if (stage === undefined || stage === 'ask') await this.ctx.errand.ask();
+    else if (stage === 'bring') await this.ctx.errand.deliver();
+    else this.ctx.say(this.tip ?? phrases.fridgeNow);
+  }
+
+  /** Everybody at the table: what the child helped to make. */
+  async eatLunch(icon: string): Promise<void> {
+    await this.scene('table', async () => {
+      const { avatar } = this.ctx;
+      this.sitAt(CHAIR, CHAIR_HEIGHT);
+      this.ctx.guardianStandsAt('table');
+      this.ctx.say(phrases.lunchEat);
+      const bites: readonly Picture[] = [1, 2, 3].map(() => ({ icon, label: 'Comer' }));
+      for (let bite = 0; bite < bites.length; bite += 1) {
+        await this.sheet.press(bites, bite);
+        avatar.playEmote('SitEat');
+        await wait(800);
+        this.house.bite();
+        await wait(700);
+        avatar.playEmote('Sit');
+      }
+      avatar.feel('happy');
+      this.ctx.say(phrases.lunchDone);
+      await wait(1800);
+      avatar.feel('calm');
+      this.house.clearTable();
+      this.standUp(standSpots.table);
+      this.ctx.guardianStandsAt('kitchen');
+      await this.complete('lunch');
+      return phrases.lunchDone;
+    });
+  }
+
   private async door(): Promise<void> {
+    if (this.step === 'lunch' && this.errand?.stage !== 'shop') {
+      this.ctx.say(this.tip ?? phrases.firstThis(stepLooks.lunch.name));
+      return;
+    }
     if (this.step === undefined || currentBlock(this.day)?.id === 'night') {
       this.ctx.say(phrases.nightStays);
       return;
     }
-    if (!this.isOpen('outside')) {
+    if (!this.isOpen('outside') && !this.isOpen('lunch')) {
       this.ctx.say(phrases.firstThis(stepLooks[this.step].name));
       return;
     }
@@ -616,7 +698,7 @@ export class HomeController {
     try {
       await this.ctx.goOutside();
       this.house.show(undefined);
-      this.ctx.backToExploring(phrases.outsideNow);
+      this.ctx.backToExploring(this.ctx.errand.tip ?? phrases.outsideNow);
     } catch {
       this.ctx.backToExploring(phrases.streetNotReady);
     } finally {

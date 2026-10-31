@@ -19,9 +19,9 @@ describe('the phases of the day', () => {
   it('follow what the child has done', () => {
     expect(phaseOf(firstDay)).toBe('morning');
     expect(phaseOf(after(...morning))).toBe('noon');
-    expect(phaseOf(after(...morning, 'study'))).toBe('afternoon');
-    expect(phaseOf(after(...morning, 'study', 'outside'))).toBe('dusk');
-    expect(phaseOf(after(...morning, 'study', 'outside', 'shower'))).toBe('night');
+    expect(phaseOf(after(...morning, 'lunch', 'study'))).toBe('afternoon');
+    expect(phaseOf(after(...morning, 'lunch', 'study', 'outside'))).toBe('dusk');
+    expect(phaseOf(after(...morning, 'lunch', 'study', 'outside', 'shower'))).toBe('night');
   });
 });
 

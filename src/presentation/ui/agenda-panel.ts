@@ -6,6 +6,9 @@ import {
   type DayState,
 } from '@domain/day/day-plan';
 import type { Weather } from '@domain/day/weather';
+import type { Errand } from '@domain/errand/errand';
+import { groceryOf } from '@domain/errand/groceries';
+import { total, written } from '@domain/money/money';
 import { stepLooks } from '@presentation/ui/day-looks';
 import { h } from '@presentation/ui/dom';
 
@@ -67,6 +70,7 @@ export class AgendaPanel {
           ]),
         ),
       ),
+      ...(day.errand === undefined ? [] : [this.shopping(day.errand)]),
       h('button', {
         className: 'big-button big-button--green',
         text: '✓ Entendi',
@@ -77,6 +81,22 @@ export class AgendaPanel {
       }),
     );
     this.element.classList.add('is-visible');
+  }
+
+  /** The list and the wallet: always one press away. */
+  private shopping(errand: Errand): HTMLElement {
+    const items = errand.list.map((id) => {
+      const { icon, short } = groceryOf(id);
+      const got = errand.picked.includes(id);
+      return h('li', { className: `agenda__item${got ? ' is-done' : ''}` }, [
+        h('span', { text: got ? '✅' : '⬜' }),
+        h('span', { text: `${icon} ${short}` }),
+      ]);
+    });
+    return h('div', { className: 'agenda__list' }, [
+      h('ul', { className: 'agenda__items' }, items),
+      h('p', { className: 'agenda__wallet', text: `👛 ${written(total(errand.wallet))}` }),
+    ]);
   }
 
   close(): void {

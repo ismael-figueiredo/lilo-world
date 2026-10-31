@@ -3020,3 +3020,122 @@ body:has(.challenge.is-visible) .dialog {
     font-size: 1rem;
   }
 }
+
+/* ---------- The cashier ---------- */
+.pay {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pay__bill {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 800;
+}
+
+.pay__line {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 4px;
+  border-bottom: 2px dashed #e6dcc5;
+}
+
+.pay__total {
+  margin: 4px 0;
+  font-size: 1.3rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.pay__label,
+.pay__left {
+  margin: 0;
+  font-weight: 800;
+}
+
+.pay__left {
+  text-align: center;
+}
+
+.pay__money {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  min-height: 64px;
+  padding: 6px;
+  border-radius: 16px;
+  background: #fff6db;
+}
+
+.pay__counter {
+  border: 3px dashed var(--ink-soft);
+  background: #fff;
+}
+
+.money {
+  min-width: 96px;
+  min-height: 52px;
+  border: 3px solid rgba(255, 255, 255, 0.75);
+  border-radius: 10px;
+  background: var(--money);
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 900;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18);
+}
+
+.money--coin {
+  min-width: 68px;
+  min-height: 68px;
+  border-radius: 50%;
+}
+
+.pay__sum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.pay__dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--leaf);
+}
+
+.pay__dot.is-gone {
+  background: #d8cfb8;
+}
+
+.agenda__list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.agenda__items {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 800;
+}
+
+.agenda__item {
+  display: flex;
+  gap: 6px;
+}
+
+.agenda__wallet {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 900;
+}

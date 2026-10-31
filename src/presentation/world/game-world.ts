@@ -6,6 +6,7 @@ import { CityPlace } from '@presentation/world/city';
 import type { Collider } from '@presentation/world/collision';
 import { House } from '@presentation/world/house';
 import type { Interactable } from '@presentation/world/interactable';
+import type { MarketInterior } from '@presentation/world/market-interior';
 import { Sky } from '@presentation/world/sky';
 import { skyLook } from '@presentation/world/sky-looks';
 import { Town } from '@presentation/world/town';
@@ -26,6 +27,8 @@ export class GameWorld {
   private weather: Weather = 'sunny';
   /** Where the child stands: only what is around them is drawn. */
   indoors = true;
+  /** Walking inside the market. */
+  shopping: MarketInterior | undefined;
   private town: Town | undefined;
   private assets: Promise<WorldAssets> | undefined;
   private building: Promise<Town> | undefined;
@@ -85,10 +88,12 @@ export class GameWorld {
   }
 
   get colliders(): readonly Collider[] {
+    if (this.shopping !== undefined) return this.shopping.walkColliders;
     return this.indoors ? this.house.colliders : (this.town?.colliders ?? []);
   }
 
   get places(): readonly Interactable[] {
+    if (this.shopping !== undefined) return this.shopping.walkPlaces;
     return this.indoors ? this.house.places : (this.town?.places ?? []);
   }
 
@@ -103,11 +108,13 @@ export class GameWorld {
   }
 
   heightAt(x: number, z: number): number {
+    if (this.shopping?.contains(x, z) === true) return this.shopping.height;
     if (this.house.contains(x, z)) return this.house.floor;
     return this.town?.shape.heightAt(x, z) ?? this.house.floor;
   }
 
   isWalkable(x: number, z: number): boolean {
+    if (this.shopping !== undefined) return this.shopping.contains(x, z);
     if (this.indoors) return this.house.contains(x, z);
     return this.town?.shape.isWalkable(x, z) ?? false;
   }

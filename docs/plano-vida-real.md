@@ -229,16 +229,16 @@ Objetivo: a rua parece real, é segura e não atrapalha.
 
 Objetivo: a primeira tarefa completa, com motivo e consequência.
 
-- [ ] **C8.1 Tarefas (domínio).** Cadeia de etapas e salvamento. Pronto: testada.
-- [ ] **C8.2 Dinheiro (domínio).** Cédulas, moedas, preço, pagamento e troco em centavos. Pronto: testado.
-- [ ] **C8.3 Faltou algo.** Adulto olha a geladeira, falta um item, faz a lista. Pronto: cena animada, e varia a cada dia.
-- [ ] **C8.4 Lista e carteira.** Lista em figuras e dinheiro entregue pelo adulto. Pronto: consultáveis no botão △.
-- [ ] **C8.5 Mercado caminhável.** Interior como zona, com corredores e carrinho. Pronto: pegar o item na prateleira 3D.
-- [ ] **C8.6 Preços e pagamento.** Etiquetas e caixa com cédulas e moedas em níveis (exato, depois com troco). Pronto: dificuldade segue a matemática da criança.
-- [ ] **C8.7 Troco.** Caixa devolve e a criança confere. Pronto: nível simples mostra a conta em objetos.
-- [ ] **C8.8 Voltar e entregar.** Colocar compras na cozinha e entregar o troco. Pronto: adulto agradece, com a tarefa marcada na agenda.
-- [ ] **C8.9 Cozinhar junto.** Lavar, cortar sem faca para a criança, mexer, servir. Pronto: comida aparece na mesa e a família almoça.
-- [ ] **C8.10 Padaria.** Mesma lógica com pedido por CAA. Pronto: usa dinheiro e troco.
+- [x] **C8.1 Tarefas (domínio).** `domain/errand`: etapas pedir, comprar, trazer e cozinhar, salvas dentro do dia.
+- [x] **C8.2 Dinheiro (domínio).** `domain/money`: tudo em centavos, testado.
+- [x] **C8.3 Faltou algo.** Geladeira abre, mostra o que tem e um lugar vazio, e o adulto faz a lista. A receita muda a cada dia.
+- [x] **C8.4 Lista e carteira.** Lista em figuras e dinheiro do adulto, consultáveis na agenda (△).
+- [x] **C8.5 Mercado caminhável.** A criança anda no mercado com o carrinho, entre prateleira do fundo e prateleira baixa, e pega o item no lugar dele. Sem tarefa do dia, o mercado continua sendo a missão antiga de cartões.
+- [x] **C8.6 Preços e pagamento.** Etiquetas nas prateleiras e caixa com cédulas e moedas no painel. Três níveis, valor exato, troco e centavos, seguindo `math.cash.2` e `math.cash.3`.
+- [x] **C8.7 Troco.** A criança confere quanto voltou. Nos níveis com valores inteiros, bolinhas mostram o que foi pago e o que o preço levou.
+- [x] **C8.8 Voltar e entregar.** Guarda as compras na geladeira, entrega o troco e o adulto agradece.
+- [x] **C8.9 Cozinhar junto.** Lavar, adulto corta, mexer, servir. Comida na mesa e os dois almoçam, o que conclui o passo Almoço da agenda.
+- [x] **C8.10 Padaria.** No dia do sanduíche o pão é pedido com cartões na porta da padaria e pago do mesmo jeito. Ainda não há interior nem atendente.
 
 ### C9. Ônibus e escola
 

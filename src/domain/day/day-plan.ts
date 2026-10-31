@@ -1,3 +1,5 @@
+import { sanitizeErrand, type Errand } from '@domain/errand/errand';
+
 export type BlockId = 'morning' | 'afternoon' | 'night';
 
 export type StepId =
@@ -6,6 +8,7 @@ export type StepId =
   | 'teeth'
   | 'dress'
   | 'backpack'
+  | 'lunch'
   | 'study'
   | 'outside'
   | 'shower'
@@ -20,7 +23,7 @@ export interface Block {
 /** Every day has the same shape: that is what makes it predictable. */
 export const dayBlocks: readonly Block[] = [
   { id: 'morning', steps: ['wake', 'eat', 'teeth', 'dress', 'backpack'] },
-  { id: 'afternoon', steps: ['study', 'outside'] },
+  { id: 'afternoon', steps: ['lunch', 'study', 'outside'] },
   { id: 'night', steps: ['shower', 'pajamas', 'sleep'] },
 ];
 
@@ -28,6 +31,8 @@ export interface DayState {
   /** Starts at 1 and grows when the child sleeps in the game, not with the device's clock. */
   readonly number: number;
   readonly done: readonly StepId[];
+  /** Today's lunch task, from the moment the adult asks. */
+  readonly errand?: Errand;
 }
 
 export const firstDay: DayState = { number: 1, done: [] };
@@ -39,10 +44,12 @@ export const isStep = (value: unknown): value is StepId => allSteps.includes(val
 /** Returns the first day for missing or broken data: nothing here can stop the game. */
 export function sanitizeDay(raw: unknown): DayState {
   if (typeof raw !== 'object' || raw === null) return firstDay;
-  const { number, done } = raw as Record<string, unknown>;
+  const { number, done, errand } = raw as Record<string, unknown>;
+  const task = sanitizeErrand(errand);
   return {
     number: typeof number === 'number' && Number.isInteger(number) && number > 0 ? number : 1,
     done: Array.isArray(done) ? [...new Set(done.filter(isStep))] : [],
+    ...(task === undefined ? {} : { errand: task }),
   };
 }
 
@@ -100,7 +107,7 @@ export function completeStep(day: DayState, step: StepId): StepResult {
 export function skipBlock(day: DayState): DayState {
   const block = currentBlock(day);
   if (block === undefined || block.id === 'night') return day;
-  return { ...day, done: [...new Set([...day.done, ...block.steps])] };
+  return { number: day.number, done: [...new Set([...day.done, ...block.steps])] };
 }
 
 export type SchoolThing = 'notebook' | 'pencil' | 'book' | 'lunchbox' | 'sneakers' | 'paints';

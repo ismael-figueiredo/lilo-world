@@ -14,18 +14,25 @@ import { comfortIn, phaseOf, weatherOf, type Phase, type Weather } from '@domain
 import { startRoutine, stepRoutine, type Spot } from '@domain/people/routine';
 import type { PlayerProfile } from '@domain/profile/player-profile';
 import type { Station } from '@domain/curriculum/skill';
+import { isBakeryRun } from '@domain/errand/errand';
 import { sessionTimeStatus } from '@domain/session/session';
 import { defaultSettings, type Settings } from '@domain/settings/settings';
 import { Mascot } from '@presentation/actors/mascot';
 import { AvatarLibrary } from '@presentation/actors/avatar-library';
 import { avatarPictureUrl } from '@presentation/actors/avatar-rigs';
-import { cast, childPerson, guardianPerson, type CastMember } from '@presentation/actors/cast';
+import {
+  cast,
+  childPerson,
+  guardianPerson as personOfGuardian,
+  type CastMember,
+} from '@presentation/actors/cast';
 import { outfitClothes, type Expression } from '@presentation/actors/child-figure';
 import type { Emote, Ground, Player } from '@presentation/actors/player';
 import { MenuController } from '@presentation/controllers/menu-controller';
 import { ActivityController } from '@presentation/controllers/activity-controller';
 import { MissionController, missionPlaces } from '@presentation/controllers/mission-controller';
 import { HomeController } from '@presentation/controllers/home-controller';
+import { ErrandController } from '@presentation/controllers/errand-controller';
 import { SessionController } from '@presentation/controllers/session-controller';
 import { WardrobeController } from '@presentation/controllers/wardrobe-controller';
 import { CameraRig } from '@presentation/engine/camera-rig';
@@ -57,11 +64,12 @@ import {
 import { PadHints } from '@presentation/ui/pad-hints';
 import { ProfileScreen } from '@presentation/ui/profile-screen';
 import { RestScreen } from '@presentation/ui/rest-screen';
-import { CityPlace } from '@presentation/world/city';
+import { CITY, CityPlace } from '@presentation/world/city';
 import { firstObstruction, resolveCollisions } from '@presentation/world/collision';
 import { GameWorld } from '@presentation/world/game-world';
 import { skyLook } from '@presentation/world/sky-looks';
 import type { Town } from '@presentation/world/town';
+import type { MarketInterior } from '@presentation/world/market-interior';
 import { GoalMarker } from '@presentation/world/goal-marker';
 import { GuideArrow } from '@presentation/world/guide-arrow';
 import type { Interactable } from '@presentation/world/interactable';
@@ -96,6 +104,13 @@ const INDOOR_MARKER = 0.42;
 const INDOOR_MASCOT = 0.6;
 /** Where the adult at home is, at the kitchen counter. */
 const KITCHEN_SPOT = { x: 5, z: 1.5, facing: 0 } as const;
+const GUARDIAN_SPOTS = {
+  kitchen: KITCHEN_SPOT,
+  fridge: { x: 5, z: 1.7, facing: 1.2 },
+  stove: { x: 2.2, z: 1.5, facing: Math.PI / 2 },
+  table: { x: 2.85, z: 2.75, facing: 0 },
+} as const;
+const GUARDIAN_SEAT = 0.2;
 /** The child's body and a person's: they meet, but never overlap. */
 const PERSON_SPACE = 0.45;
 const still = { x: 0, z: 0 };
@@ -137,6 +152,7 @@ export class GameApp implements GameContext {
   private readonly profileScreen: ProfileScreen;
   private readonly restScreen: RestScreen;
   private readonly missions: MissionController;
+  private readonly errands: ErrandController;
   private readonly learning: ActivityController;
   private readonly day: SessionController;
   readonly wardrobe: WardrobeController;
@@ -178,7 +194,7 @@ export class GameApp implements GameContext {
   private readonly loading = new LoadingScreen();
   private fps = 60;
   private people: readonly Person[] = [];
-  private guardian: Person | undefined;
+  private guardianPerson: Person | undefined;
   private today: DayState = firstDay;
   private readonly breath = new THREE.Vector3();
   private readonly studio = new ChildStudio();
@@ -228,6 +244,7 @@ export class GameApp implements GameContext {
     this.day = new SessionController(this, this.learning);
     this.wardrobe = new WardrobeController(this);
     this.home = new HomeController(this);
+    this.errands = new ErrandController(this, this.home);
     this.menus = new MenuController(this, () => this.goalPlace()?.id);
   }
 
@@ -240,6 +257,51 @@ export class GameApp implements GameContext {
 
   get session(): SessionController {
     return this.day;
+  }
+
+  get errand(): ErrandController {
+    return this.errands;
+  }
+
+  get guardian(): Player | undefined {
+    return this.guardianPerson?.character;
+  }
+
+  guardianStandsAt(where: 'kitchen' | 'fridge' | 'stove' | 'table'): void {
+    const spot = GUARDIAN_SPOTS[where];
+    const person = this.guardianPerson;
+    if (person === undefined) return;
+    const { character } = person;
+    character.setPerch(where === 'table' ? GUARDIAN_SEAT : 0);
+    character.release();
+    character.placeAt(this.world.house.world(spot), spot.facing);
+    if (where === 'table' && character.canDo('Sit')) character.playEmote('Sit');
+  }
+
+  enterShop(market: MarketInterior): void {
+    const world = this.world;
+    world.shopping = market;
+    this.minimap.setVisible(false);
+    this.rig.setIndoors(true);
+    this.avatar.placeAt(market.entrance, Math.PI);
+    market.followWithCart(this.avatar.position, Math.PI, 1);
+    this.rig.snapTo(market.entrance);
+  }
+
+  leaveShop(): void {
+    const world = this.world;
+    world.shopping = undefined;
+    this.rig.setIndoors(false);
+    const door = world.townPlaces.find((place) => place.id === CityPlace.market);
+    if (door === undefined) return;
+    const towardStreet = door.position.z > CITY.z ? Math.PI : 0;
+    this.avatar.placeAt(door.position, towardStreet);
+    this.rig.yaw = towardStreet;
+    this.rig.snapTo(door.position);
+  }
+
+  refreshGoal(): void {
+    this.showMarker();
   }
 
   practice(subject: Station, onLeave: () => void): Promise<void> {
@@ -361,7 +423,8 @@ export class GameApp implements GameContext {
 
   private showMinimap(): void {
     const indoors = this.gameWorld?.indoors ?? true;
-    this.minimap.setVisible(this.currentSettings.showMinimap && !indoors);
+    const shopping = this.gameWorld?.shopping !== undefined;
+    this.minimap.setVisible(this.currentSettings.showMinimap && !indoors && !shopping);
   }
 
   get town(): Town {
@@ -581,6 +644,7 @@ export class GameApp implements GameContext {
       this.controls.element,
       this.missions.panel.element,
       this.learning.panel.element,
+      this.errands.panel.element,
       this.day.board.element,
       this.home.agenda.element,
       this.home.sheet.element,
@@ -792,6 +856,7 @@ export class GameApp implements GameContext {
       );
     }
     this.missions.tick(dt);
+    this.errands.update(dt);
     if (this.activeProfile !== undefined && this.currentMode !== 'profiles') {
       this.trackSession(dt);
     }
@@ -946,13 +1011,13 @@ export class GameApp implements GameContext {
 
   /** The adult at home, in the kitchen, looks like the child's family. */
   private addGuardian(profile: PlayerProfile, world: GameWorld): void {
-    const others = this.people.filter((person) => person !== this.guardian);
-    this.guardian?.character.dispose();
-    const character = this.avatars.createPerson(guardianPerson(profile.guardian, profile.look));
+    const others = this.people.filter((person) => person !== this.guardianPerson);
+    this.guardianPerson?.character.dispose();
+    const character = this.avatars.createPerson(personOfGuardian(profile.guardian, profile.look));
     character.placeAt(world.house.world(KITCHEN_SPOT), KITCHEN_SPOT.facing);
     this.scene.add(character.root);
-    this.guardian = { character, reply: phrases.replyGoodDay };
-    this.people = [...others, this.guardian];
+    this.guardianPerson = { character, reply: phrases.replyGoodDay };
+    this.people = [...others, this.guardianPerson];
   }
 
   private addNeighbors(town: Town): void {
@@ -1039,6 +1104,20 @@ export class GameApp implements GameContext {
 
   private async use(place: Interactable): Promise<void> {
     await this.rewardSafeTrip();
+    const task = this.home.errand;
+    if (task?.stage === 'shop') {
+      if (place.id === CityPlace.market && !isBakeryRun(task)) {
+        this.sound('open');
+        await this.errands.enterMarket();
+        return;
+      }
+      if (place.id === CityPlace.bakery && isBakeryRun(task)) {
+        this.sound('open');
+        await this.errands.orderAtBakery();
+        return;
+      }
+    }
+    if (await this.errands.useInMarket(place.id)) return;
     const missionId = Object.entries(missionPlaces).find(
       ([, placeId]) => placeId === place.id,
     )?.[0];
@@ -1106,6 +1185,8 @@ export class GameApp implements GameContext {
   private goalPlace(): Interactable | undefined {
     if (this.destination !== undefined) return this.destination;
     const world = this.gameWorld;
+    const task = world?.indoors === true ? undefined : this.errands.goalPlaceId;
+    if (task !== undefined) return world?.places.find((place) => place.id === task);
     if (world?.indoors === true) {
       return world.places.find((place) => place.id === this.home.goalPlaceId);
     }

@@ -9,6 +9,7 @@ import {
   type SkillChoice,
 } from '@domain/curriculum/session-plan';
 import type { SkillDefinition } from '@domain/curriculum/skill';
+import type { MoneyLevel } from '@domain/errand/errand';
 
 /** Coins for finishing the day's plan, whatever happened along the way. */
 export const SESSION_COINS = 5;
@@ -43,6 +44,16 @@ export class PlanSession {
       choices: settings.skillChoices,
       pace: settings.pace,
     });
+  }
+
+  /** The money of the lunch task follows what the child already does in math. */
+  async moneyLevel(): Promise<MoneyLevel> {
+    const progress = await this.progress.load();
+    const now = this.clock.now();
+    const knows = (id: string) =>
+      ['mastered', 'review'].includes(skillStatus(progress.skillRecord(id), now));
+    if (knows('math.cash.3')) return 'cents';
+    return knows('math.cash.2') ? 'change' : 'exact';
   }
 
   /** For the adults' area: where each skill stands. */

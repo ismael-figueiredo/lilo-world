@@ -30,6 +30,7 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | Vida real C5: fases do dia, clima com semente, céu, chuva, janela, roupa e sons do tempo      | ✅ feito   | —         |
 | Vida real C6: estudo na escrivaninha, com mesa e quadro em 3D, três trilhas e novas respostas | ✅ feito   | —         |
 | Vida real C7: carros, pedestres e bichos na rua, calçadas livres, som e seta junto da criança | ✅ feito   | —         |
+| Vida real C8: almoço completo, da geladeira à mesa, com mercado caminhável, dinheiro e troco  | ✅ feito   | —         |
 | Currículo 3: áudio gravado, rimas, vogais e sílabas (depende da gravação)                     | ⏭️ próximo | —         |
 | Vida real 2: casa e mercado para andar, agenda do dia, fim dos portais, receita completa      | ⏳ depois  | —         |
 | Vida real 3: ônibus de verdade, escola e fazenda caminháveis, histórias em figuras            | ⏳ depois  | —         |

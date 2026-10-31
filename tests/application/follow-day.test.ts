@@ -13,6 +13,6 @@ describe('FollowDay', () => {
   it('saves a jumped block', async () => {
     const days = new InMemoryDayRepository();
     await new FollowDay(days).skipBlock();
-    expect(currentStep(await days.load())).toBe('study');
+    expect(currentStep(await days.load())).toBe('lunch');
   });
 });
