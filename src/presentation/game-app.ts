@@ -35,6 +35,7 @@ import { HomeController } from '@presentation/controllers/home-controller';
 import { ErrandController } from '@presentation/controllers/errand-controller';
 import { SchoolController } from '@presentation/controllers/school-controller';
 import { SessionController } from '@presentation/controllers/session-controller';
+import { ZooController } from '@presentation/controllers/zoo-controller';
 import { WardrobeController } from '@presentation/controllers/wardrobe-controller';
 import { CameraRig } from '@presentation/engine/camera-rig';
 import { GamepadReader, padIsActive } from '@presentation/engine/gamepad';
@@ -155,6 +156,7 @@ export class GameApp implements GameContext {
   private readonly missions: MissionController;
   private readonly errands: ErrandController;
   private readonly schoolDay: SchoolController;
+  private readonly zoo: ZooController;
   private readonly learning: ActivityController;
   private readonly day: SessionController;
   readonly wardrobe: WardrobeController;
@@ -248,6 +250,7 @@ export class GameApp implements GameContext {
     this.home = new HomeController(this);
     this.errands = new ErrandController(this, this.home);
     this.schoolDay = new SchoolController(this, this.home, this.learning);
+    this.zoo = new ZooController(this, this.home);
     this.menus = new MenuController(this, () => this.goalPlace()?.id);
   }
 
@@ -283,6 +286,10 @@ export class GameApp implements GameContext {
 
   get school(): SchoolController {
     return this.schoolDay;
+  }
+
+  bringGuardian(at: THREE.Vector3): void {
+    this.guardianPerson?.character.placeAt(at.clone().setX(at.x + 2), Math.PI);
   }
 
   enterSpace(space: WalkableSpace): void {
@@ -878,6 +885,7 @@ export class GameApp implements GameContext {
     this.missions.tick(dt);
     this.errands.update(dt);
     this.schoolDay.update(dt);
+    this.zoo.update(dt);
     if (this.activeProfile !== undefined && this.currentMode !== 'profiles') {
       this.trackSession(dt);
     }
@@ -1147,6 +1155,8 @@ export class GameApp implements GameContext {
     }
     if (await this.errands.useInMarket(place.id)) return;
     if (await this.schoolDay.use(place.id)) return;
+    if (await this.zoo.use(place.id)) return;
+    if (place.id === CityPlace.busStop && (await this.zoo.offerTrip())) return;
     const missionId = Object.entries(missionPlaces).find(
       ([, placeId]) => placeId === place.id,
     )?.[0];

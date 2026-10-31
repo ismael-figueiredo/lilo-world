@@ -261,8 +261,12 @@ export class SchoolController {
     character.placeAt(at, facing);
   }
 
-  /** At the stop: wait, let people off, and only then get on. */
-  private async catchBus(): Promise<void> {
+  private catchBus(): Promise<void> {
+    return this.takeBus(() => this.reachSchool());
+  }
+
+  /** At the stop: wait, let people off, get on, and ride to wherever `arrive` leads. */
+  async takeBus(arrive: () => Promise<void>): Promise<void> {
     const { ctx } = this;
     ctx.enterPanel('home');
     const stop = ctx.world.places.find((place) => place.id === CityPlace.busStop);
@@ -288,14 +292,13 @@ export class SchoolController {
     await wait(GET_OFF_SECONDS * 1000 + 400);
     ctx.say(phrases.boardBus);
     await this.home.sheet.press([{ icon: '🚌', label: 'Entrar' }], 0);
-    await this.ride();
+    await this.ride(arrive);
   }
 
-  private async ride(): Promise<void> {
+  private async ride(arrive: () => Promise<void>): Promise<void> {
     const { ctx } = this;
     const { town } = ctx;
     const bus = await ctx.whileLoading(town.prepareBus());
-    const building = town.prepareSchool();
     this.people();
     await ctx.transition(() => {
       town.bus.sendBusAway();
@@ -323,7 +326,12 @@ export class SchoolController {
     ctx.say(phrases.pressStop);
     await this.home.sheet.press([{ icon: '🔔', label: 'Apertar o botão' }], 0);
     ctx.sound('tap');
-    const school = await ctx.whileLoading(building);
+    await arrive();
+  }
+
+  private async reachSchool(): Promise<void> {
+    const { ctx } = this;
+    const school = await ctx.whileLoading(ctx.town.prepareSchool());
     this.building = school;
     const saved = this.stage ?? 'stop';
     await ctx.transition(() => {

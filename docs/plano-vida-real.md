@@ -287,14 +287,14 @@ Ordem de ensino proposta: **ver a cena → notar corpo e rosto → dar nome → 
 
 Objetivo: passeio com descoberta.
 
-- [ ] **C12.1 Modelos de animais.** Encontrar e validar animais CC0 animados. A busca inicial não achou um pacote único com leão, elefante e girafa. Pronto: 10 animais com licença confirmada, ou plano B de modelos próprios simples.
-- [ ] **C12.2 Zona do zoológico.** Bilheteria, caminho circular, recintos, lanchonete, banheiro. Pronto: caminhada segura e sem becos.
-- [ ] **C12.3 Viagem e entrada.** Ônibus, comprar ingresso com dinheiro. Pronto: usa C8.
-- [ ] **C12.4 Conhecer o animal.** Chegar perto, ouvir, ver comer e dormir. Pronto: fala curta para cada animal.
-- [ ] **C12.5 Caderno de animais.** Figurinha de cada animal visto. Pronto: álbum atualizado.
-- [ ] **C12.6 Desafios.** O que ele come, onde vive, qual o som, quantas patas. Pronto: desafios no recinto, não em painel solto.
-- [ ] **C12.7 Alimentar com o tratador.** Dar comida certa, seguindo regras. Pronto: animal reage.
-- [ ] **C12.8 Regras do passeio.** Não bater no vidro, falar baixo, ficar com o adulto. Pronto: adulto acompanha a criança.
+- [x] **C12.1 Modelos de animais.** Plano B: 10 animais feitos em código, sem download e sem licença de terceiros. Respiram, comem e dormem, mas não andam.
+- [x] **C12.2 Zona do zoológico.** Caminho circular com 10 recintos, lanchonete e banheiro no meio. Um teste percorre o parque e confirma que tudo é alcançável. Lanchonete e banheiro só respondem com uma fala.
+- [x] **C12.3 Viagem e entrada.** Na parte livre do dia, o ponto oferece o passeio. Mesmo ônibus da escola e ingresso pago no caixa da C8.
+- [x] **C12.4 Conhecer o animal.** Fala curta de cada um, ver comer e ver dormir. Ouvir é só a voz descrevendo: não há som gravado de animal.
+- [x] **C12.5 Caderno de animais.** Figurinha no álbum na primeira visita a cada animal.
+- [x] **C12.6 Desafios.** O que come, onde vive e quantas patas, em frente ao recinto. A pergunta do som ficou de fora até haver áudio.
+- [x] **C12.7 Alimentar com o tratador.** A criança escolhe a comida e o animal come. O tratador é só uma voz, sem personagem.
+- [x] **C12.8 Regras do passeio.** Três regras em figuras na entrada, e o adulto da casa caminha junto.
 
 ### C13. Praia
 

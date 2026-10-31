@@ -39,6 +39,7 @@ import { StartActivity } from '@application/use-cases/start-activity';
 import { StartMission } from '@application/use-cases/start-mission';
 import { SuggestNextGoal } from '@application/use-cases/suggest-next-goal';
 import { FollowDay } from '@application/use-cases/follow-day';
+import { MeetAnimal } from '@application/use-cases/meet-animal';
 import { NoteMood } from '@application/use-cases/note-mood';
 import { ToggleWardrobeItem } from '@application/use-cases/toggle-wardrobe-item';
 import { UpdateSettings } from '@application/use-cases/update-settings';
@@ -112,6 +113,7 @@ export function createServices(adapters: Adapters): GameServices {
       checkSessionTime: new CheckSessionTime(settings),
       followDay: new FollowDay(day),
       noteMood: new NoteMood(moods, clock),
+      meetAnimal: new MeetAnimal(progress),
     };
   };
 

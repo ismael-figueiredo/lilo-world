@@ -1,5 +1,5 @@
 import type { ProgressRepository } from '@application/ports/progress-repository';
-import { ALBUM_LETTERS, albumStickers, type Sticker } from '@domain/stickers/sticker';
+import { ALBUM_LETTERS, allStickers, type Sticker } from '@domain/stickers/sticker';
 
 export interface Album {
   readonly stickers: readonly (Sticker & { readonly earned: boolean })[];
@@ -14,7 +14,7 @@ export class GetAlbum {
     const progress = await this.progress.load();
     const letters = new Set(progress.letters);
     return {
-      stickers: albumStickers.map((sticker) => ({
+      stickers: allStickers.map((sticker) => ({
         ...sticker,
         earned: progress.hasSticker(sticker.id),
       })),

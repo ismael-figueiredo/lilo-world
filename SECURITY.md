@@ -12,7 +12,7 @@ O Lilo World é usado por crianças, então privacidade e segurança são requis
 
 ## Proteção do código
 
-- A `main` só muda por pull request com o CI aprovado. Force-push e exclusão são bloqueados.
+- Na `main`, quem não administra o repositório só entra por pull request com o CI aprovado. Force-push e exclusão são bloqueados para quem não tem essa permissão.
 - O GitHub Actions só roda ações fixadas por commit, com permissão de leitura.
 - O CodeQL e os alertas do Dependabot analisam o código e as dependências.
 - Versões novas de pacotes esperam uma semana antes de entrar no projeto.

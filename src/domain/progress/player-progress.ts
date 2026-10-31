@@ -178,6 +178,13 @@ export class PlayerProgress {
     return this.state.skillLevels[skill];
   }
 
+  /** A sticker that is not a level: for something the child did in the world. */
+  withSticker(id: StickerId): PlayerProgress {
+    return this.hasSticker(id)
+      ? this
+      : new PlayerProgress({ ...this.state, stickers: new Set([...this.state.stickers, id]) });
+  }
+
   hasSticker(id: StickerId): boolean {
     return this.state.stickers.has(id);
   }

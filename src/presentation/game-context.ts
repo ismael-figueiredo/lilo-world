@@ -1,3 +1,4 @@
+import type * as THREE from 'three';
 import type { DayState } from '@domain/day/day-plan';
 import type { Weather } from '@domain/day/weather';
 import type { HomeController } from '@presentation/controllers/home-controller';
@@ -57,6 +58,8 @@ export interface GameContext {
   readonly guardian: Player | undefined;
   guardianStandsAt(where: 'kitchen' | 'fridge' | 'stove' | 'table'): void;
   readonly school: SchoolController;
+  /** The adult comes along on an outing, starting at this spot. */
+  bringGuardian(at: THREE.Vector3): void;
   /** Into a place of its own, at its entrance. */
   enterSpace(space: WalkableSpace): void;
   /** Back on the island, at the door of a place. */

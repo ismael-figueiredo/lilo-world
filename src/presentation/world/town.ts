@@ -8,6 +8,7 @@ import type { Interactable } from '@presentation/world/interactable';
 import type { BusInterior } from '@presentation/world/bus-interior';
 import type { MarketInterior } from '@presentation/world/market-interior';
 import type { SchoolBuilding } from '@presentation/world/school-building';
+import type { ZooPark } from '@presentation/world/zoo-park';
 import { Nature } from '@presentation/world/nature';
 import { lampGlass } from '@presentation/world/props';
 import type { RoadSafety } from '@presentation/world/road-safety';
@@ -87,6 +88,10 @@ export class Town {
 
   prepareSchool(): Promise<SchoolBuilding> {
     return this.zones.prepare(ZoneId.schoolBuilding) as Promise<SchoolBuilding>;
+  }
+
+  prepareZoo(): Promise<ZooPark> {
+    return this.zones.prepare(ZoneId.zoo) as Promise<ZooPark>;
   }
 
   get bus(): City {

@@ -2,6 +2,7 @@ import {
   BUS_INTERIOR,
   MARKET_INTERIOR,
   SCHOOL_BUILDING,
+  ZOO_PARK,
 } from '@presentation/world/market-position';
 import { EMOTIONS_GARDEN, NATURE_CAMP, SCHOOL_AREA } from '@presentation/world/zones/anchors';
 import type { Zone, ZoneContext, ZoneEntry } from '@presentation/world/zones/zone';
@@ -13,6 +14,7 @@ export const ZoneId = {
   market: 'market',
   bus: 'bus',
   schoolBuilding: 'school-building',
+  zoo: 'zoo',
 } as const;
 
 /** Every zone of the game. A new place of the world starts here. */
@@ -65,6 +67,16 @@ export const zoneEntries: readonly ZoneEntry[] = [
     build: async (): Promise<Zone> => {
       const { SchoolBuilding } = await import('@presentation/world/school-building');
       return new SchoolBuilding();
+    },
+  },
+  {
+    id: ZoneId.zoo,
+    area: { ...ZOO_PARK, radius: 30 },
+    models: [],
+    onIsland: false,
+    build: async (): Promise<Zone> => {
+      const { ZooPark } = await import('@presentation/world/zoo-park');
+      return new ZooPark();
     },
   },
   {
