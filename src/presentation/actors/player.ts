@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { WardrobeItem, WardrobeItemId, WardrobeSlot } from '@domain/avatar/wardrobe-item';
 import type { AvatarRig } from '@presentation/actors/avatar-rigs';
-import type { Clothes, Expression, Figure } from '@presentation/actors/child-figure';
+import type { Clothes, Expression, HeldThing, Figure } from '@presentation/actors/child-figure';
 import { buildAccessory, type Anchor } from '@presentation/actors/wardrobe-meshes';
 import { dampAngle } from '@presentation/engine/math';
 import { resolveCollisions, type Collider } from '@presentation/world/collision';
@@ -243,6 +243,11 @@ export class Player {
   /** Changes clothes on the same body. Only the customizable child has them. */
   wear(clothes: Clothes): void {
     this.figure?.wear(clothes);
+  }
+
+  /** Something in the hand. Costumes have paws and fins: they do it without. */
+  hold(thing: HeldThing | undefined): void {
+    this.figure?.hold(thing);
   }
 
   feel(expression: Expression): void {

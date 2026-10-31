@@ -341,10 +341,12 @@ export class ErrandController {
       this.ctx.guardian?.playEmote('Pick');
       await wait(STEP_MS);
       this.ctx.say(phrases.cookStir);
+      avatar.hold('ladle');
       await this.home.sheet.press(steps, 2);
       world.house.setCooking(recipe.icon);
-      avatar.playEmote('Pick');
+      avatar.playEmote('Wash');
       await wait(STEP_MS);
+      avatar.hold(undefined);
       this.ctx.say(phrases.cookServe);
       await this.home.sheet.press(steps, 3);
       world.house.setCooking(undefined);

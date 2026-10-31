@@ -26,7 +26,7 @@ import {
   guardianPerson as personOfGuardian,
   type CastMember,
 } from '@presentation/actors/cast';
-import { outfitClothes, type Expression } from '@presentation/actors/child-figure';
+import { outfitClothes, type Expression, type HeldThing } from '@presentation/actors/child-figure';
 import type { Emote, Ground, Player } from '@presentation/actors/player';
 import { MenuController } from '@presentation/controllers/menu-controller';
 import { ActivityController } from '@presentation/controllers/activity-controller';
@@ -1222,10 +1222,12 @@ export class GameApp implements GameContext {
   }
 
   /** Dev only: rows of the cast or outfits in front of the camera, for checking them by eye. */
-  private showPeople(rows: readonly (readonly [string, Emote?, number?, Expression?])[]): void {
+  private showPeople(
+    rows: readonly (readonly [string, Emote?, number?, Expression?, HeldThing?])[],
+  ): void {
     const start = this.character?.position;
     if (start === undefined) return;
-    rows.forEach(([who, emote, time, expression], index) => {
+    rows.forEach(([who, emote, time, expression, held], index) => {
       const person =
         who in cast ? cast[who as CastMember] : childPerson(this.profile.look, who as OutfitId);
       const shown = this.avatars.createPerson(person);
@@ -1236,6 +1238,7 @@ export class GameApp implements GameContext {
       if (emote !== undefined) shown.playEmote(emote);
       if (time !== undefined) shown.freezeAt(time);
       if (expression !== undefined) shown.feel(expression);
+      shown.hold(held);
     });
   }
 
@@ -1436,7 +1439,9 @@ export class GameApp implements GameContext {
           const place = this.gameWorld?.places.find((p) => p.id === placeId);
           if (place !== undefined) void this.use(place);
         },
-        people: (rows: readonly (readonly [string, Emote?, number?, Expression?])[]) => {
+        people: (
+          rows: readonly (readonly [string, Emote?, number?, Expression?, HeldThing?])[],
+        ) => {
           this.showPeople(rows);
         },
         look: (from: readonly [number, number, number], at: readonly [number, number, number]) => {
@@ -1447,6 +1452,25 @@ export class GameApp implements GameContext {
           return { ...render, ...memory, quality: this.governor.quality, fps: this.fps };
         },
         step: () => this.home.step,
+        /** Goes straight to a place of its own, for looking at it. */
+        visit: async (place: 'bus' | 'school' | 'zoo' | 'beach' | 'market') => {
+          const town = await this.world.openTown();
+          const prepare = {
+            bus: () => town.prepareBus(),
+            school: () => town.prepareSchool(),
+            zoo: () => town.prepareZoo(),
+            beach: () => town.prepareBeach(),
+            market: () => town.prepareMarket(),
+          };
+          this.setIndoors(false);
+          this.enterSpace(await prepare[place]());
+        },
+        /** Runs frames by hand, for testing when the window is not being drawn. */
+        tick: (frames: number) => {
+          for (let index = 0; index < frames; index += 1) {
+            this.frame(this.lastTime + 33);
+          }
+        },
         moment: (phase: Phase, weather: Weather) => {
           this.world.setMoment(phase, weather);
           this.world.sky.setLook(skyLook(phase, weather), true);

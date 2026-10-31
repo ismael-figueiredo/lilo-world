@@ -316,10 +316,12 @@ export class SchoolController {
       if (this.driver !== undefined) this.sit(this.driver, bus.driver, Math.PI / 2);
     });
     ctx.say(phrases.passCard);
+    ctx.avatar.hold('card');
     await this.home.sheet.press([{ icon: '💳', label: 'Passar o cartão' }], 0);
-    ctx.avatar.playEmote('Pick');
+    ctx.avatar.playEmote('ThumbsUp');
     ctx.sound('coin');
     await wait(STEP_MS);
+    ctx.avatar.hold(undefined);
     ctx.say(phrases.sitOnBus);
     await this.home.sheet.press([{ icon: '💺', label: 'Sentar' }], 0);
     this.sit(ctx.avatar, bus.seat, Math.PI / 2);

@@ -290,6 +290,7 @@ export class Outings {
     if (beach === undefined) return;
     ctx.enterPanel('home');
     ctx.say(phrases.castleFill);
+    ctx.avatar.hold('bucket');
     for (let tower = 0; tower < CASTLE_TOWERS; tower += 1) {
       await this.home.sheet.press(
         [
@@ -310,6 +311,7 @@ export class Outings {
       beach.addTower(tower);
       ctx.sound('tap');
     }
+    ctx.avatar.hold(undefined);
     ctx.say(phrases.castleDecorate);
     const chosen = await this.home.sheet.choose(phrases.castleDecorate, [
       { id: 'pink', icon: '🐚', label: 'Conchas' },
@@ -332,6 +334,7 @@ export class Outings {
     const { guardian } = ctx;
     ctx.enterPanel('home');
     ctx.say(phrases.ballRule);
+    ctx.avatar.hold('ball');
     for (let turn = 0; turn < BALL_TURNS; turn += 1) {
       await this.home.sheet.press([{ icon: '🏐', label: 'Bater' }], 0);
       ctx.avatar.playEmote('Throw');
@@ -339,6 +342,7 @@ export class Outings {
       guardian?.playEmote('Throw');
       await wait(STEP_MS / 2);
     }
+    ctx.avatar.hold(undefined);
     ctx.avatar.playEmote('Yes');
     ctx.say(phrases.gameDone);
     await wait(STEP_MS);

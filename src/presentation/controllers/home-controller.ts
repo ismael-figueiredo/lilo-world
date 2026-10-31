@@ -450,6 +450,7 @@ export class HomeController {
       const food = foods.find((option) => option.id === chosen) ?? foods[0];
       if (food === undefined) return undefined;
       this.house.serve(food.id);
+      avatar.hold('spoon');
       this.ctx.say(phrases.foodChosen(food.label));
       const bites: readonly Picture[] = [1, 2, 3].map(() => ({ icon: food.icon, label: 'Comer' }));
       for (let bite = 0; bite < bites.length; bite += 1) {
@@ -460,6 +461,7 @@ export class HomeController {
         await wait(700);
         avatar.playEmote('Sit');
       }
+      avatar.hold(undefined);
       avatar.feel('happy');
       this.ctx.say(phrases.mealDone);
       await wait(1400);
@@ -481,6 +483,7 @@ export class HomeController {
         { icon: '💧', label: 'Enxaguar' },
       ];
       this.ctx.say(phrases.teethPaste);
+      avatar.hold('toothbrush');
       await this.sheet.press(steps, 0);
       avatar.playEmote('Pick');
       await wait(1000);
@@ -497,6 +500,7 @@ export class HomeController {
       avatar.playEmote('Wash');
       await wait(1000);
       avatar.showFoam(false);
+      avatar.hold(undefined);
       this.house.setWater(undefined);
       avatar.feel('happy');
       this.ctx.say(phrases.teethDone);
@@ -516,10 +520,12 @@ export class HomeController {
         { icon: '💧', label: 'Enxaguar' },
       ];
       this.ctx.say(phrases.handsSoap);
+      avatar.hold('soap');
       await this.sheet.press(steps, 0);
       avatar.playEmote('Wash');
       await wait(1300);
       this.ctx.say(phrases.handsRinse);
+      avatar.hold(undefined);
       await this.sheet.press(steps, 1);
       this.house.setWater('sink');
       avatar.playEmote('Wash');
@@ -726,6 +732,7 @@ export class HomeController {
       this.sitAt(CHAIR, CHAIR_HEIGHT);
       this.ctx.guardianStandsAt('table');
       this.ctx.say(phrases.lunchEat);
+      avatar.hold('spoon');
       const bites: readonly Picture[] = [1, 2, 3].map(() => ({ icon, label: 'Comer' }));
       for (let bite = 0; bite < bites.length; bite += 1) {
         await this.sheet.press(bites, bite);
@@ -735,6 +742,7 @@ export class HomeController {
         await wait(700);
         avatar.playEmote('Sit');
       }
+      avatar.hold(undefined);
       avatar.feel('happy');
       this.ctx.say(phrases.lunchDone);
       await wait(1800);

@@ -200,6 +200,7 @@ export class PlayController {
     if (building === undefined) return;
     await this.rule('🏀', 'Começar', phrases.basketRule);
     ctx.avatar.placeAt(building.yardSpot('shoot'), FACE_NORTH);
+    ctx.avatar.faceTowards(building.hoop);
     const calm = ctx.settings.reducedMotion;
     let misses = 0;
     for (let turn = 0; turn < TRIES; turn += 1) {

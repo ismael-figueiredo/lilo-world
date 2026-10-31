@@ -23,6 +23,13 @@ export interface Clothes {
   readonly over?: OverLayer;
   /** Everyday clothes take the colors bought in the wardrobe. */
   readonly takesColors?: boolean;
+  /** Small things that make it look like real clothes. */
+  readonly collar?: number;
+  readonly belt?: number;
+  readonly buttons?: number;
+  readonly zipper?: number;
+  /** A round picture on the chest. */
+  readonly print?: number;
 }
 
 export const outfitClothes: Readonly<Record<OutfitId, Clothes>> = {
@@ -33,6 +40,9 @@ export const outfitClothes: Readonly<Record<OutfitId, Clothes>> = {
     longSleeves: false,
     longPants: true,
     takesColors: true,
+    collar: 0xffffff,
+    belt: 0x2f4f86,
+    print: 0xffffff,
   },
   pajamas: {
     top: 0x8fb8ec,
@@ -41,6 +51,8 @@ export const outfitClothes: Readonly<Record<OutfitId, Clothes>> = {
     longSleeves: true,
     longPants: true,
     stripes: true,
+    collar: 0xf4f1ea,
+    buttons: 0xf4f1ea,
   },
   school: {
     top: 0xfafafa,
@@ -49,6 +61,9 @@ export const outfitClothes: Readonly<Record<OutfitId, Clothes>> = {
     longSleeves: false,
     longPants: true,
     badge: true,
+    collar: 0x2f4a7a,
+    belt: 0x22365c,
+    buttons: 0x2f4a7a,
   },
   coat: {
     top: 0xc4513c,
@@ -57,6 +72,8 @@ export const outfitClothes: Readonly<Record<OutfitId, Clothes>> = {
     longSleeves: true,
     longPants: true,
     over: 'coat',
+    buttons: 0xf4d9a0,
+    belt: 0x7a3024,
   },
   raincoat: {
     top: 0xffd23f,
@@ -66,6 +83,8 @@ export const outfitClothes: Readonly<Record<OutfitId, Clothes>> = {
     longPants: true,
     boots: true,
     over: 'raincoat',
+    zipper: 0xd9a81f,
+    buttons: 0xd9a81f,
   },
   summer: {
     top: 0x3cc2a0,
@@ -74,6 +93,9 @@ export const outfitClothes: Readonly<Record<OutfitId, Clothes>> = {
     longSleeves: false,
     longPants: false,
     takesColors: true,
+    collar: 0xffffff,
+    belt: 0xc4932f,
+    print: 0xffe27a,
   },
   swim: {
     top: 0x2bb5d8,
@@ -82,8 +104,14 @@ export const outfitClothes: Readonly<Record<OutfitId, Clothes>> = {
     longSleeves: false,
     longPants: false,
     barefoot: true,
+    belt: 0xffffff,
+    print: 0xffffff,
   },
 };
+
+/** What can be in the hand during an action. */
+export type HeldThing =
+  'toothbrush' | 'spoon' | 'soap' | 'card' | 'bucket' | 'ball' | 'book' | 'towel' | 'ladle';
 
 /** Sizes of the body, in the model's own units. */
 interface Body {
@@ -134,6 +162,8 @@ export const FIGURE_JOINTS: readonly string[] = [
 
 const material = (color: number): THREE.MeshStandardMaterial =>
   new THREE.MeshStandardMaterial({ color, roughness: 0.7, metalness: 0 });
+
+const soleSurface = material(0xe9e4da);
 
 function joint(name: string, parent: THREE.Object3D, x: number, y: number, z = 0): THREE.Bone {
   const bone = new THREE.Bone();
@@ -404,6 +434,54 @@ function hairShape(style: HairStyle, r: number): THREE.BufferGeometry {
   }
 }
 
+/** The right hand turns what it holds to the middle of the body. */
+const TOWARD_MOUTH = 1.2;
+
+/** Things for the hand, one simple shape each, in hand coordinates. */
+function heldShape(thing: HeldThing): THREE.Object3D {
+  const group = new THREE.Group();
+  const add = (geometry: THREE.BufferGeometry, color: number, x: number, y: number, z: number) => {
+    const mesh = new THREE.Mesh(geometry, material(color));
+    mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    group.add(mesh);
+    return mesh;
+  };
+  switch (thing) {
+    case 'toothbrush':
+      add(new THREE.BoxGeometry(0.024, 0.024, 0.26), 0x3fa9f5, 0, 0, 0.13);
+      add(new THREE.BoxGeometry(0.03, 0.05, 0.07), 0xffffff, 0, 0.03, 0.25);
+      group.rotation.y = TOWARD_MOUTH;
+      break;
+    case 'spoon':
+    case 'ladle':
+      add(new THREE.BoxGeometry(0.02, 0.02, 0.24), 0xc9ced8, 0, 0, 0.12);
+      add(new THREE.SphereGeometry(thing === 'ladle' ? 0.06 : 0.04, 8, 6), 0xc9ced8, 0, 0, 0.26);
+      group.rotation.y = TOWARD_MOUTH;
+      break;
+    case 'soap':
+      add(new THREE.BoxGeometry(0.1, 0.05, 0.14), 0xf6c9d6, 0, 0, 0.03);
+      break;
+    case 'card':
+      add(new THREE.BoxGeometry(0.02, 0.1, 0.15), 0x3fae5a, 0, 0, 0.08);
+      break;
+    case 'bucket':
+      add(new THREE.CylinderGeometry(0.11, 0.08, 0.15, 10), 0xe8504c, 0, -0.16, 0);
+      add(new THREE.TorusGeometry(0.09, 0.008, 5, 10, Math.PI), 0xffffff, 0, -0.1, 0);
+      break;
+    case 'ball':
+      add(new THREE.IcosahedronGeometry(0.13, 1), 0xf08a3c, 0, -0.05, 0.06);
+      break;
+    case 'book':
+      add(new THREE.BoxGeometry(0.2, 0.15, 0.05), 0xe8604c, 0, -0.02, 0.04);
+      break;
+    case 'towel':
+      add(new THREE.BoxGeometry(0.16, 0.26, 0.03), 0x7ec8e0, 0, -0.14, 0);
+      break;
+  }
+  return group;
+}
+
 /**
  * A person made of parts, like a toy: no download, everything can change while
  * playing, and the joints are bones, so `Player` moves it as any other avatar.
@@ -424,6 +502,13 @@ export class Figure {
   private readonly scarf: THREE.Mesh;
   private readonly hood: THREE.Mesh;
   private readonly bootTops: THREE.Mesh[] = [];
+  private readonly soles: THREE.Mesh[] = [];
+  private readonly collar: THREE.Mesh;
+  private readonly belt: THREE.Mesh;
+  private readonly buttons: THREE.Mesh;
+  private readonly zipper: THREE.Mesh;
+  private readonly print: THREE.Mesh;
+  private readonly hand = new THREE.Group();
   private clothes: Clothes = outfitClothes.home;
   private tintTop: number | undefined;
   private tintBottom: number | undefined;
@@ -462,16 +547,16 @@ export class Figure {
     this.coatTail = part(
       torso,
       new THREE.CylinderGeometry(
-        torsoWidth * 0.95,
-        torsoWidth * 1.3,
-        torsoHeight * 0.5,
+        torsoWidth * 0.98,
+        torsoWidth * 1.12,
+        torsoHeight * 0.34,
         16,
         1,
         true,
       ),
       top,
       0,
-      -torsoHeight * 0.1,
+      -torsoHeight * 0.03,
     );
     this.coatTail.scale.set(1, 1, 0.82);
     this.scarf = part(
@@ -482,6 +567,49 @@ export class Figure {
       torsoHeight * 0.9,
     );
     this.scarf.scale.set(1, 1, 0.86);
+    const front = torsoWidth * 0.76;
+    this.collar = part(
+      torso,
+      new THREE.TorusGeometry(torsoWidth * 0.55, torsoWidth * 0.14, 6, 16).rotateX(Math.PI / 2),
+      material(0xffffff),
+      0,
+      torsoHeight * 0.93,
+    );
+    this.collar.scale.set(1, 1, 0.8);
+    this.belt = part(
+      hips,
+      new THREE.CylinderGeometry(torsoWidth * 1.05, torsoWidth * 1.05, 0.05, 16),
+      material(0xffffff),
+      0,
+      0.09,
+    );
+    this.belt.scale.set(1, 1, 0.77);
+    const stud = (y: number): THREE.BufferGeometry =>
+      new THREE.SphereGeometry(0.016, 6, 4).translate(0, y, 0);
+    this.buttons = part(
+      torso,
+      mergeGeometries([0.34, 0.5, 0.66].map((at) => stud(torsoHeight * at))),
+      material(0xffffff),
+      0.015,
+      0,
+      front + 0.006,
+    );
+    this.zipper = part(
+      torso,
+      new THREE.BoxGeometry(0.018, torsoHeight * 0.74, 0.012),
+      material(0xffffff),
+      0,
+      torsoHeight * 0.46,
+      front + 0.004,
+    );
+    this.print = part(
+      torso,
+      new THREE.CircleGeometry(torsoWidth * 0.3, 14),
+      material(0xffffff),
+      0,
+      torsoHeight * 0.56,
+      front + 0.008,
+    );
 
     const head = joint('Head', torso, 0, torsoHeight + 0.03);
     part(head, new THREE.SphereGeometry(headRadius, 18, 12), skin, 0, headRadius * 0.9).scale.set(
@@ -555,6 +683,10 @@ export class Figure {
         part(elbow, limb(0.052 * size, armLength * 0.7), skin, 0, -armLength * 0.5),
       );
       part(elbow, new THREE.SphereGeometry(0.07 * size, 8, 6), skin, 0, -armLength * 1.08);
+      if (name === 'R') {
+        this.hand.position.set(0, -armLength * 1.12, 0);
+        elbow.add(this.hand);
+      }
 
       const leg = joint(`Leg${name}`, hips, side * 0.1, -0.02);
       part(leg, limb(0.08 * size, legLength * 0.7), bottom, 0, -legLength * 0.5);
@@ -569,6 +701,16 @@ export class Figure {
         0.04,
       );
       foot.scale.set(0.95, 0.62, 1.5);
+      this.soles.push(
+        part(
+          knee,
+          new THREE.BoxGeometry(0.135 * size, 0.022, 0.22 * size),
+          soleSurface,
+          0,
+          -legLength - 0.064,
+          0.04,
+        ),
+      );
       const bootTop = part(
         knee,
         new THREE.CylinderGeometry(0.085 * size, 0.085 * size, legLength * 0.6, 12),
@@ -601,6 +743,16 @@ export class Figure {
     for (const mesh of this.shins) mesh.material = longPants ? this.bottom : this.skin;
     for (const mesh of this.bootTops) mesh.visible = clothes.boots === true;
     this.badge.visible = clothes.badge === true;
+    const detail = (mesh: THREE.Mesh, color: number | undefined) => {
+      mesh.visible = color !== undefined;
+      if (color !== undefined) (mesh.material as THREE.MeshStandardMaterial).color.setHex(color);
+    };
+    detail(this.collar, layered ? undefined : clothes.collar);
+    detail(this.belt, clothes.belt);
+    detail(this.buttons, clothes.buttons);
+    detail(this.zipper, clothes.zipper);
+    detail(this.print, clothes.print);
+    for (const mesh of this.soles) mesh.visible = clothes.barefoot !== true;
     this.coatTail.visible = layered;
     this.scarf.visible = over === 'coat';
     this.hood.visible = over === 'raincoat';
@@ -612,6 +764,12 @@ export class Figure {
     this.tintTop = top;
     this.tintBottom = bottom;
     this.wear(this.clothes);
+  }
+
+  /** Something in the right hand, or nothing. */
+  hold(thing: HeldThing | undefined): void {
+    this.hand.clear();
+    if (thing !== undefined) this.hand.add(heldShape(thing));
   }
 
   feel(expression: Expression): void {
