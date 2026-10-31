@@ -274,14 +274,14 @@ Objetivo: entender o que se sente ao ver acontecer, não ao ler um emoji. Todo e
 
 Ordem de ensino proposta: **ver a cena → notar corpo e rosto → dar nome → saber o que ajuda.**
 
-- [ ] **C11.1 Roteiro com profissional.** Definir sentimentos, cenas e linguagem. Pronto: roteiro aprovado por fono ou TO.
-- [ ] **C11.2 Sistema de cenas.** Personagens, falas, câmera, gatilhos. Pronto: cena de 10 a 20 s pausável e repetível.
-- [ ] **C11.3 Cenas do dia a dia.** Sorvete cai, brinquedo emprestado, gol, trovão, colega sozinho. Pronto: 12 cenas animadas no próprio mundo.
-- [ ] **C11.4 Nomear com duas opções.** Comparar com dois rostos 3D, sem frase longa. Pronto: sempre com a expressão, não com emoji.
-- [ ] **C11.5 O que ajuda.** Oferecer ajuda, chamar um adulto, dar espaço. Pronto: criança vê o resultado da escolha.
-- [ ] **C11.6 Como eu estou.** Medidor de figuras na agenda, a qualquer hora. Pronto: fica só no aparelho e o adulto pode ver.
-- [ ] **C11.7 Cantinho calmo.** Canto em casa com respiração, ursinho, luz suave. Pronto: abre por L1.
-- [ ] **C11.8 Remover o mundo antigo.** Tirar o Jardim das Emoções e missões antigas. Pronto: progresso antigo preservado.
+- [ ] **C11.1 Roteiro com profissional.** Proposta escrita em [roteiro-sentimentos.md](roteiro-sentimentos.md), com as perguntas para a revisão. **Falta a aprovação de fono ou TO.**
+- [x] **C11.2 Sistema de cenas.** `FeelingsController`: cena curta, repetível, ligada por um ajuste do adulto e desligada por padrão até a revisão.
+- [ ] **C11.3 Cenas do dia a dia.** As 12 cenas têm texto e rosto, e acontecem no pátio ao fim do recreio. Falta animar cada uma: hoje só o rosto do colega muda, sem o objeto da cena em 3D nem a ação.
+- [x] **C11.4 Nomear com duas opções.** Dois colegas lado a lado com rostos diferentes e duas palavras, sem emoji e sem pontos.
+- [x] **C11.5 O que ajuda.** A criança escolhe e vê o resultado no rosto e na frase.
+- [x] **C11.6 Como eu estou.** Cinco figuras na agenda; guarda 14 registros, só no aparelho, visíveis na área dos pais.
+- [x] **C11.7 Cantinho calmo.** Almofada, ursinho e luz suave na sala, com três respirações. Em casa abre por L1; fora de casa L1 segue sendo a pausa calma.
+- [ ] **C11.8 Remover o mundo antigo.** Fica para depois da aprovação do roteiro, para a criança não ficar sem o conteúdo de sentimentos.
 
 ### C12. Zoológico
 

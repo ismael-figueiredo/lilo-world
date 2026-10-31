@@ -9,5 +9,5 @@ export const profilePrefix = (profileId: ProfileId): string => `lilo-world:v2:${
 
 export const profileKey = (
   profileId: ProfileId,
-  kind: 'progress' | 'settings' | 'session' | 'day',
+  kind: 'progress' | 'settings' | 'session' | 'day' | 'moods',
 ): string => `${profilePrefix(profileId)}${kind}`;

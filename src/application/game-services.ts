@@ -22,6 +22,7 @@ import type { LoadSession } from '@application/use-cases/load-session';
 import type { RenameProfile } from '@application/use-cases/rename-profile';
 import type { RewardSafeTrip } from '@application/use-cases/reward-safe-trip';
 import type { FollowDay } from '@application/use-cases/follow-day';
+import type { NoteMood } from '@application/use-cases/note-mood';
 import type { SaveSession } from '@application/use-cases/save-session';
 import type { SelectProfile } from '@application/use-cases/select-profile';
 import type { PlanSession } from '@application/use-cases/plan-session';
@@ -58,6 +59,7 @@ export interface PlayerServices {
   readonly loadSession: LoadSession;
   readonly checkSessionTime: CheckSessionTime;
   readonly followDay: FollowDay;
+  readonly noteMood: NoteMood;
 }
 
 /**

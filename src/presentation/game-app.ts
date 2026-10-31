@@ -917,6 +917,12 @@ export class GameApp implements GameContext {
   /** A pause on top of whatever is happening, which waits there unchanged. */
   private togglePause(): void {
     const paused = this.beforePause;
+    // At home the calm button leads to the calm corner; anywhere else it is a pause.
+    const atHome = this.gameWorld?.indoors === true && this.gameWorld.inside === undefined;
+    if (paused === undefined && atHome && this.currentMode === 'explore') {
+      void this.home.calmCorner();
+      return;
+    }
     if (paused !== undefined) {
       this.beforePause = undefined;
       this.calmPause.hide();

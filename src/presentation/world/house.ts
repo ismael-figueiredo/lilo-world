@@ -14,7 +14,7 @@ import { mergeStatic } from '@presentation/world/merge-static';
 export const HOUSE = { x: 460, z: 0 } as const;
 
 export type HouseThing =
-  'bed' | 'table' | 'sink' | 'shower' | 'wardrobe' | 'desk' | 'door' | 'fridge' | 'stove';
+  'bed' | 'table' | 'sink' | 'shower' | 'wardrobe' | 'desk' | 'door' | 'fridge' | 'stove' | 'calm';
 
 export type FoodId = 'bread' | 'fruit' | 'cereal' | 'egg';
 
@@ -37,6 +37,7 @@ export const standSpots: Readonly<Record<HouseThing, HouseSpot>> = {
   door: { x: -4, z: 5, facing: 0 },
   fridge: { x: 6, z: 2, facing: 2.4 },
   stove: { x: 3.3, z: 1.5, facing: Math.PI },
+  calm: { x: -3.6, z: 2.4, facing: 0 },
 };
 
 const looks: Readonly<Record<HouseThing, { icon: string; label: string; name: string }>> = {
@@ -49,6 +50,7 @@ const looks: Readonly<Record<HouseThing, { icon: string; label: string; name: st
   door: { icon: '🚪', label: 'Porta da rua', name: 'Porta da rua' },
   fridge: { icon: '🧊', label: 'Geladeira', name: 'Geladeira' },
   stove: { icon: '🍳', label: 'Fogão', name: 'Fogão' },
+  calm: { icon: '🧸', label: 'Cantinho calmo', name: 'Cantinho calmo' },
 };
 
 export type MirrorId = 'bedroom' | 'bathroom';
@@ -101,6 +103,7 @@ export class House {
   private readonly fridgeDoor = new THREE.Group();
   private readonly fridgeInside = new THREE.Group();
   private readonly cooking = new THREE.Group();
+  private readonly calmGlow = new THREE.PointLight(0xffd9a0, 8, 7, 1.6);
   readonly study = new StudyDesk(this.desk);
   private readonly sinkWater: THREE.Mesh;
   private readonly showerWater: THREE.Mesh;
@@ -532,7 +535,20 @@ export class House {
     this.piece([0.2, 2.4, 0.1], 0xfdf6ea, [5.25, 1.2, -3.1]);
   }
 
+  /** A soft light in the corner, and nothing else changes. */
+  setCalmLight(on: boolean): void {
+    this.calmGlow.visible = on;
+  }
+
   private addLivingRoom(): void {
+    // The calm corner: a cushion, a bear and a lamp, on the round rug.
+    this.piece([1, 0.12, 1], this.shining('calm', 0xb9a7e8), [-3.6, 0.1, 3.4]);
+    const bear = pictureOf({ pictogram: '🧸' });
+    bear.position.set(-2.8, 0.05, 3.7);
+    this.group.add(bear);
+    this.calmGlow.position.set(-3.6, 1.6, 3.4);
+    this.calmGlow.visible = false;
+    this.group.add(this.calmGlow);
     this.piece([1, 0.45, 2.6], 0x5b8fd6, [-7.2, 0.25, 3]);
     this.piece([0.3, 0.9, 2.6], 0x4a7fc4, [-7.6, 0.5, 3]);
     this.block(-7.2, 3, 1.2, 2.7);

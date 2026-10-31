@@ -31,6 +31,7 @@ export class MenuController {
         void this.skipBlock();
       },
       loadSkills: () => this.ctx.player.planSession.overview(),
+      loadMoods: () => this.ctx.player.noteMood.list(),
     });
     this.map = new MapPanel({
       onSelect: (place) => {
