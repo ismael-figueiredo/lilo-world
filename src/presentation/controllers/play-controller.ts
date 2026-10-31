@@ -25,6 +25,7 @@ const CALM_AIM_SECONDS = 2;
 const TURN_MS = 3000;
 const FOUND_RANGE = 2.2;
 const FACE_NORTH = Math.PI;
+const TOY_HEIGHT = 0.5;
 
 const friendNames = ['Ana', 'Teo', 'Ju'];
 
@@ -142,9 +143,9 @@ export class PlayController {
       'play:hopscotch': () => this.hopscotch(),
       'play:catch': () => this.catchBall(),
       'play:rope': () => this.rope(),
-      'play:swing': () => this.turnOn('Sit', phrases.swingDone),
-      'play:slide': () => this.turnOn('Sit', phrases.slideDone),
-      'play:seesaw': () => this.turnOn('Sit', phrases.seesawDone),
+      'play:swing': () => this.turnOn('swing', phrases.swingDone),
+      'play:slide': () => this.turnOn('slide', phrases.slideDone),
+      'play:seesaw': () => this.turnOn('seesaw', phrases.seesawDone),
     };
     await games[placeId]?.();
     this.played = true;
@@ -157,6 +158,7 @@ export class PlayController {
   /** Every frame: the ball in the air, and the friends being found. */
   update(dt: number): void {
     const { flight, building } = this;
+    building?.turnRope(dt);
     if (flight !== undefined && building !== undefined) {
       flight.age += dt / BALL_SECONDS;
       const { x, y, z } = ballArc(flight.from, flight.to, flight.height, flight.age);
@@ -274,6 +276,11 @@ export class PlayController {
       look();
     });
     await wait(STEP_MS);
+    // Found: everybody comes back to play.
+    const near = ctx.avatar.position;
+    this.friends.forEach((friend, index) => {
+      friend.placeAt(near.clone().setX(near.x + 1.6 + index), 0);
+    });
   }
 
   private async hopscotch(): Promise<void> {
@@ -313,28 +320,41 @@ export class PlayController {
   private async rope(): Promise<void> {
     const { ctx } = this;
     await this.rule('🪢', 'Começar', phrases.ropeRule);
+    this.building?.showRope(true);
     for (let jump = 1; jump <= ROPE_JUMPS; jump += 1) {
       await this.home.sheet.press([{ icon: String(jump), label: 'Pular' }], 0);
       if (ctx.avatar.isGrounded) ctx.avatar.jump();
       ctx.sound('tap');
       await wait(600);
     }
+    this.building?.showRope(false);
   }
 
-  /** The playground is shared: first the friend, then the child. */
-  private async turnOn(emote: 'Sit', done: string): Promise<void> {
-    const { ctx } = this;
+  /** The playground is shared: first the friend, then the child, on the toy itself. */
+  private async turnOn(toy: 'swing' | 'slide' | 'seesaw', done: string): Promise<void> {
+    const { ctx, building } = this;
     const friend = this.friends[2];
+    if (building === undefined) return;
     ctx.enterPanel('home');
     ctx.say(phrases.waitTurn);
-    friend?.placeAt(ctx.avatar.position.clone().setX(ctx.avatar.position.x + 1.4), FACE_NORTH);
-    friend?.playEmote('Yes');
+    const seat = building.toySeat(toy);
+    friend?.setPerch(TOY_HEIGHT);
+    friend?.placeAt(seat, FACE_NORTH);
+    if (friend?.canDo('Sit') === true) friend.playEmote('Sit');
     await wait(TURN_MS);
+    friend?.release();
+    friend?.setPerch(0);
+    friend?.placeAt(ctx.avatar.position.clone().setX(ctx.avatar.position.x + 1.4), FACE_NORTH);
     ctx.say(phrases.yourTurnNow);
     await this.home.sheet.press([{ icon: '🛝', label: 'Brincar' }], 0);
-    if (ctx.avatar.canDo(emote)) ctx.avatar.playEmote(emote);
+    const back = ctx.avatar.position.clone();
+    ctx.avatar.setPerch(TOY_HEIGHT);
+    ctx.avatar.placeAt(seat, FACE_NORTH);
+    if (ctx.avatar.canDo('Sit')) ctx.avatar.playEmote('Sit');
     await wait(TURN_MS);
     ctx.avatar.release();
+    ctx.avatar.setPerch(0);
+    ctx.avatar.placeAt(back, FACE_NORTH);
     ctx.say(done);
     await wait(STEP_MS);
   }

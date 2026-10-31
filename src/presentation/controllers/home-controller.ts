@@ -190,6 +190,8 @@ export class HomeController {
   async begin(isNew: boolean, resumeAt: THREE.Vector3 | undefined): Promise<void> {
     this.day = await this.ctx.player.followDay.load();
     this.ctx.showDay(this.day);
+    // The swimsuit never leaves the beach, even if the game closed there.
+    if (this.ctx.profile.outfit === 'swim') await this.ctx.changeOutfit('home');
     this.ctx.world.sky.setLook(skyLook(phaseOf(this.day), this.ctx.weather), true);
     this.warnedDoor = false;
     this.busy = false;

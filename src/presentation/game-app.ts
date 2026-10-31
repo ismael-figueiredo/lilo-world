@@ -97,6 +97,9 @@ const CALM_STREET = 0.4;
 /** Rare, and only from a distance. */
 const HORN_EVERY = 60;
 
+/** Beyond this nobody is drawn: the town's houses hide them anyway. */
+const PEOPLE_IN_VIEW = 70;
+
 const isHeardInside = (sound: Ambience): boolean => sound !== 'birds' && sound !== 'street';
 
 /** Seconds between greetings: one wave at a time, even if the button is pressed again. */
@@ -521,7 +524,8 @@ export class GameApp implements GameContext {
   /** The map's picture, taken once behind the fade of the first time outside. */
   private pictureTheMap(town: Town): void {
     const renderer = this.renderer;
-    if (renderer === undefined) return;
+    // A hidden window has no size to draw in: the map keeps its plain look, and the street opens.
+    if (renderer === undefined || renderer.domElement.width === 0) return;
     town.showAllZones(true);
     const picture = captureMap(
       renderer,
@@ -1090,6 +1094,7 @@ export class GameApp implements GameContext {
   private updatePeople(dt: number, player: Player, ground: Ground): void {
     for (const person of this.people) {
       const { character, route, routine } = person;
+      character.setInView(character.position.distanceTo(player.position) < PEOPLE_IN_VIEW);
       if (route === undefined || routine === undefined) {
         character.update(dt, still, false, ground);
         continue;
@@ -1211,6 +1216,7 @@ export class GameApp implements GameContext {
 
   addPerson(member: CastMember): Player {
     const character = this.avatars.createPerson(cast[member]);
+    character.castSimpleShadow();
     this.scene.add(character.root);
     return character;
   }

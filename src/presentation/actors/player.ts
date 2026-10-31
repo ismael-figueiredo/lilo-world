@@ -170,6 +170,32 @@ export class Player {
   }
 
   /** Costumes can walk and greet, but only the child has the motions of daily life. */
+  /**
+   * Only the body casts a shadow: enough to stand on the ground, and each of
+   * the many pieces of a person costs one more draw for every shadow.
+   */
+  castSimpleShadow(): void {
+    let biggest: THREE.Mesh | undefined;
+    let size = 0;
+    this.root.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      object.castShadow = false;
+      const geometry = object.geometry as THREE.BufferGeometry;
+      geometry.computeBoundingSphere();
+      const radius = (geometry.boundingSphere?.radius ?? 0) * object.scale.length();
+      if (radius > size) {
+        size = radius;
+        biggest = object;
+      }
+    });
+    if (biggest !== undefined) biggest.castShadow = true;
+  }
+
+  /** Far from the child nobody can see this person: drawing them would cost for nothing. */
+  setInView(inView: boolean): void {
+    for (const part of this.root.children) part.visible = inView;
+  }
+
   canDo(emote: Emote): boolean {
     return this.actions.has(emoteClips[emote][0] ?? '');
   }

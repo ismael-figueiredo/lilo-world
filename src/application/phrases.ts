@@ -208,7 +208,7 @@ export const phrases = {
   mapOutside: 'O mapa é da rua. Vamos vê-lo lá fora!',
   backHome: 'Chegamos em casa!',
   streetNotReady: 'A rua ainda não abriu. Tente de novo com internet.',
-  outsideNow: 'Vamos explorar a rua!',
+  outsideNow: 'Vamos explorar a rua! No ponto de ônibus dá para ir passear.',
   correct: 'Isso!',
   completed: 'Você conseguiu! Muito bem!',
   model: 'Olhe, é esta:',

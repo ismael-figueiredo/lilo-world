@@ -20,6 +20,7 @@ const THICK = 0.3;
 const DOOR = 2.4;
 const YARD_HALF_X = 23;
 const YARD_NORTH = -34;
+const ROPE_TURNS = 5;
 
 /** Spots in the building's own coordinates. */
 const spots = {
@@ -102,6 +103,12 @@ export class SchoolBuilding implements Zone, WalkableSpace {
   readonly walkColliders: Collider[] = [];
   readonly study: StudyDesk;
   private readonly desk = new THREE.Group();
+  /** Turned by two friends, around whoever jumps. */
+  private readonly rope = solid(
+    new THREE.TorusGeometry(1.6, 0.03, 6, 24).rotateY(Math.PI / 2),
+    lowPoly(0xe8504c),
+    [0, 0, -27],
+  );
   /** Everybody plays with the same ball. */
   readonly ball = solid(new THREE.IcosahedronGeometry(0.24, 1), lowPoly(0xf08a3c), [0, 0.3, -24]);
 
@@ -129,8 +136,9 @@ export class SchoolBuilding implements Zone, WalkableSpace {
       light.position.set(x, 6, z);
       this.group.add(light);
     }
-    this.group.add(this.study.group, this.desk, this.ball);
-    mergeStatic(this.group, [this.study.group, this.ball]);
+    this.rope.visible = false;
+    this.group.add(this.study.group, this.desk, this.ball, this.rope);
+    mergeStatic(this.group, [this.study.group, this.ball, this.rope]);
   }
 
   /** A spot of the building, in the world. */
@@ -222,6 +230,20 @@ export class SchoolBuilding implements Zone, WalkableSpace {
 
   get goal(): THREE.Vector3 {
     return this.at(yard.goal).setY(FLOOR + 0.8);
+  }
+
+  /** Where one sits on a toy of the playground. */
+  toySeat(toy: 'swing' | 'slide' | 'seesaw'): THREE.Vector3 {
+    return this.at({ x: yard[toy].x, z: yard[toy].z - 1.5 });
+  }
+
+  showRope(on: boolean): void {
+    this.rope.visible = on;
+    this.rope.position.set(yard.rope.x, 0, yard.rope.z);
+  }
+
+  turnRope(dt: number): void {
+    if (this.rope.visible) this.rope.rotation.x += dt * ROPE_TURNS;
   }
 
   /** Puts the ball anywhere in the world. */

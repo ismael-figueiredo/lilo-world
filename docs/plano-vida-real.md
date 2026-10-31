@@ -263,8 +263,8 @@ Objetivo: lazer de verdade, com regras simples e colegas.
 - [x] **C10.3 Futebol.** Tabela com um colega e chute ao gol.
 - [x] **C10.4 Esconde-esconde.** Colegas ficam atrás de arbustos baixos, sempre aparecendo, e acenam ao serem achados.
 - [x] **C10.5 Amarelinha.** Oito casas numeradas no chão, contadas a cada pulo.
-- [x] **C10.6 Pega-bola e corda.** Cada uma no seu lugar do pátio, à escolha. A corda ainda não é desenhada: é só o pulo contado.
-- [x] **C10.7 Brinquedos do pátio.** Balanço, escorregador e gangorra, sempre esperando a vez. A criança ainda usa uma pose sentada em vez de animação própria de cada brinquedo. A missão de cartão segue na ilha.
+- [x] **C10.6 Pega-bola e corda.** Cada uma no seu lugar do pátio, à escolha. A corda aparece girando.
+- [x] **C10.7 Brinquedos do pátio.** Balanço, escorregador e gangorra, sempre esperando a vez. A criança senta no próprio brinquedo, ainda sem animação de balançar ou escorregar. A missão de cartão segue na ilha.
 - [x] **C10.8 Convidar um colega.** Colegas dizem sim, depois ou não, e o último chamado sempre aceita.
 - [x] **C10.9 Educação física.** Nos dias pares, aquecimento e um esporte, antes do recreio.
 
@@ -276,7 +276,7 @@ Ordem de ensino proposta: **ver a cena → notar corpo e rosto → dar nome → 
 
 - [ ] **C11.1 Roteiro com profissional.** Proposta escrita em [roteiro-sentimentos.md](roteiro-sentimentos.md), com as perguntas para a revisão. **Falta a aprovação de fono ou TO.**
 - [x] **C11.2 Sistema de cenas.** `FeelingsController`: cena curta, repetível, ligada por um ajuste do adulto e desligada por padrão até a revisão.
-- [ ] **C11.3 Cenas do dia a dia.** As 12 cenas têm texto e rosto, e acontecem no pátio ao fim do recreio. Falta animar cada uma: hoje só o rosto do colega muda, sem o objeto da cena em 3D nem a ação.
+- [ ] **C11.3 Cenas do dia a dia.** As 12 cenas têm texto e rosto, e acontecem no pátio ao fim do recreio. O objeto da cena aparece ao lado do colega, mas ainda como figura. Falta animar a ação de cada uma.
 - [x] **C11.4 Nomear com duas opções.** Dois colegas lado a lado com rostos diferentes e duas palavras, sem emoji e sem pontos.
 - [x] **C11.5 O que ajuda.** A criança escolhe e vê o resultado no rosto e na frase.
 - [x] **C11.6 Como eu estou.** Cinco figuras na agenda; guarda 14 registros, só no aparelho, visíveis na área dos pais.
