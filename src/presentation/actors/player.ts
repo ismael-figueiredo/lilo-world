@@ -169,7 +169,6 @@ export class Player {
     this.play(clip, 0.2, emote !== 'Swim');
   }
 
-  /** Costumes can walk and greet, but only the child has the motions of daily life. */
   /**
    * Only the body casts a shadow: enough to stand on the ground, and each of
    * the many pieces of a person costs one more draw for every shadow.
@@ -196,6 +195,7 @@ export class Player {
     for (const part of this.root.children) part.visible = inView;
   }
 
+  /** Costumes can walk and greet, but only the child has the motions of daily life. */
   canDo(emote: Emote): boolean {
     return this.actions.has(emoteClips[emote][0] ?? '');
   }

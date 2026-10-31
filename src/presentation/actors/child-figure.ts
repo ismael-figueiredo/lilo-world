@@ -434,8 +434,10 @@ function hairShape(style: HairStyle, r: number): THREE.BufferGeometry {
   }
 }
 
-/** The right hand turns what it holds to the middle of the body. */
-const TOWARD_MOUTH = 1.2;
+/** Past a right angle: with the arm bent up, what the hand holds comes in front of the face, not into it. */
+const TOWARD_MOUTH = 2.2;
+/** A ladle goes down into the pot, across the arm reaching over it. */
+const INTO_THE_POT = 1.2;
 
 /** Things for the hand, one simple shape each, in hand coordinates. */
 function heldShape(thing: HeldThing): THREE.Object3D {
@@ -457,7 +459,7 @@ function heldShape(thing: HeldThing): THREE.Object3D {
     case 'ladle':
       add(new THREE.BoxGeometry(0.02, 0.02, 0.24), 0xc9ced8, 0, 0, 0.12);
       add(new THREE.SphereGeometry(thing === 'ladle' ? 0.06 : 0.04, 8, 6), 0xc9ced8, 0, 0, 0.26);
-      group.rotation.y = TOWARD_MOUTH;
+      group.rotation.y = thing === 'ladle' ? INTO_THE_POT : TOWARD_MOUTH;
       break;
     case 'soap':
       add(new THREE.BoxGeometry(0.1, 0.05, 0.14), 0xf6c9d6, 0, 0, 0.03);
@@ -701,16 +703,17 @@ export class Figure {
         0.04,
       );
       foot.scale.set(0.95, 0.62, 1.5);
-      this.soles.push(
-        part(
-          knee,
-          new THREE.BoxGeometry(0.135 * size, 0.022, 0.22 * size),
-          soleSurface,
-          0,
-          -legLength - 0.064,
-          0.04,
-        ),
+      // Follows the outline of the shoe: a box stuck out like a plate under the foot.
+      const sole = part(
+        knee,
+        new THREE.CylinderGeometry(0.06 * size, 0.06 * size, 0.022, 12),
+        soleSurface,
+        0,
+        -legLength - 0.064,
+        0.04,
       );
+      sole.scale.z = 1.5;
+      this.soles.push(sole);
       const bootTop = part(
         knee,
         new THREE.CylinderGeometry(0.085 * size, 0.085 * size, legLength * 0.6, 12),
@@ -886,7 +889,7 @@ function dailyClips(hips: number): THREE.AnimationClip[] {
       ],
     }),
     shared('sit', 0.6, sitting, [-0.24, -0.24]),
-    shared('sit-eat', 1.5, { ...sitting, ...toMouth([-108, 0, 30], [-72, 0, 0]) }, [-0.24, -0.24]),
+    shared('sit-eat', 1.5, { ...sitting, ...toMouth([-108, 0, 10], [-72, 0, 0]) }, [-0.24, -0.24]),
     shared(
       'stand',
       0.6,
@@ -910,14 +913,14 @@ function dailyClips(hips: number): THREE.AnimationClip[] {
       },
       [-0.34, -0.34],
     ),
-    shared('eat', 1.5, toMouth([-108, 0, 30], [-72, 0, 0])),
+    shared('eat', 1.5, toMouth([-108, 0, 10], [-72, 0, 0])),
     shared('drink', 1.6, {
       ...toMouth([-112, 0, 30], [-68, 0, 0]),
       Head: toAndBack(rest, [-20, 0, 0]),
     }),
     shared('brush', 1.3, {
       ArmL: still(armDownL),
-      ArmR: [armDownR, [-108, 0, 30], [-108, 0, 24], [-108, 0, 30], [-108, 0, 24], armDownR],
+      ArmR: [armDownR, [-108, 0, 10], [-108, 0, 4], [-108, 0, 10], [-108, 0, 4], armDownR],
       ForearmR: [rest, [-72, 22, 0], [-72, -22, 0], [-72, 22, 0], [-72, -22, 0], rest],
     }),
     shared('wash', 1.3, {

@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import * as THREE from 'three';
+import { describe, expect, it, vi } from 'vitest';
 import { defaultChildChoices, guardians, outfits } from '@domain/avatar/child';
 import { cast, guardianPerson } from '@presentation/actors/cast';
-import { FIGURE_JOINTS, figureClips, outfitClothes } from '@presentation/actors/child-figure';
+import {
+  Figure,
+  FIGURE_JOINTS,
+  figureClips,
+  outfitClothes,
+} from '@presentation/actors/child-figure';
 
 describe('the motions of a figure', () => {
   const names = figureClips().map((clip) => clip.name);
@@ -31,6 +37,46 @@ describe('the motions of a figure', () => {
         expect(FIGURE_JOINTS).toContain(track.name.split('.')[0]);
       }
     }
+  });
+});
+
+describe('things in the hand', () => {
+  /** The tip of what is held at the top of a motion, as seen from the head. */
+  function tipFromHead(thing: 'spoon' | 'toothbrush', motion: string, seconds: number) {
+    vi.stubGlobal('document', {
+      createElement: () => ({ getContext: () => null }),
+    });
+    const figure = new Figure(defaultChildChoices.look);
+    vi.unstubAllGlobals();
+    figure.hold(thing);
+    const clip = figureClips().find(({ name }) => name === motion);
+    if (clip === undefined) throw new Error(`no motion ${motion}`);
+    new THREE.AnimationMixer(figure.model).clipAction(clip).play().getMixer().update(seconds);
+    figure.model.updateMatrixWorld(true);
+    const head = figure.model.getObjectByName('Head');
+    const hand = figure.model.getObjectByName('ForearmR');
+    if (head === undefined || hand === undefined) throw new Error('no head or hand');
+    const box = new THREE.Box3();
+    let tip = new THREE.Vector3(0, 0, -9);
+    hand.traverse((object) => {
+      if (!(object instanceof THREE.Mesh) || object.parent === hand) return;
+      box.setFromObject(object);
+      const center = box.getCenter(new THREE.Vector3());
+      if (center.z > tip.z) tip = center;
+    });
+    const face = head.getWorldPosition(new THREE.Vector3());
+    face.y += figure.body.headRadius * 0.9;
+    return { tip: tip.sub(face), radius: figure.body.headRadius };
+  }
+
+  it.each([
+    ['spoon', 'eat', 0.375],
+    ['toothbrush', 'brush', 0.26],
+  ] as const)('the %s reaches the mouth from outside the head', (thing, motion, seconds) => {
+    const { tip, radius } = tipFromHead(thing, motion, seconds);
+    expect(tip.z).toBeGreaterThan(radius * 0.8);
+    expect(tip.length()).toBeLessThan(radius * 1.6);
+    expect(Math.abs(tip.x)).toBeLessThan(radius * 0.6);
   });
 });
 

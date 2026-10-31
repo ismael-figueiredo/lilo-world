@@ -126,6 +126,11 @@ export class House {
   private view: THREE.CanvasTexture | undefined;
   private rainPane!: THREE.Mesh;
   private mirror: Reflector | undefined;
+  /** Faces the back rooms only, so a mirror shows a room and not the garden behind the low wall. */
+  private readonly wallInMirror = new THREE.Mesh(
+    new THREE.PlaneGeometry(HALF_WIDTH * 2, 6),
+    lowPoly(0xfdf6ea),
+  );
   private lit: HouseThing | undefined;
 
   constructor() {
@@ -261,6 +266,7 @@ export class House {
     this.mirror?.removeFromParent();
     this.mirror?.dispose();
     this.mirror = undefined;
+    this.wallInMirror.removeFromParent();
     if (where === undefined) return;
     const { width, height, x, y } = mirrors[where];
     this.mirror = new Reflector(new THREE.PlaneGeometry(width, height), {
@@ -269,7 +275,9 @@ export class House {
       color: 0xdfeeff,
     });
     this.mirror.position.set(x, y, -5.8);
-    this.group.add(this.mirror);
+    this.wallInMirror.position.set(0, LOW_WALL + 3, 0);
+    this.wallInMirror.rotation.y = Math.PI;
+    this.group.add(this.mirror, this.wallInMirror);
   }
 
   /** The chosen breakfast on the table: it goes away bite by bite. */
