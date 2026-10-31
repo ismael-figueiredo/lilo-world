@@ -66,6 +66,8 @@ function roomAhead(car: Car, { route, lines, people, others }: Road): number {
  * somebody in the way it stops at once, because here nobody can get hurt.
  */
 export function stepCar(car: Car, road: Road, dt: number): Car {
+  // Two frames can share a timestamp: no time passed, and dividing by it breaks the car forever.
+  if (dt <= 0) return car;
   const room = roomAhead(car, road);
   const safe = Math.sqrt(2 * CALM_BRAKE * room);
   const speed = Math.min(car.speed + SPEED_UP * dt, CRUISE, safe, room / dt);

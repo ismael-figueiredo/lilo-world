@@ -41,7 +41,7 @@ import { CameraRig } from '@presentation/engine/camera-rig';
 import { GamepadReader, padIsActive } from '@presentation/engine/gamepad';
 import { gameKey, Input, isTyping } from '@presentation/engine/input';
 import { QualityGovernor, type Quality } from '@presentation/engine/quality';
-import { seededRandom } from '@presentation/engine/math';
+import { clamp, seededRandom } from '@presentation/engine/math';
 import { cameraRelative } from '@presentation/engine/movement';
 import { createRenderer, fitToContainer, pixelRatioFor } from '@presentation/engine/renderer';
 import type { GameContext, Mode, PanelMode } from '@presentation/game-context';
@@ -885,7 +885,7 @@ export class GameApp implements GameContext {
     )
       return;
 
-    const dt = Math.min(0.05, this.lastTime === 0 ? 0 : (timeMs - this.lastTime) / 1000);
+    const dt = this.lastTime === 0 ? 0 : clamp((timeMs - this.lastTime) / 1000, 0, 0.05);
     this.lastTime = timeMs;
     this.elapsed += dt;
     if (dt > 0) this.fps += (1 / dt - this.fps) * FPS_SMOOTHING;

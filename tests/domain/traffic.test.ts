@@ -78,6 +78,13 @@ describe('cars', () => {
     }
   });
 
+  it('survives a frame in which no time passed, even stopped at a closed line', () => {
+    const stopped: Car = { distance: 85 - NOSE, speed: 0 };
+    const closed = road({ lines: [{ at: 85, closed: true }] });
+    expect(stepCar(stopped, closed, 0)).toEqual(stopped);
+    expect(stepCar(stopped, closed, -0.01)).toEqual(stopped);
+  });
+
   it('never reaches a person who steps in front of it, however late', () => {
     for (let ahead = 2.6; ahead < 12; ahead += 0.3) {
       let car: Car = { distance: 10, speed: CRUISE };
