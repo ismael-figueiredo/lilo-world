@@ -287,7 +287,7 @@ export class GameApp implements GameContext {
 
   enterSpace(space: WalkableSpace): void {
     const world = this.world;
-    world.inside = space;
+    world.setInside(space);
     this.minimap.setVisible(false);
     this.rig.setIndoors(true);
     this.avatar.placeAt(space.entrance, Math.PI);
@@ -296,7 +296,7 @@ export class GameApp implements GameContext {
 
   leaveSpace(doorId: string): void {
     const world = this.world;
-    world.inside = undefined;
+    world.setInside(undefined);
     this.rig.setIndoors(false);
     const door = world.townPlaces.find((place) => place.id === doorId);
     if (door === undefined) return;
@@ -775,7 +775,7 @@ export class GameApp implements GameContext {
     const session = await this.player.loadSession.execute();
     const world = this.world;
     this.rig.clearFocus();
-    world.inside = undefined;
+    world.setInside(undefined);
     this.setIndoors(true);
     this.addGuardian(profile, world);
     const resumeAt =

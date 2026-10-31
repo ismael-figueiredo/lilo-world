@@ -5,6 +5,7 @@ import type { PlannedActivity } from '@domain/curriculum/session-plan';
 import {
   afterAsking,
   firstSchoolStage,
+  schoolStageAfterSnack,
   lineAfter,
   nextSchoolStage,
   schoolStages,
@@ -13,6 +14,7 @@ import {
 } from '@domain/school/school-day';
 import type { ActivityController } from '@presentation/controllers/activity-controller';
 import type { HomeController } from '@presentation/controllers/home-controller';
+import { PlayController } from '@presentation/controllers/play-controller';
 import type { GameContext } from '@presentation/game-context';
 import type { Player } from '@presentation/actors/player';
 import { CityPlace } from '@presentation/world/city';
@@ -48,6 +50,7 @@ const snacks = [
 /** The school's own agenda, from the bus stop to the bus home, saved at each stage. */
 export class SchoolController {
   private building: SchoolBuilding | undefined;
+  private readonly play: PlayController;
   private teacher: Player | undefined;
   private classmates: Player[] = [];
   private driver: Player | undefined;
@@ -57,7 +60,9 @@ export class SchoolController {
     private readonly ctx: GameContext,
     private readonly home: HomeController,
     private readonly activities: ActivityController,
-  ) {}
+  ) {
+    this.play = new PlayController(ctx, home);
+  }
 
   private get stage(): SchoolStage | undefined {
     if (this.home.step !== 'school') return undefined;
@@ -79,6 +84,7 @@ export class SchoolController {
     const stage = this.hereIs;
     if (stage === undefined) return undefined;
     if (!this.atSchool) return CityPlace.busStop;
+    if (stage === 'recess' && this.play.isOut) return this.play.hasPlayed ? 'play:back' : undefined;
     return schoolSpotOf[stage];
   }
 
@@ -96,6 +102,10 @@ export class SchoolController {
         return phrases.toToilet;
       case 'snack':
         return phrases.toCanteen;
+      case 'pe':
+        return phrases.toCourt;
+      case 'recess':
+        return this.play.isOut ? phrases.chooseGame : phrases.toYard;
       case 'leave':
         return phrases.toExit;
       default:
@@ -112,6 +122,10 @@ export class SchoolController {
       return true;
     }
     if (!this.atSchool) return false;
+    if (placeId.startsWith('play:')) {
+      await this.playAt(placeId);
+      return true;
+    }
     if (schoolSpotOf[stage] !== placeId) {
       if (!placeId.startsWith('escola:')) return false;
       this.ctx.say(this.tip ?? phrases.toExit);
@@ -138,6 +152,12 @@ export class SchoolController {
       case 'snack':
         await this.haveSnack();
         return;
+      case 'pe':
+        await this.haveSports();
+        return;
+      case 'recess':
+        await this.goToRecess();
+        return;
       case 'leave':
         await this.goHome();
         return;
@@ -146,8 +166,56 @@ export class SchoolController {
     }
   }
 
+  /** Physical education: warming up, then the sport of the day, on the court. */
+  private async haveSports(): Promise<void> {
+    const { ctx, building } = this;
+    if (building === undefined) return;
+    await this.play.goOut(building, this.classmates);
+    ctx.enterPanel('home');
+    ctx.say(phrases.warmUp);
+    const moves = [
+      { icon: '🙆', label: 'Braços' },
+      { icon: '🦵', label: 'Pernas' },
+      { icon: '🏃', label: 'Correr' },
+    ];
+    for (const [index] of moves.entries()) {
+      await this.home.sheet.press(moves, index);
+      ctx.avatar.playEmote('Dance');
+      await wait(STEP_MS);
+    }
+    ctx.say(phrases.warmDone);
+    await wait(STEP_MS);
+    await this.play.sport(this.home.dayNumber);
+    await this.save(nextSchoolStage('pe'));
+    ctx.backToExploring(this.tip);
+  }
+
+  private async goToRecess(): Promise<void> {
+    const { building } = this;
+    if (building === undefined) return;
+    await this.play.goOut(building, this.classmates);
+    await this.play.invite(this.home.dayNumber);
+    this.ctx.backToExploring(this.tip);
+    this.ctx.refreshGoal();
+  }
+
+  private async playAt(placeId: string): Promise<void> {
+    if (placeId === 'play:back') {
+      if (this.hereIs !== 'recess') return;
+      this.ctx.say(phrases.bellRings);
+      await this.play.goBack();
+      await this.save(nextSchoolStage('recess'));
+      this.ctx.backToExploring(this.tip);
+      return;
+    }
+    await this.play.game(placeId, this.home.dayNumber);
+    this.ctx.backToExploring(this.tip);
+    this.ctx.refreshGoal();
+  }
+
   /** Every frame: the one who got off the bus walks away. */
   update(dt: number): void {
+    this.play.update(dt);
     const { passenger } = this;
     if (passenger === undefined) return;
     passenger.left -= dt;
@@ -384,7 +452,7 @@ export class SchoolController {
     await wait(STEP_MS * 2);
     for (const who of line) who.root.visible = true;
     this.stand(ctx.avatar, building.tableSpot, FACE_NORTH);
-    await this.save('leave');
+    await this.save(schoolStageAfterSnack(this.home.dayNumber));
     ctx.backToExploring(this.tip);
   }
 

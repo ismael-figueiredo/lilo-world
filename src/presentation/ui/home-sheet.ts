@@ -56,6 +56,38 @@ export class HomeSheet {
     });
   }
 
+  /**
+   * A ball runs along a bar and the one button stops it. Answers where it was,
+   * from -1 to 1, with 0 in the middle. `seconds` is one trip across.
+   */
+  aim(label: string, seconds: number): Promise<number> {
+    return new Promise((resolve) => {
+      const dot = h('span', { className: 'aim__dot' });
+      const started = performance.now();
+      let frame = 0;
+      const place = () => Math.sin(((performance.now() - started) / 1000 / seconds) * Math.PI);
+      const move = () => {
+        dot.style.left = `${(place() + 1) * 50}%`;
+        frame = requestAnimationFrame(move);
+      };
+      this.element.replaceChildren(
+        h('div', { className: 'aim' }, [h('span', { className: 'aim__middle' }), dot]),
+        h('button', {
+          className: 'big-button big-button--green home-sheet__go',
+          text: label,
+          attrs: { type: 'button' },
+          onTap: () => {
+            cancelAnimationFrame(frame);
+            this.hide();
+            resolve(place());
+          },
+        }),
+      );
+      this.element.classList.add('is-visible');
+      move();
+    });
+  }
+
   /** Shows the choices and answers with the id of the one that was chosen. */
   choose(title: string, choices: readonly Choice[]): Promise<string> {
     return new Promise((resolve) => {

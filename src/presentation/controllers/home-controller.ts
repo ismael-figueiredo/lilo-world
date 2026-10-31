@@ -151,6 +151,10 @@ export class HomeController {
     return step === undefined ? undefined : stepTips[step];
   }
 
+  get dayNumber(): number {
+    return this.day.number;
+  }
+
   get schoolStage(): SchoolStage | undefined {
     return this.day.school;
   }

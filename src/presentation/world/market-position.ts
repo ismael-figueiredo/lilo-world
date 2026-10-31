@@ -28,5 +28,7 @@ export const schoolSpotOf: Readonly<Partial<Record<SchoolStage, string>>> = {
   seat: 'escola:seat',
   toilet: 'escola:toilet',
   snack: 'escola:line',
+  pe: 'escola:yard',
+  recess: 'escola:yard',
   leave: 'escola:exit',
 };
