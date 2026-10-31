@@ -24,6 +24,8 @@ export interface Settings {
   readonly skillChoices: Readonly<Record<string, SkillChoice>>;
   /** How hard each track goes, set by an adult. */
   readonly pace: Readonly<Partial<Record<Track, Pace>>>;
+  /** An adult can shorten the bus trip for a child who gets tired of it. */
+  readonly shortRides: boolean;
   /** 'auto' lets each day have its own weather. */
   readonly fixedWeather: Weather | 'auto';
 }
@@ -51,6 +53,7 @@ export const defaultSettings: Settings = {
   sessionLimitMinutes: 10,
   skillChoices: {},
   pace: {},
+  shortRides: false,
   fixedWeather: 'auto',
 };
 
@@ -106,6 +109,7 @@ export function sanitizeSettings(raw: unknown, base: Settings = defaultSettings)
     sessionLimitMinutes: oneOf(sessionLimits, data.sessionLimitMinutes, base.sessionLimitMinutes),
     skillChoices: skillChoices(data.skillChoices, base.skillChoices),
     pace: paceOf(data.pace, base.pace),
+    shortRides: flag(data.shortRides, base.shortRides),
     fixedWeather: oneOf(['auto', ...weathers], data.fixedWeather, base.fixedWeather),
   };
 }

@@ -20,7 +20,7 @@ const weatherIcons: Readonly<Record<Weather, string>> = {
   cold: '🧣',
 };
 
-const blockIcons = { morning: '🌅', afternoon: '☀️', night: '🌙' } as const;
+const blockIcons = { morning: '🌅', school: '🏫', afternoon: '☀️', night: '🌙' } as const;
 
 /** The day in pictures: what is now, what comes next and what is done. */
 export class AgendaPanel {

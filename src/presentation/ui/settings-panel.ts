@@ -124,7 +124,12 @@ export class SettingsPanel {
             ]),
       ]),
       ...(this.limitUnlocked
-        ? [this.skipRow(), this.weatherRow(settings), ...this.skillSections(settings)]
+        ? [
+            this.skipRow(),
+            this.weatherRow(settings),
+            this.rideRow(settings),
+            ...this.skillSections(settings),
+          ]
         : []),
     );
   }
@@ -142,6 +147,18 @@ export class SettingsPanel {
         ['cold', 'Frio'],
       ],
       (fixedWeather) => ({ fixedWeather }),
+    );
+  }
+
+  private rideRow(settings: Settings): HTMLElement {
+    return this.choice(
+      'Viagem de ônibus',
+      settings.shortRides ? 'short' : 'full',
+      [
+        ['full', 'Completa'],
+        ['short', 'Curta'],
+      ],
+      (value) => ({ shortRides: value === 'short' }),
     );
   }
 

@@ -114,7 +114,7 @@ describe('the lunch task', () => {
   });
 
   it('ends with lunch, and stays with any other step before that', () => {
-    const morning = ['wake', 'eat', 'teeth', 'dress', 'backpack'];
+    const morning = ['wake', 'eat', 'teeth', 'dress', 'backpack', 'school'];
     const day = { number: 1, done: morning as never[], errand: planErrand(1, 'exact') };
     expect(completeStep(day, 'study').day.errand).toBeDefined();
     expect(completeStep(day, 'lunch').day.errand).toBeUndefined();
@@ -127,7 +127,7 @@ describe('the lunch task', () => {
     expect(skipBlock(day).errand).toBeUndefined();
     const lastNight = {
       number: 1,
-      done: ['wake', 'eat', 'teeth', 'dress', 'backpack', 'lunch', 'study', 'outside'],
+      done: ['wake', 'eat', 'teeth', 'dress', 'backpack', 'school', 'lunch', 'study', 'outside'],
     };
     const night = { ...lastNight, done: [...lastNight.done, 'shower', 'pajamas'], errand };
     expect(completeStep(night as never, 'sleep').day.errand).toBeUndefined();

@@ -233,6 +233,12 @@ export class StudyDesk {
     this.group.visible = false;
   }
 
+  /** From the desk's coordinates to the world's, wherever this desk stands. */
+  toWorld(x: number, y: number, z: number): THREE.Vector3 {
+    this.group.updateWorldMatrix(true, false);
+    return this.group.localToWorld(new THREE.Vector3(x, y, z));
+  }
+
   /** Camera position and what it looks at, leaving room for the answers. */
   view(wide: boolean): readonly [readonly number[], readonly number[]] {
     return wide

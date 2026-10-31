@@ -86,6 +86,8 @@ export const BUS_STOP = {
   signZ: -(ROAD_WIDTH / 2 + 0.25),
   /** Where the child waits. */
   waitZ: -(ROAD_WIDTH / 2 + 0.9),
+  /** The lane the bus comes along, close to the curb. */
+  lane: -1.9,
 } as const;
 
 const mainLamps: readonly Point[] = [-44, -24, -14, 4, 22, 44].flatMap((x) =>

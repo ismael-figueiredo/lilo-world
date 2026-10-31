@@ -1,6 +1,7 @@
 import { sanitizeErrand, type Errand } from '@domain/errand/errand';
+import { isSchoolStage, type SchoolStage } from '@domain/school/school-day';
 
-export type BlockId = 'morning' | 'afternoon' | 'night';
+export type BlockId = 'morning' | 'school' | 'afternoon' | 'night';
 
 export type StepId =
   | 'wake'
@@ -8,6 +9,7 @@ export type StepId =
   | 'teeth'
   | 'dress'
   | 'backpack'
+  | 'school'
   | 'lunch'
   | 'study'
   | 'outside'
@@ -23,6 +25,7 @@ export interface Block {
 /** Every day has the same shape: that is what makes it predictable. */
 export const dayBlocks: readonly Block[] = [
   { id: 'morning', steps: ['wake', 'eat', 'teeth', 'dress', 'backpack'] },
+  { id: 'school', steps: ['school'] },
   { id: 'afternoon', steps: ['lunch', 'study', 'outside'] },
   { id: 'night', steps: ['shower', 'pajamas', 'sleep'] },
 ];
@@ -33,6 +36,8 @@ export interface DayState {
   readonly done: readonly StepId[];
   /** Today's lunch task, from the moment the adult asks. */
   readonly errand?: Errand;
+  /** Where the child is in the school's own agenda. */
+  readonly school?: SchoolStage;
 }
 
 export const firstDay: DayState = { number: 1, done: [] };
@@ -44,12 +49,13 @@ export const isStep = (value: unknown): value is StepId => allSteps.includes(val
 /** Returns the first day for missing or broken data: nothing here can stop the game. */
 export function sanitizeDay(raw: unknown): DayState {
   if (typeof raw !== 'object' || raw === null) return firstDay;
-  const { number, done, errand } = raw as Record<string, unknown>;
+  const { number, done, errand, school } = raw as Record<string, unknown>;
   const task = sanitizeErrand(errand);
   return {
     number: typeof number === 'number' && Number.isInteger(number) && number > 0 ? number : 1,
     done: Array.isArray(done) ? [...new Set(done.filter(isStep))] : [],
     ...(task === undefined ? {} : { errand: task }),
+    ...(isSchoolStage(school) ? { school } : {}),
   };
 }
 
@@ -97,8 +103,15 @@ export function completeStep(day: DayState, step: StepId): StepResult {
   }
   // With lunch eaten, the task is over: its list leaves the agenda.
   const { number, errand } = day;
+  // Leaving school ends its agenda too.
+  const school = step === 'school' ? undefined : day.school;
   return {
-    day: { number, done, ...(step === 'lunch' || errand === undefined ? {} : { errand }) },
+    day: {
+      number,
+      done,
+      ...(step === 'lunch' || errand === undefined ? {} : { errand }),
+      ...(school === undefined ? {} : { school }),
+    },
     counted: true,
     blockEnded: block.steps.every((candidate) => done.includes(candidate)),
     dayEnded: false,

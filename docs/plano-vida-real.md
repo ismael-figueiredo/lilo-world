@@ -244,15 +244,15 @@ Objetivo: a primeira tarefa completa, com motivo e consequência.
 
 Objetivo: ir à escola de forma animada e viver um dia de aula.
 
-- [ ] **C9.1 Rota do ônibus.** Lógica e paradas. Pronto: testada.
-- [ ] **C9.2 Pegar o ônibus.** Esperar, deixar descer, entrar, passar cartão, sentar. Pronto: tudo no mundo 3D.
-- [ ] **C9.3 Viagem animada.** Janela com paisagem, colegas, botão de parada. Pronto: dura 20 a 40 s, com opção de pular para o adulto, e a zona seguinte carrega durante a viagem.
-- [ ] **C9.4 Escola completa.** Entrada, corredor, sala, banheiro, refeitório, biblioteca, pátio, quadra. Pronto: zona caminhável dentro da meta.
-- [ ] **C9.5 Rotina da escola.** Chegar, cumprimentar, guardar a mochila, sentar. Pronto: agenda própria da escola.
-- [ ] **C9.6 Aula.** Professora no quadro e estudo na carteira. Pronto: usa C6.
-- [ ] **C9.7 Pedir ajuda e pedir para ir ao banheiro.** CAA no contexto real. Pronto: substitui a missão em cartão.
-- [ ] **C9.8 Lanche e refeitório.** Fila, escolher, sentar com colega. Pronto: praticar esperar a vez.
-- [ ] **C9.9 Volta para casa.** Ônibus de volta, tarefas da escola no quadro da agenda. Pronto: dia segue sem repetir a viagem longa.
+- [x] **C9.1 Rota do ônibus.** `domain/city/bus.ts`: vem pela rua, para na placa, espera e vai embora. O ônibus parado na rua saiu; a pista norte continua sem carros.
+- [x] **C9.2 Pegar o ônibus.** Esperar no ponto, deixar descer, entrar, passar o cartão e sentar. Quem desce sai pela porta caminhando.
+- [x] **C9.3 Viagem animada.** Interior com colegas sentados, janela com paisagem e botão de parada. Dura 26 s; o adulto pode escolher viagem curta nos Ajustes. A escola carrega durante a viagem.
+- [x] **C9.4 Escola completa.** Prédio caminhável com entrada, corredor, sala, banheiro, refeitório e biblioteca. Pátio e quadra estão desenhados, e a saída para eles vem na C10.
+- [x] **C9.5 Rotina da escola.** Agenda própria, salva a cada etapa, em `domain/school`. Fechar o jogo no meio retoma pela viagem de ônibus, na etapa em que parou.
+- [x] **C9.6 Aula.** Professora no quadro e duas atividades da C6 na carteira da criança.
+- [x] **C9.7 Pedir ajuda e pedir para ir ao banheiro.** Cartões "Eu preciso..." com a professora, e qualquer pedido é certo. As missões antigas de cartão seguem no mapa da ilha.
+- [x] **C9.8 Lanche e refeitório.** A fila anda sozinha, a criança escolhe o lanche e senta com um colega.
+- [x] **C9.9 Volta para casa.** Volta curta, direto à porta de casa, e o dia segue para o almoço. Não há tarefas próprias da escola na agenda ainda; o passo Estudar faz esse papel.
 
 ### C10. Recreio, esportes e brincadeiras
 

@@ -44,7 +44,7 @@ export class ErrandController {
   }
 
   private get shopping(): boolean {
-    return this.ctx.world.shopping !== undefined;
+    return this.ctx.world.inside === this.market && this.market !== undefined;
   }
 
   /** What the arrow shows, outside the house. */
@@ -135,7 +135,7 @@ export class ErrandController {
         errand.picked,
       );
       cashier.placeAt(market.cashierSpot, -Math.PI / 2);
-      this.ctx.enterShop(market);
+      this.ctx.enterSpace(market);
     });
     this.ctx.backToExploring(this.tip);
     this.ctx.refreshGoal();
@@ -256,7 +256,7 @@ export class ErrandController {
     }
     this.ctx.enterPanel('home');
     await this.ctx.transition(() => {
-      this.ctx.leaveShop();
+      this.ctx.leaveSpace(CityPlace.market);
     });
     this.ctx.backToExploring(this.tip);
     this.ctx.refreshGoal();

@@ -45,7 +45,7 @@ describe('the day', () => {
     const last = morning.at(-1)!;
     expect(completeStep(almost, last).blockEnded).toBe(true);
     expect(completeStep(firstDay, 'wake').blockEnded).toBe(false);
-    expect(currentBlock(completeStep(almost, last).day)?.id).toBe('afternoon');
+    expect(currentBlock(completeStep(almost, last).day)?.id).toBe('school');
   });
 
   it('starts the next day when the child sleeps', () => {
@@ -57,8 +57,8 @@ describe('the day', () => {
   });
 
   it('lets an adult jump over a block, but not over sleeping', () => {
-    expect(currentBlock(skipBlock(firstDay))?.id).toBe('afternoon');
-    const night = skipBlock(skipBlock(firstDay));
+    expect(currentBlock(skipBlock(firstDay))?.id).toBe('school');
+    const night = skipBlock(skipBlock(skipBlock(firstDay)));
     expect(currentBlock(night)?.id).toBe('night');
     expect(skipBlock(night)).toEqual(night);
   });

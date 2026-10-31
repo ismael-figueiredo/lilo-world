@@ -5,7 +5,9 @@ import type { Random } from '@presentation/engine/math';
 import { CITY, City, isInsideCity, PLAYGROUND, SOUTH_DISTRICT } from '@presentation/world/city';
 import { isInsideAny, type Area, type Collider } from '@presentation/world/collision';
 import type { Interactable } from '@presentation/world/interactable';
+import type { BusInterior } from '@presentation/world/bus-interior';
 import type { MarketInterior } from '@presentation/world/market-interior';
+import type { SchoolBuilding } from '@presentation/world/school-building';
 import { Nature } from '@presentation/world/nature';
 import { lampGlass } from '@presentation/world/props';
 import type { RoadSafety } from '@presentation/world/road-safety';
@@ -76,6 +78,19 @@ export class Town {
   /** The zones of the island. */
   prepareIsland(): Promise<void> {
     return this.zones.prepareIsland();
+  }
+
+  /** Inside the bus and the school, far from the island, ready before they are needed. */
+  prepareBus(): Promise<BusInterior> {
+    return this.zones.prepare(ZoneId.bus) as Promise<BusInterior>;
+  }
+
+  prepareSchool(): Promise<SchoolBuilding> {
+    return this.zones.prepare(ZoneId.schoolBuilding) as Promise<SchoolBuilding>;
+  }
+
+  get bus(): City {
+    return this.city;
   }
 
   async prepareMarket(): Promise<MarketInterior> {
