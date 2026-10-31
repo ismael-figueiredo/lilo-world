@@ -4,6 +4,7 @@ import type { Clock } from '@application/ports/clock';
 import type { ContentCatalog } from '@application/ports/content-catalog';
 import type { RandomSource } from '@application/ports/random';
 import type { IdGenerator } from '@application/ports/id-generator';
+import type { DayRepository } from '@application/ports/day-repository';
 import type { ProfileRepository } from '@application/ports/profile-repository';
 import type { ProgressRepository } from '@application/ports/progress-repository';
 import type { SessionRepository } from '@application/ports/session-repository';
@@ -37,12 +38,14 @@ import { PlanSession } from '@application/use-cases/plan-session';
 import { StartActivity } from '@application/use-cases/start-activity';
 import { StartMission } from '@application/use-cases/start-mission';
 import { SuggestNextGoal } from '@application/use-cases/suggest-next-goal';
+import { FollowDay } from '@application/use-cases/follow-day';
 import { ToggleWardrobeItem } from '@application/use-cases/toggle-wardrobe-item';
 import { UpdateSettings } from '@application/use-cases/update-settings';
 import type { ProfileId } from '@domain/profile/player-profile';
 import { SilentAudio } from '@infrastructure/audio/silent-audio';
 import { WebAudioPlayer } from '@infrastructure/audio/web-audio-player';
 import { StaticContentCatalog } from '@infrastructure/catalog/static-content-catalog';
+import { LocalStorageDayRepository } from '@infrastructure/persistence/local-storage-day-repository';
 import { LocalStorageProfileRepository } from '@infrastructure/persistence/local-storage-profile-repository';
 import { LocalStorageProgressRepository } from '@infrastructure/persistence/local-storage-progress-repository';
 import { LocalStorageSessionRepository } from '@infrastructure/persistence/local-storage-session-repository';
@@ -59,6 +62,7 @@ export interface PlayerStores {
   readonly progress: ProgressRepository;
   readonly settings: SettingsRepository;
   readonly session: SessionRepository;
+  readonly day: DayRepository;
 }
 
 export interface Adapters {
@@ -80,7 +84,7 @@ export function createServices(adapters: Adapters): GameServices {
   const players = new Map<ProfileId, PlayerServices>();
 
   const buildPlayer = (profileId: ProfileId): PlayerServices => {
-    const { progress, settings, session } = adapters.storesFor(profileId);
+    const { progress, settings, session, day } = adapters.storesFor(profileId);
     const applySettings = new ApplySettings(settings, audio, speech);
     return {
       getPlayerProgress: new GetPlayerProgress(progress),
@@ -104,6 +108,7 @@ export function createServices(adapters: Adapters): GameServices {
       saveSession: new SaveSession(session, clock),
       loadSession: new LoadSession(session),
       checkSessionTime: new CheckSessionTime(settings),
+      followDay: new FollowDay(day),
     };
   };
 
@@ -144,6 +149,7 @@ export function createBrowserAdapters(win: Window = window): Adapters {
       progress: new LocalStorageProgressRepository(storage, profileKey(profileId, 'progress')),
       settings: new LocalStorageSettingsRepository(storage, profileKey(profileId, 'settings')),
       session: new LocalStorageSessionRepository(storage, profileKey(profileId, 'session')),
+      day: new LocalStorageDayRepository(storage, profileKey(profileId, 'day')),
     }),
     speech:
       'speechSynthesis' in win

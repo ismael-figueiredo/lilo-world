@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { defaultChildChoices } from '@domain/avatar/child';
+import { firstDay } from '@domain/day/day-plan';
 import { defaultSettings } from '@domain/settings/settings';
+import { LocalStorageDayRepository } from '@infrastructure/persistence/local-storage-day-repository';
 import { LocalStorageProfileRepository } from '@infrastructure/persistence/local-storage-profile-repository';
 import { LocalStorageSessionRepository } from '@infrastructure/persistence/local-storage-session-repository';
 import { LocalStorageSettingsRepository } from '@infrastructure/persistence/local-storage-settings-repository';
@@ -143,5 +145,14 @@ describe('migrateLegacyProgress', () => {
     migrateLegacyProgress(storage, new SequentialIds(), new FixedClock());
     expect(storage.getItem(PROFILES_KEY)).toBe('{"profiles":[]}');
     expect(storage.getItem(LEGACY_PROGRESS_KEY)).toBeNull();
+  });
+});
+
+describe('LocalStorageDayRepository', () => {
+  it('resumes the day that was saved and starts clean without one', async () => {
+    const repository = new LocalStorageDayRepository(new MemoryStorage(), 'd');
+    expect(await repository.load()).toEqual(firstDay);
+    await repository.save({ number: 4, done: ['wake', 'eat'] });
+    expect(await repository.load()).toEqual({ number: 4, done: ['wake', 'eat'] });
   });
 });
