@@ -100,6 +100,10 @@ const HORN_EVERY = 60;
 /** Beyond this nobody is drawn: the town's houses hide them anyway. */
 const PEOPLE_IN_VIEW = 70;
 
+/** The curtain lifts when the place is drawn, or at this limit in a window not being drawn. */
+const CURTAIN_LIMIT_MS = 800;
+const GRAPHICS_BACK_MS = 6000;
+
 const isHeardInside = (sound: Ambience): boolean => sound !== 'birds' && sound !== 'street';
 
 /** Seconds between greetings: one wave at a time, even if the button is pressed again. */
@@ -132,7 +136,13 @@ export class GameApp implements GameContext {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(55, 1, 0.1, 1200);
   private readonly ui = h('div', { className: 'ui' });
-  private readonly fade = h('div', { className: 'fade', attrs: { 'aria-hidden': 'true' } });
+  private readonly fade = h('div', { className: 'fade', attrs: { 'aria-hidden': 'true' } }, [
+    h('span', { className: 'fade__dots' }, [
+      h('span', { className: 'fade__dot' }),
+      h('span', { className: 'fade__dot' }),
+      h('span', { className: 'fade__dot' }),
+    ]),
+  ]);
   private readonly hud = new Hud(
     () => {
       if (this.currentMode === 'explore') this.menus.open();
@@ -203,6 +213,7 @@ export class GameApp implements GameContext {
   private fps = 60;
   private people: readonly Person[] = [];
   private guardianPerson: Person | undefined;
+  private preparedTown: Town | undefined;
   private today: DayState = firstDay;
   private readonly breath = new THREE.Vector3();
   private readonly studio = new ChildStudio();
@@ -490,7 +501,7 @@ export class GameApp implements GameContext {
   async goOutside(): Promise<void> {
     const world = this.world;
     const first = world.outside === undefined;
-    const town = await this.whileLoading(world.openTown());
+    const town = await this.whileLoading(this.openAndPrepareTown());
     const door = world.street;
     if (first) this.addNeighbors(town);
     await this.transition(() => {
@@ -500,9 +511,27 @@ export class GameApp implements GameContext {
       this.avatar.placeAt(door.position, Math.PI / 2);
       this.rig.yaw = -Math.PI / 2;
       this.rig.snapTo(door.position);
-      if (first) this.pictureTheMap(town);
     });
-    this.fade.classList.remove('is-on');
+  }
+
+  /** The whole town is made ready before the curtain comes: it opens on a town, not on a wait. */
+  private async openAndPrepareTown(): Promise<Town> {
+    const town = await this.world.openTown();
+    if (this.preparedTown === town) return town;
+    this.preparedTown = town;
+    const renderer = this.renderer;
+    if (renderer === undefined) return town;
+    const { visible } = town.group;
+    town.group.visible = true;
+    try {
+      await renderer.compileAsync(this.scene, this.camera);
+    } catch {
+      // Only a preparation: without it the first frame takes longer, and that is all.
+    }
+    // Still behind the loading screen: taken later, it would stop the child in the street.
+    this.pictureTheMap(town);
+    town.group.visible = visible;
+    return town;
   }
 
   async goInside(): Promise<void> {
@@ -735,6 +764,7 @@ export class GameApp implements GameContext {
       this.cameraRig.setIndoors(true);
       this.cameraRig.snapTo(player.position);
       this.input = new Input(renderer.domElement);
+      this.watchGraphics(renderer.domElement);
       this.enterPanel('menu');
       this.currentMode = 'profiles';
 
@@ -1203,10 +1233,46 @@ export class GameApp implements GameContext {
     this.fade.classList.add('is-on');
     this.input?.reset();
     await wait(450);
-    change();
-    if (this.character !== undefined) this.mascot.placeNear(this.character.position);
-    await wait(150);
-    this.fade.classList.remove('is-on');
+    try {
+      change();
+      if (this.character !== undefined) this.mascot.placeNear(this.character.position);
+      await this.nextPictures();
+    } finally {
+      // Whatever happens behind it, the curtain never stays closed.
+      this.fade.classList.remove('is-on');
+    }
+  }
+
+  /**
+   * Tablets take the graphics away from a page now and then. A calm curtain
+   * covers the black screen, and if they do not come back the page starts again,
+   * with the day already saved.
+   */
+  private watchGraphics(canvas: HTMLCanvasElement): void {
+    let waiting: number | undefined;
+    canvas.addEventListener('webglcontextlost', () => {
+      this.fade.classList.add('is-on');
+      waiting = window.setTimeout(() => {
+        window.location.reload();
+      }, GRAPHICS_BACK_MS);
+    });
+    canvas.addEventListener('webglcontextrestored', () => {
+      window.clearTimeout(waiting);
+      this.fade.classList.remove('is-on');
+    });
+  }
+
+  /** Waits for the new place to be really on screen, without waiting forever for it. */
+  private nextPictures(): Promise<void> {
+    return new Promise((resolve) => {
+      const limit = window.setTimeout(resolve, CURTAIN_LIMIT_MS);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.clearTimeout(limit);
+          resolve();
+        });
+      });
+    });
   }
 
   /** Another character in the scene (the cashier, for example). */
