@@ -100,6 +100,8 @@ export class GameWorld {
   /** Into a place of its own, or back out: the weather stays outside. */
   setInside(space: WalkableSpace | undefined): void {
     this.space = space;
+    this.town?.setCloudsVisible(space === undefined);
+    this.town?.setIslandVisible(space === undefined);
     this.showOutside();
   }
 

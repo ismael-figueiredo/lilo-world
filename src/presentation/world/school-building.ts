@@ -7,6 +7,7 @@ import { lowPoly, solid } from '@presentation/world/materials';
 import { mergeStatic } from '@presentation/world/merge-static';
 import { slide, swings } from '@presentation/world/props';
 import { HOPSCOTCH_SQUARES } from '@domain/play/games';
+import { treeRing } from '@presentation/world/scenery';
 import { createSign } from '@presentation/world/sign';
 import { StudyDesk } from '@presentation/world/study-desk';
 import type { Zone } from '@presentation/world/zones/zone';
@@ -126,6 +127,7 @@ export class SchoolBuilding implements Zone, WalkableSpace {
     this.addCanteen();
     this.addSigns();
     this.addYard();
+    this.group.add(treeRing(44, 30));
     // Soft lights, so every room is as bright as a morning at school.
     for (const [x, z] of [
       [-9, -6],

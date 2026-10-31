@@ -38,6 +38,7 @@ export class Town {
   market: MarketInterior | undefined;
 
   private readonly water = new Water();
+  private readonly ground: THREE.Object3D;
   private readonly city: City;
   private readonly zones: ZoneManager;
   private readonly nature: Nature;
@@ -64,7 +65,8 @@ export class Town {
       },
     );
 
-    this.group.add(createTerrainMesh(this.shape, random), this.water.mesh, this.city.group);
+    this.ground = createTerrainMesh(this.shape, random);
+    this.group.add(this.ground, this.water.mesh, this.city.group);
     this.nature = new Nature(this.shape, random, assets, {
       keepClear: (x, z) =>
         isInsideCity(x, z, 3) ||
@@ -146,6 +148,14 @@ export class Town {
   addColliders(colliders: readonly Collider[]): void {
     this.staticColliders.push(...colliders);
     this.collectZones();
+  }
+
+  /** In a place far from here the island is not drawn: it costs and stands in the view. */
+  setIslandVisible(visible: boolean): void {
+    this.ground.visible = visible;
+    this.water.mesh.visible = visible;
+    this.city.group.visible = visible;
+    this.nature.group.visible = visible;
   }
 
   /** The calm town: fewer cars and birds. */

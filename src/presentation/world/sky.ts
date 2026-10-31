@@ -23,6 +23,7 @@ export class Sky {
   };
   private readonly discMaterial = new THREE.MeshBasicMaterial({ color: 0xfff6cf, fog: false });
   private readonly disc: THREE.Mesh;
+  private readonly dome: THREE.Mesh;
   private readonly stars: THREE.Points;
   private readonly direction = new THREE.Vector3(0.55, 0.75, 0.35).normalize();
   private readonly wanted = this.direction.clone();
@@ -42,7 +43,7 @@ export class Sky {
     this.fog = new THREE.Fog(0xd6f1ff, FOG_NEAR, FOG_FAR);
     scene.fog = this.fog;
 
-    const dome = new THREE.Mesh(
+    this.dome = new THREE.Mesh(
       new THREE.SphereGeometry(900, 32, 16),
       new THREE.ShaderMaterial({
         side: THREE.BackSide,
@@ -52,7 +53,7 @@ export class Sky {
         vertexShader: /* glsl */ `
           varying vec3 vWorld;
           void main() {
-            vWorld = normalize((modelMatrix * vec4(position, 1.0)).xyz);
+            vWorld = normalize(position);
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
           }`,
         fragmentShader: /* glsl */ `
@@ -65,8 +66,8 @@ export class Sky {
           }`,
       }),
     );
-    dome.renderOrder = -1;
-    scene.add(dome);
+    this.dome.renderOrder = -1;
+    scene.add(this.dome);
 
     this.disc = new THREE.Mesh(new THREE.CircleGeometry(38, 32), this.discMaterial);
     scene.add(this.disc);
@@ -120,6 +121,11 @@ export class Sky {
     this.settle(damping(CHANGE_SPEED, dt));
     this.sun.target.position.copy(position);
     this.sun.position.copy(position).addScaledVector(this.direction, 100);
+    // The sky goes along with the child, even far from the island.
+    this.dome.position.copy(position);
+    this.stars.position.copy(position);
+    this.disc.position.copy(position).addScaledVector(this.direction, SKY_RADIUS);
+    this.disc.lookAt(position);
   }
 
   private settle(amount: number): void {
@@ -138,8 +144,6 @@ export class Sky {
     this.stars.visible = this.night > 0.02;
     const lamps = this.indoors ? this.night * INDOOR_LIGHT : 0;
     this.lamps.intensity += (lamps - this.lamps.intensity) * amount;
-    this.disc.position.copy(this.direction).multiplyScalar(SKY_RADIUS);
-    this.disc.lookAt(0, 0, 0);
   }
 
   private createStars(): THREE.Points {

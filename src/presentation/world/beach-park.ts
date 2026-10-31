@@ -7,6 +7,7 @@ import type { Interactable } from '@presentation/world/interactable';
 import { BEACH_PARK } from '@presentation/world/market-position';
 import { lowPoly, solid } from '@presentation/world/materials';
 import { mergeStatic } from '@presentation/world/merge-static';
+import { palmTree } from '@presentation/world/scenery';
 import type { Zone } from '@presentation/world/zones/zone';
 
 const FLOOR = -5;
@@ -34,13 +35,13 @@ export class BeachPark implements Zone, WalkableSpace {
     this.group.position.set(BEACH_PARK.x, FLOOR, BEACH_PARK.z);
     this.flag = solid(new THREE.BoxGeometry(1, 0.6, 0.04), lowPoly(0x3fae5a), [9.5, 3.4, -1]);
     this.water = solid(
-      new THREE.BoxGeometry(160, 0.06, 90),
+      new THREE.BoxGeometry(1100, 0.06, 500),
       new THREE.MeshStandardMaterial({
         color: 0x4fb4e8,
         transparent: true,
         opacity: 0.75,
       }),
-      [0, 0.1, SHORE - 45],
+      [0, 0.1, SHORE - 250],
     );
     this.addGround();
     this.addFurniture();
@@ -55,8 +56,8 @@ export class BeachPark implements Zone, WalkableSpace {
 
   private addGround(): void {
     this.group.add(
-      solid(new THREE.BoxGeometry(160, 0.1, 120), lowPoly(0xf2dfae), [0, 0, 56]),
-      solid(new THREE.BoxGeometry(160, 0.1, 90), lowPoly(0xd9c48e), [0, -0.3, SHORE - 45]),
+      solid(new THREE.BoxGeometry(1100, 0.1, 500), lowPoly(0xf2dfae), [0, 0, SHORE + 250]),
+      solid(new THREE.BoxGeometry(1100, 0.1, 500), lowPoly(0xd9c48e), [0, -0.3, SHORE - 250]),
     );
     for (let x = -HALF_X; x <= HALF_X; x += 4) {
       this.group.add(
@@ -66,6 +67,15 @@ export class BeachPark implements Zone, WalkableSpace {
   }
 
   private addFurniture(): void {
+    // Palm trees along the back of the sand, and dunes behind them.
+    for (let x = -26; x <= 26; x += 7) {
+      this.group.add(palmTree(x + (x % 3), 21 + (x % 4), 1 + ((x + 26) % 3) * 0.12));
+    }
+    for (let x = -60; x <= 60; x += 16) {
+      this.group.add(
+        solid(new THREE.SphereGeometry(9, 12, 8), lowPoly(0xe8d6a4), [x, -2.5, 34 + (x % 5)]),
+      );
+    }
     // The lifeguard's tower, with the sea flag on top.
     this.group.add(
       solid(new THREE.BoxGeometry(2, 0.2, 2), lowPoly(0xffffff), [9.5, 2.1, -1]),

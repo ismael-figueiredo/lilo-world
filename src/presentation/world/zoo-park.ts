@@ -6,6 +6,7 @@ import type { Interactable } from '@presentation/world/interactable';
 import { ZOO_PARK } from '@presentation/world/market-position';
 import { lowPoly, solid } from '@presentation/world/materials';
 import { mergeStatic } from '@presentation/world/merge-static';
+import { roundTree, treeRing } from '@presentation/world/scenery';
 import { createPostSign } from '@presentation/world/sign';
 import { ZooAnimal } from '@presentation/world/zoo-animals';
 import type { Zone } from '@presentation/world/zones/zone';
@@ -43,7 +44,7 @@ export class ZooPark implements Zone, WalkableSpace {
   constructor() {
     this.group.position.set(ZOO_PARK.x, FLOOR, ZOO_PARK.z);
     this.group.add(
-      solid(new THREE.CircleGeometry(60, 40).rotateX(-Math.PI / 2), lowPoly(0x8fd07a), [0, 0, 0]),
+      solid(new THREE.CircleGeometry(520, 40).rotateX(-Math.PI / 2), lowPoly(0x8fd07a), [0, 0, 0]),
       solid(
         new THREE.RingGeometry(9, 14.2, 48).rotateX(-Math.PI / 2),
         lowPoly(0xe8dcc0),
@@ -56,6 +57,7 @@ export class ZooPark implements Zone, WalkableSpace {
     });
     this.addCenter();
     this.addPlaces();
+    this.group.add(treeRing(32, 34));
     const moving = [...this.actors.values()].map((actor) => actor.group);
     mergeStatic(this.group, moving);
   }
@@ -96,6 +98,16 @@ export class ZooPark implements Zone, WalkableSpace {
       );
     }
     this.walkColliders.push(circle(ZOO_PARK.x + x, ZOO_PARK.z + z, PEN_RADIUS));
+    // Something of their own in each pen: a rock and a bush, away from the animal.
+    const away = angle + Math.PI / 2;
+    this.group.add(
+      solid(new THREE.DodecahedronGeometry(0.8, 0), lowPoly(0x9aa0a8), [
+        x + Math.cos(away) * 3.6,
+        0.45,
+        z + Math.sin(away) * 3.6,
+      ]),
+      roundTree(x - Math.cos(away) * 3.6, z - Math.sin(away) * 3.6, 0.9, 0x5fae5a),
+    );
     const actor = new ZooAnimal(id, index);
     actor.group.position.set(x, 0.07, z);
     actor.group.rotation.y = Math.atan2(-x, -z);
