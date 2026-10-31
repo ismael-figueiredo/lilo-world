@@ -23,6 +23,8 @@ import type { RenameProfile } from '@application/use-cases/rename-profile';
 import type { RewardSafeTrip } from '@application/use-cases/reward-safe-trip';
 import type { FollowDay } from '@application/use-cases/follow-day';
 import type { KeepBeachMemory } from '@application/use-cases/keep-beach-memory';
+import type { BuyDecor } from '@application/use-cases/buy-decor';
+import type { KeepDayMemory } from '@application/use-cases/keep-day-memory';
 import type { MeetAnimal } from '@application/use-cases/meet-animal';
 import type { NoteMood } from '@application/use-cases/note-mood';
 import type { SaveSession } from '@application/use-cases/save-session';
@@ -63,6 +65,8 @@ export interface PlayerServices {
   readonly followDay: FollowDay;
   readonly noteMood: NoteMood;
   readonly meetAnimal: MeetAnimal;
+  readonly keepDayMemory: KeepDayMemory;
+  readonly buyDecor: BuyDecor;
   readonly keepBeachMemory: KeepBeachMemory;
 }
 

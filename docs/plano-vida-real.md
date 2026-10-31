@@ -312,15 +312,15 @@ Objetivo: lazer livre com segurança.
 
 Objetivo: fechar o dia e preparar o jogo para crianças reais.
 
-- [ ] **C14.1 Rotina da noite.** Jantar, banho, pijama, dentes. Pronto: reaproveita a C4.
-- [ ] **C14.2 Dormir e história.** Deitar, ouvir uma história curta, apagar a luz. Pronto: tela calma, sem brilho forte.
-- [ ] **C14.3 Lembrança do dia.** Fotos do que foi feito. Pronto: fica no álbum.
-- [ ] **C14.4 Recompensas.** Roupas e enfeites para o quarto ganhos com moedas. Pronto: sem compras reais.
-- [ ] **C14.5 Área dos adultos.** Metas, blocos, tempo, clima, sensorial, progresso. Pronto: tudo local e por trás do botão de segurar.
-- [ ] **C14.6 Roteiro de gravação.** Exportar as frases com id e contexto. Pronto: lista pronta para gravar.
-- [ ] **C14.7 Trocar a voz.** Áudios gravados com fallback para voz sintetizada. Pronto: funciona sem mudar conteúdo.
-- [ ] **C14.8 Teste com crianças.** Sessões acompanhadas e observação. Pronto: ajustes priorizados.
-- [ ] **C14.9 Revisão final.** Acessibilidade, desempenho, saves antigos, documentação e `CREDITS.md`. Pronto: `pnpm check`, `pnpm build` e metas de desempenho cumpridas.
+- [x] **C14.1 Rotina da noite.** Jantar, banho, dentes, pijama e cama, com as cenas da C4.
+- [x] **C14.2 Dormir e história.** Quatro histórias curtas, uma frase por toque, e a luz que escurece devagar. A criança pode só dormir.
+- [x] **C14.3 Lembrança do dia.** Os últimos 7 dias no álbum, em figuras do que foi feito. Não são fotos reais da cena.
+- [x] **C14.4 Recompensas.** Quatro enfeites para o quarto, pagos com moedas douradas do jogo, sem compras reais. As roupas já existiam.
+- [x] **C14.5 Área dos adultos.** Atrás do botão de segurar: habilidades por trilha, blocos, tempo, clima, viagem, sentimentos e humor. Metas próprias do adulto não foram criadas.
+- [x] **C14.6 Roteiro de gravação.** `pnpm voice:script` gera [roteiro-gravacao.csv](roteiro-gravacao.csv). As frases das atividades e das missões ficam fora, porque são geradas com o conteúdo.
+- [ ] **C14.7 Trocar a voz.** O código está pronto: `public/voice/manifest.json` liga cada texto a um arquivo, e o que falta segue na voz sintetizada. **Falta gravar os áudios.**
+- [ ] **C14.8 Teste com crianças.** Roteiro em [teste-com-criancas.md](teste-com-criancas.md). **Falta fazer as sessões, depois da revisão profissional.**
+- [ ] **C14.9 Revisão final.** `pnpm check`, `pnpm build`, saves antigos e documentação em dia. **Falta medir desempenho em tablet real e revisar acessibilidade com controle físico e leitor de tela.**
 
 ## 6. Riscos
 

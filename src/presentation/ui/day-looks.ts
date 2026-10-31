@@ -12,6 +12,8 @@ export const stepLooks: Readonly<Record<StepId, { icon: string; name: string }>>
   lunch: { icon: '🍲', name: 'Almoço' },
   study: { icon: '✏️', name: 'Estudar' },
   outside: { icon: '🌳', name: 'Sair na rua' },
+  dinner: { icon: '🍽️', name: 'Jantar' },
+  brush: { icon: '🪥', name: 'Dentes' },
   shower: { icon: '🚿', name: 'Tomar banho' },
   pajamas: { icon: '🌙', name: 'Vestir o pijama' },
   sleep: { icon: '🛏️', name: 'Dormir' },

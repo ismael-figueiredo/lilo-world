@@ -55,6 +55,8 @@ describe('LocalStorageProgressRepository', () => {
       missionStats: {},
       skillLevels: { letters: 1, numbers: 1, coins: 1, world: 1 },
       stickerIds: [],
+      decorIds: [],
+      memories: [],
       letters: [],
     });
   });

@@ -13,7 +13,9 @@ export type StepId =
   | 'lunch'
   | 'study'
   | 'outside'
+  | 'dinner'
   | 'shower'
+  | 'brush'
   | 'pajamas'
   | 'sleep';
 
@@ -27,7 +29,7 @@ export const dayBlocks: readonly Block[] = [
   { id: 'morning', steps: ['wake', 'eat', 'teeth', 'dress', 'backpack'] },
   { id: 'school', steps: ['school'] },
   { id: 'afternoon', steps: ['lunch', 'study', 'outside'] },
-  { id: 'night', steps: ['shower', 'pajamas', 'sleep'] },
+  { id: 'night', steps: ['dinner', 'shower', 'brush', 'pajamas', 'sleep'] },
 ];
 
 export interface DayState {

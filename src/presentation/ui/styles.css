@@ -3194,3 +3194,16 @@ body:has(.challenge.is-visible) .dialog {
   font-size: 2rem;
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
 }
+
+/* Bedtime: the room goes dark slowly, and nothing flashes. */
+.fade.is-dim {
+  opacity: 0.72;
+}
+
+.memory {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  justify-content: center;
+  font-size: 1.5rem;
+}

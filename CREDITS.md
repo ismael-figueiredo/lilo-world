@@ -74,3 +74,7 @@ Os cartões ainda sem pictograma revisado usam os emojis do sistema operacional.
 
 - **Jade:** app brasileiro de jogos para crianças neurodivergentes
 - **Autcraft:** servidor seguro de Minecraft para pessoas autistas e suas famílias
+
+## Feito para o projeto
+
+Os animais do zoológico, a escola, a praia, o ônibus por dentro e a criança personalizável são feitos em código neste repositório, com a mesma licença GPL-3.0 do jogo. As histórias e os textos também.

@@ -8,6 +8,7 @@ import {
 import { MAX_LEVEL, stations, type SkillId, type Station } from '@domain/curriculum/skill';
 import type { Mission, MissionId } from '@domain/mission/mission';
 import { Coins } from '@domain/reward/coins';
+import { isDecor, type DecorId } from '@domain/reward/room-decor';
 import { noReward, type Reward } from '@domain/reward/reward';
 import { domainError, err, ok, type Result } from '@domain/shared/result';
 import { ALBUM_LETTERS, stickerId, type StickerId } from '@domain/stickers/sticker';
@@ -39,11 +40,21 @@ export interface ProgressSnapshot {
   /** Level reached in each learning skill (1 when never played). */
   readonly skillLevels?: Readonly<Partial<Record<Station, number>>>;
   readonly stickerIds?: readonly StickerId[];
+  readonly decorIds?: readonly string[];
+  readonly memories?: readonly DayMemory[];
   /** Letters collected for the alphabet album. */
   readonly letters?: readonly string[];
   /** The story of each skill. Older saves have none: every skill then starts as new. */
   readonly skillRecords?: Readonly<Record<SkillId, SkillRecord>>;
 }
+
+/** What one day had, kept for the album. */
+export interface DayMemory {
+  readonly day: number;
+  readonly steps: readonly string[];
+}
+
+const MEMORIES_KEPT = 7;
 
 /** One answer at a learning station. */
 export interface ChallengeRecord {
@@ -71,6 +82,8 @@ interface State {
   readonly stats: Readonly<Record<MissionId, MissionStats>>;
   readonly skillLevels: Readonly<Record<Station, number>>;
   readonly stickers: ReadonlySet<StickerId>;
+  readonly decor: readonly DecorId[];
+  readonly memories: readonly DayMemory[];
   readonly letters: ReadonlySet<string>;
   readonly skillRecords: Readonly<Record<SkillId, SkillRecord>>;
 }
@@ -95,6 +108,8 @@ export class PlayerProgress {
       stats: {},
       skillLevels: startingLevels(),
       stickers: new Set(),
+      decor: [],
+      memories: [],
       letters: new Set(),
       skillRecords: {},
     });
@@ -138,6 +153,8 @@ export class PlayerProgress {
       stats,
       skillLevels,
       stickers: new Set(snapshot.stickerIds ?? []),
+      decor: (snapshot.decorIds ?? []).filter(isDecor),
+      memories: (snapshot.memories ?? []).slice(-MEMORIES_KEPT),
       letters: new Set((snapshot.letters ?? []).filter((l) => ALBUM_LETTERS.includes(l))),
       skillRecords,
     });
@@ -153,6 +170,8 @@ export class PlayerProgress {
       missionStats: { ...this.state.stats },
       skillLevels: { ...this.state.skillLevels },
       stickerIds: [...this.state.stickers],
+      decorIds: [...this.state.decor],
+      memories: [...this.state.memories],
       letters: [...this.state.letters],
       skillRecords: { ...this.state.skillRecords },
     };
@@ -166,6 +185,27 @@ export class PlayerProgress {
   recordSkill(id: SkillId, firstTry: boolean, now: number): PlayerProgress {
     const record = recordAnswer(this.state.skillRecords[id] ?? emptyRecord, firstTry, now);
     return this.with({ skillRecords: { ...this.state.skillRecords, [id]: record } });
+  }
+
+  get decor(): readonly DecorId[] {
+    return this.state.decor;
+  }
+
+  get memories(): readonly DayMemory[] {
+    return this.state.memories;
+  }
+
+  withMemory(memory: DayMemory): PlayerProgress {
+    return this.with({ memories: [...this.state.memories, memory].slice(-MEMORIES_KEPT) });
+  }
+
+  /** Undefined when the coins do not reach, or the room already has it. */
+  buyDecor(id: DecorId, cost: number): PlayerProgress | undefined {
+    const price = Coins.of(cost);
+    if (!price.ok || this.state.decor.includes(id)) return undefined;
+    const remaining = this.state.coins.subtract(price.value);
+    if (!remaining.ok) return undefined;
+    return this.with({ coins: remaining.value, decor: [...this.state.decor, id] });
   }
 
   /** The prize for finishing the day's plan. */

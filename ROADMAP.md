@@ -36,6 +36,7 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | Vida real C11: cenas de sentimentos em revisão, medidor de humor e cantinho calmo               | 🟡 parcial | —         |
 | Vida real C12: passeio ao zoológico, 10 animais feitos em código, ingresso e caderno de animais | ✅ feito   | —         |
 | Vida real C13: passeio à praia, castelo, conchas, água segura e quiosque                        | ✅ feito   | —         |
+| Vida real C14: noite, histórias, lembranças, enfeites e voz gravável; falta gravar e testar     | 🟡 parcial | —         |
 | Currículo 3: áudio gravado, rimas, vogais e sílabas (depende da gravação)                       | ⏭️ próximo | —         |
 | Vida real 2: casa e mercado para andar, agenda do dia, fim dos portais, receita completa        | ⏳ depois  | —         |
 | Vida real 3: ônibus de verdade, escola e fazenda caminháveis, histórias em figuras              | ⏳ depois  | —         |

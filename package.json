@@ -15,6 +15,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "size": "node scripts/report-size.mjs",
+    "voice:script": "node --experimental-strip-types scripts/export-phrases.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

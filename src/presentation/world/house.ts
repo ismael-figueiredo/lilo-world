@@ -14,7 +14,17 @@ import { mergeStatic } from '@presentation/world/merge-static';
 export const HOUSE = { x: 460, z: 0 } as const;
 
 export type HouseThing =
-  'bed' | 'table' | 'sink' | 'shower' | 'wardrobe' | 'desk' | 'door' | 'fridge' | 'stove' | 'calm';
+  | 'bed'
+  | 'table'
+  | 'sink'
+  | 'shower'
+  | 'wardrobe'
+  | 'desk'
+  | 'door'
+  | 'fridge'
+  | 'stove'
+  | 'calm'
+  | 'decor';
 
 export type FoodId = 'bread' | 'fruit' | 'cereal' | 'egg';
 
@@ -38,6 +48,7 @@ export const standSpots: Readonly<Record<HouseThing, HouseSpot>> = {
   fridge: { x: 6, z: 2, facing: 2.4 },
   stove: { x: 3.3, z: 1.5, facing: Math.PI },
   calm: { x: -3.6, z: 2.4, facing: 0 },
+  decor: { x: -3.2, z: -2.4, facing: Math.PI },
 };
 
 const looks: Readonly<Record<HouseThing, { icon: string; label: string; name: string }>> = {
@@ -51,6 +62,7 @@ const looks: Readonly<Record<HouseThing, { icon: string; label: string; name: st
   fridge: { icon: '🧊', label: 'Geladeira', name: 'Geladeira' },
   stove: { icon: '🍳', label: 'Fogão', name: 'Fogão' },
   calm: { icon: '🧸', label: 'Cantinho calmo', name: 'Cantinho calmo' },
+  decor: { icon: '🖼️', label: 'Enfeitar o quarto', name: 'Enfeites do quarto' },
 };
 
 export type MirrorId = 'bedroom' | 'bathroom';
@@ -103,6 +115,7 @@ export class House {
   private readonly fridgeDoor = new THREE.Group();
   private readonly fridgeInside = new THREE.Group();
   private readonly cooking = new THREE.Group();
+  private readonly decor = new THREE.Group();
   private readonly calmGlow = new THREE.PointLight(0xffd9a0, 8, 7, 1.6);
   readonly study = new StudyDesk(this.desk);
   private readonly sinkWater: THREE.Mesh;
@@ -144,7 +157,14 @@ export class House {
     this.sunbeam.position.set(-6.2, 1.5, -4.1);
     this.sunbeam.visible = false;
     this.group.add(this.sunbeam);
-    this.group.add(this.meal, this.desk, this.study.group, this.fridgeInside, this.cooking);
+    this.group.add(
+      this.meal,
+      this.desk,
+      this.study.group,
+      this.fridgeInside,
+      this.cooking,
+      this.decor,
+    );
 
     for (const thing of Object.keys(standSpots) as HouseThing[]) this.addPlace(thing);
     mergeStatic(this.group, [
@@ -154,6 +174,7 @@ export class House {
       this.fridgeDoor,
       this.fridgeInside,
       this.cooking,
+      this.decor,
       this.sinkWater,
       this.showerWater,
       this.curtain,
@@ -533,6 +554,24 @@ export class House {
     this.piece([0.5, 0.06, 0.5], 0x9aa0b4, [6.6, 2.3, -5.5]);
     this.piece([2.7, 0.05, 0.05], 0x9aa0b4, [6.6, 2.4, -3.1]);
     this.piece([0.2, 2.4, 0.1], 0xfdf6ea, [5.25, 1.2, -3.1]);
+  }
+
+  /** What the child bought for the room. */
+  showDecor(items: readonly { readonly id: string; readonly icon: string }[]): void {
+    this.decor.clear();
+    const spots: Readonly<Record<string, readonly [number, number, number]>> = {
+      poster: [-4.6, 1.7, -5.8],
+      plant: [-0.9, 0.05, -5.2],
+      pillow: [-5.9, 0.75, -5.2],
+      stars: [-1.2, 2, -5.8],
+    };
+    for (const { id, icon } of items) {
+      const [x = 0, y = 0, z = 0] = spots[id] ?? [];
+      const item = pictureOf({ pictogram: icon });
+      item.scale.setScalar(2);
+      item.position.set(x, y, z);
+      this.decor.add(item);
+    }
   }
 
   /** A soft light in the corner, and nothing else changes. */

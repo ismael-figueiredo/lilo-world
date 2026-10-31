@@ -1,5 +1,7 @@
 import type { Album } from '@application/use-cases/get-album';
 import type { ProgressSummary } from '@application/use-cases/get-progress-summary';
+import type { StepId } from '@domain/day/day-plan';
+import { stepLooks } from '@presentation/ui/day-looks';
 import { h } from '@presentation/ui/dom';
 
 /** What the child has achieved, shown with pictures and big numbers. */
@@ -89,6 +91,18 @@ export class ProgressPanel {
             ],
           ),
         ),
+      ),
+      h('h3', { className: 'settings__heading', text: '📸 Lembranças dos dias' }),
+      ...album.memories.map((memory) =>
+        h('div', { className: 'memory', attrs: { 'aria-label': `Dia ${memory.day}` } }, [
+          h('strong', { text: `Dia ${memory.day}` }),
+          ...memory.steps.map((step) =>
+            h('span', {
+              text: stepLooks[step as StepId].icon,
+              attrs: { title: stepLooks[step as StepId].name },
+            }),
+          ),
+        ]),
       ),
       h('h3', { className: 'settings__heading', text: '🔤 Meu alfabeto' }),
       h(

@@ -22,9 +22,9 @@ describe('the phases of the day', () => {
     expect(phaseOf(after(...morning, 'school'))).toBe('noon');
     expect(phaseOf(after(...morning, 'school', 'lunch', 'study'))).toBe('afternoon');
     expect(phaseOf(after(...morning, 'school', 'lunch', 'study', 'outside'))).toBe('dusk');
-    expect(phaseOf(after(...morning, 'school', 'lunch', 'study', 'outside', 'shower'))).toBe(
-      'night',
-    );
+    expect(
+      phaseOf(after(...morning, 'school', 'lunch', 'study', 'outside', 'dinner', 'shower')),
+    ).toBe('night');
   });
 });
 

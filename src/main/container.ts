@@ -40,6 +40,8 @@ import { StartMission } from '@application/use-cases/start-mission';
 import { SuggestNextGoal } from '@application/use-cases/suggest-next-goal';
 import { FollowDay } from '@application/use-cases/follow-day';
 import { KeepBeachMemory } from '@application/use-cases/keep-beach-memory';
+import { BuyDecor } from '@application/use-cases/buy-decor';
+import { KeepDayMemory } from '@application/use-cases/keep-day-memory';
 import { MeetAnimal } from '@application/use-cases/meet-animal';
 import { NoteMood } from '@application/use-cases/note-mood';
 import { ToggleWardrobeItem } from '@application/use-cases/toggle-wardrobe-item';
@@ -57,6 +59,7 @@ import { LocalStorageSettingsRepository } from '@infrastructure/persistence/loca
 import { migrateLegacyProgress } from '@infrastructure/persistence/migrations';
 import { profileKey } from '@infrastructure/persistence/storage-keys';
 import { SilentSpeech } from '@infrastructure/speech/silent-speech';
+import { RecordedSpeech, type VoiceManifest } from '@infrastructure/speech/recorded-speech';
 import { WebSpeech } from '@infrastructure/speech/web-speech';
 import { RandomIdGenerator } from '@infrastructure/system/random-id-generator';
 import { SystemClock } from '@infrastructure/system/system-clock';
@@ -80,6 +83,17 @@ export interface Adapters {
   readonly ids: IdGenerator;
   /** New challenges; Math.random when not given. */
   readonly random?: RandomSource;
+}
+
+/** The list of recordings, read once. No list means the synthetic voice says everything. */
+function recordedPhrases(): () => Promise<VoiceManifest> {
+  let manifest: Promise<VoiceManifest> | undefined;
+  return () => {
+    manifest ??= fetch(`${import.meta.env.BASE_URL}voice/manifest.json`)
+      .then((response) => (response.ok ? (response.json() as Promise<VoiceManifest>) : {}))
+      .catch(() => ({}));
+    return manifest;
+  };
 }
 
 /** Wires use cases to whatever adapters are given. Tests pass fakes; the browser passes real ones. */
@@ -115,6 +129,8 @@ export function createServices(adapters: Adapters): GameServices {
       followDay: new FollowDay(day),
       noteMood: new NoteMood(moods, clock),
       meetAnimal: new MeetAnimal(progress),
+      keepDayMemory: new KeepDayMemory(progress),
+      buyDecor: new BuyDecor(progress),
       keepBeachMemory: new KeepBeachMemory(progress),
     };
   };
@@ -159,10 +175,13 @@ export function createBrowserAdapters(win: Window = window): Adapters {
       day: new LocalStorageDayRepository(storage, profileKey(profileId, 'day')),
       moods: new LocalStorageMoodRepository(storage, profileKey(profileId, 'moods')),
     }),
-    speech:
+    speech: new RecordedSpeech(
       'speechSynthesis' in win
         ? new WebSpeech(win.speechSynthesis, (text) => new SpeechSynthesisUtterance(text))
         : new SilentSpeech(),
+      recordedPhrases(),
+      (file) => new Audio(`${import.meta.env.BASE_URL}voice/${file}`),
+    ),
     audio: 'AudioContext' in win ? new WebAudioPlayer(() => new AudioContext()) : new SilentAudio(),
     clock,
     ids,

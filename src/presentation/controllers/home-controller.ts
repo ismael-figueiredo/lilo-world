@@ -11,7 +11,9 @@ import {
   type StepId,
 } from '@domain/day/day-plan';
 import { fitsWeather, phaseOf } from '@domain/day/weather';
+import { storyOfDay } from '@domain/day/stories';
 import type { Errand } from '@domain/errand/errand';
+import { decorItems, decorOf, isDecor } from '@domain/reward/room-decor';
 import type { SchoolStage } from '@domain/school/school-day';
 import type { Station } from '@domain/curriculum/skill';
 import type { GameContext } from '@presentation/game-context';
@@ -34,7 +36,9 @@ const stepThings: Readonly<Record<StepId, HouseThing>> = {
   lunch: 'fridge',
   study: 'desk',
   outside: 'door',
+  dinner: 'table',
   shower: 'shower',
+  brush: 'sink',
   pajamas: 'wardrobe',
   sleep: 'bed',
 };
@@ -193,6 +197,7 @@ export class HomeController {
     this.house.setCurtain(false);
     this.house.setWater(undefined);
     this.house.layOut([...backpackList(this.day), ...notForToday(this.day)]);
+    await this.showRoom();
     if (this.step === 'wake') {
       await this.wake(isNew);
       return;
@@ -243,11 +248,14 @@ export class HomeController {
         else this.ctx.say(phrases.bedNotYet);
         return;
       case 'table':
-        if (this.isOpen('eat')) await this.eat();
+        if (this.isOpen('eat')) await this.eat('eat');
+        else if (this.isOpen('dinner')) await this.eat('dinner');
         else this.ctx.say(this.tip ?? phrases.mealDone);
         return;
       case 'sink':
-        await (this.isOpen('teeth') ? this.teeth() : this.washHands());
+        if (this.isOpen('teeth')) await this.teeth('teeth');
+        else if (this.isOpen('brush')) await this.teeth('brush');
+        else await this.washHands();
         return;
       case 'shower':
         if (this.isOpen('shower')) await this.shower();
@@ -269,6 +277,9 @@ export class HomeController {
         return;
       case 'calm':
         await this.calmCorner();
+        return;
+      case 'decor':
+        await this.decorate();
         return;
       case 'stove':
         if (this.isOpen('lunch') && this.errand?.stage === 'cook') await this.ctx.errand.cook();
@@ -428,7 +439,7 @@ export class HomeController {
     await wait(WINDOW_LOOK_MS);
   }
 
-  private async eat(): Promise<void> {
+  private async eat(step: 'eat' | 'dinner'): Promise<void> {
     await this.scene('table', async () => {
       const { avatar } = this.ctx;
       this.sitAt(CHAIR, CHAIR_HEIGHT);
@@ -453,12 +464,12 @@ export class HomeController {
       avatar.feel('calm');
       this.house.clearTable();
       this.standUp(standSpots.table);
-      await this.complete('eat');
+      await this.complete(step);
       return phrases.mealDone;
     });
   }
 
-  private async teeth(): Promise<void> {
+  private async teeth(step: 'teeth' | 'brush'): Promise<void> {
     await this.scene('sink', async () => {
       const { avatar } = this.ctx;
       this.house.setMirror('bathroom');
@@ -490,7 +501,7 @@ export class HomeController {
       await wait(1400);
       avatar.feel('calm');
       this.house.setMirror(undefined);
-      await this.complete('teeth');
+      await this.complete(step);
       return phrases.teethDone;
     });
   }
@@ -767,14 +778,66 @@ export class HomeController {
     }
   }
 
+  /** What the coins of the game buy for the room. There are no real purchases here. */
+  private async decorate(): Promise<void> {
+    await this.scene('decor', async () => {
+      const owned = await this.ctx.player.buyDecor.owned();
+      this.ctx.say(phrases.decorOffer);
+      const chosen = await this.sheet.choose(phrases.decorOffer, [
+        ...decorItems.map((item) => ({
+          id: item.id,
+          icon: item.icon,
+          label: `${item.name} 🪙 ${item.price}`,
+          used: owned.includes(item.id),
+        })),
+        { id: 'later', icon: '🚶', label: 'Agora não' },
+      ]);
+      if (!isDecor(chosen)) return this.tip;
+      const bought = await this.ctx.player.buyDecor.execute(chosen);
+      if (!bought) return phrases.decorSoon;
+      await this.ctx.refresh();
+      await this.showRoom();
+      this.ctx.sound('star');
+      return phrases.decorBought(decorOf(chosen).name);
+    });
+  }
+
+  private async showRoom(): Promise<void> {
+    const owned = await this.ctx.player.buyDecor.owned();
+    this.house.showDecor(owned.map(decorOf));
+  }
+
+  /** A short story, if the child wants one, one sentence at a press. */
+  private async tellStory(): Promise<void> {
+    const story = storyOfDay(this.day.number);
+    this.ctx.say(phrases.storyAsk);
+    const chosen = await this.sheet.choose(phrases.storyAsk, [
+      { id: 'yes', icon: story.icon, label: story.title },
+      { id: 'no', icon: '😴', label: 'Só dormir' },
+    ]);
+    if (chosen === 'no') return;
+    for (const line of story.lines) {
+      this.ctx.say(line);
+      await this.sheet.press([{ icon: story.icon, label: 'Continuar' }], 0);
+    }
+  }
+
   private async sleep(): Promise<void> {
     await this.scene('bed', async () => {
       await this.ctx.transition(() => {
         this.goToBed();
       });
+      this.ctx.say(phrases.dayMemory);
+      await this.ctx.player.keepDayMemory.execute(this.day);
+      await wait(1600);
+      await this.tellStory();
+      this.ctx.say(phrases.lightsOff);
+      await this.sheet.press([{ icon: '💡', label: 'Apagar a luz' }], 0);
+      this.ctx.dimLights(true);
       this.ctx.say(phrases.goodNight(this.ctx.profile.name));
       await wait(2200);
       await this.complete('sleep');
+      this.ctx.dimLights(false);
       await this.begin(false, undefined);
       return this.tip;
     });

@@ -326,6 +326,10 @@ export class GameApp implements GameContext {
     return character;
   }
 
+  dimLights(on: boolean): void {
+    this.fade.classList.toggle('is-dim', on);
+  }
+
   refreshGoal(): void {
     this.showMarker();
   }

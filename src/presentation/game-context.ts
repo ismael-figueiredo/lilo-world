@@ -68,6 +68,8 @@ export interface GameContext {
   addClassmate(member: CastMember): Player;
   /** During a scene that takes a while: the camera stays in the child's hands. */
   letLookAround(): void;
+  /** The room gets darker, gently, at bedtime. */
+  dimLights(on: boolean): void;
   /** The goal changed: arrows and the map show the new one. */
   refreshGoal(): void;
   /** Free study of a subject, at the desk. */

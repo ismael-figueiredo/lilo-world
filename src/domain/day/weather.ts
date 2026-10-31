@@ -18,7 +18,9 @@ const phases: Readonly<Record<StepId, Phase>> = {
   lunch: 'noon',
   study: 'noon',
   outside: 'afternoon',
+  dinner: 'dusk',
   shower: 'dusk',
+  brush: 'night',
   pajamas: 'night',
   sleep: 'night',
 };
