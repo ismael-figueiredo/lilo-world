@@ -205,7 +205,7 @@ export class Player {
     for (const part of this.root.children) part.visible = inView;
   }
 
-  /** Costumes can walk and greet, but only the child has the motions of daily life. */
+  /** Costumes can walk, greet and sit, but only the child has the other motions of daily life. */
   canDo(emote: Emote): boolean {
     return this.actions.has(emoteClips[emote][0] ?? '');
   }
