@@ -11,6 +11,7 @@ export class Mascot {
   private readonly body = new THREE.Group();
   private readonly wings: THREE.Mesh[] = [];
   private readonly target = new THREE.Vector3();
+  private airspace: THREE.Box3 | undefined;
   motionScale = 1;
 
   constructor() {
@@ -54,6 +55,7 @@ export class Mascot {
       playerPosition.y + 2.5 + Math.sin(time * 1.6) * 0.15 * this.motionScale,
       playerPosition.z + rightZ * 1.5 + forwardZ * 0.8,
     );
+    if (this.airspace !== undefined) this.target.clamp(this.airspace.min, this.airspace.max);
     this.root.position.lerp(this.target, damping(3, dt));
     // Looks back towards the camera, like a friend waiting for you.
     this.root.rotation.y = dampAngle(this.root.rotation.y, cameraYaw, 4, dt);
@@ -66,5 +68,11 @@ export class Mascot {
 
   placeNear(position: THREE.Vector3): void {
     this.root.position.set(position.x + 1, position.y + 2.4, position.z);
+    if (this.airspace !== undefined) this.root.position.clamp(this.airspace.min, this.airspace.max);
+  }
+
+  /** Under a low roof Lilo stays between the walls, wherever the camera turns. */
+  flyWithin(airspace: THREE.Box3 | undefined): void {
+    this.airspace = airspace;
   }
 }

@@ -25,6 +25,8 @@ export interface WalkableSpace {
   readonly open?: boolean;
   /** The part of an open place with a roof over it. */
   readonly roofed?: DryArea;
+  /** Where the guide can fly, in a place too low and narrow for it to fly freely. */
+  readonly airspace?: THREE.Box3;
   contains(x: number, z: number): boolean;
   /** Places with windows show the moment and the weather through them. */
   showMoment?(phase: Phase, weather: Weather): void;

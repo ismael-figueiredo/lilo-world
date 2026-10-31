@@ -335,6 +335,7 @@ export class SchoolController {
     ctx.say(phrases.sitOnBus);
     await this.home.sheet.press([{ icon: '💺', label: 'Sentar' }], 0);
     this.sit(ctx.avatar, bus.seat, Math.PI / 2);
+    ctx.perchGuide(bus.perch);
     const view = bus.camera;
     ctx.rig.setFocus(view.position, view.lookAt, true);
     bus.setMoving(true);

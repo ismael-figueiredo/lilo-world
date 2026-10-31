@@ -306,6 +306,10 @@ export class GameApp implements GameContext {
     this.guardianPerson?.character.placeAt(at.clone().setX(at.x + 2), Math.PI);
   }
 
+  perchGuide(at: THREE.Vector3): void {
+    this.mascot.flyWithin(new THREE.Box3(at, at));
+  }
+
   enterSpace(space: WalkableSpace): void {
     const world = this.world;
     world.setInside(space);
@@ -313,18 +317,24 @@ export class GameApp implements GameContext {
     this.rig.setIndoors(true);
     this.avatar.placeAt(space.entrance, Math.PI);
     this.rig.snapTo(space.entrance);
+    this.mascot.flyWithin(space.airspace);
+    this.mascot.root.scale.setScalar(space.open === true ? 1 : INDOOR_MASCOT);
+    this.mascot.placeNear(space.entrance);
   }
 
   leaveSpace(doorId: string): void {
     const world = this.world;
     world.setInside(undefined);
     this.rig.setIndoors(false);
+    this.mascot.flyWithin(undefined);
+    this.mascot.root.scale.setScalar(1);
     const door = world.townPlaces.find((place) => place.id === doorId);
     if (door === undefined) return;
     const towardStreet = door.position.z > CITY.z ? Math.PI : 0;
     this.avatar.placeAt(door.position, towardStreet);
     this.rig.yaw = towardStreet;
     this.rig.snapTo(door.position);
+    this.mascot.placeNear(door.position);
   }
 
   private async loadOutings(): Promise<Outings> {
@@ -548,6 +558,7 @@ export class GameApp implements GameContext {
     this.marker.setSize(indoors ? INDOOR_MARKER : 1);
     this.showComfort();
     this.playAmbience();
+    this.mascot.flyWithin(undefined);
     this.mascot.root.scale.setScalar(indoors ? INDOOR_MASCOT : 1);
   }
 

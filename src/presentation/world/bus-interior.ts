@@ -18,6 +18,8 @@ const SILL = 1.15;
 const PANE_TOP = 2.25;
 const PANES = 5;
 const BEEP_FADE = 0.7;
+/** Room Lilo keeps from the walls and the roof: its size, at indoor scale. */
+const WING_ROOM = 0.45;
 
 /** The light outside falls on everything seen through the glass. */
 function lightOutside(phase: Phase, weather: Weather): number {
@@ -134,6 +136,18 @@ export class BusInterior implements Zone, WalkableSpace {
   readonly walkColliders: readonly Collider[] = [];
   readonly walkPlaces: readonly Interactable[] = [];
   readonly height = FLOOR;
+  readonly airspace = new THREE.Box3(
+    new THREE.Vector3(
+      BUS_INTERIOR.x - LENGTH / 2 + WING_ROOM,
+      FLOOR + 1,
+      BUS_INTERIOR.z - WIDTH / 2 + WING_ROOM,
+    ),
+    new THREE.Vector3(
+      BUS_INTERIOR.x + LENGTH / 2 - WING_ROOM,
+      FLOOR + HEIGHT - WING_ROOM,
+      BUS_INTERIOR.z + WIDTH / 2 - WING_ROOM,
+    ),
+  );
   private readonly cabin = new THREE.Group();
   private readonly views: readonly THREE.CanvasTexture[] = [nearLayer(), streetLayer(), farLayer()];
   private readonly outside: THREE.MeshBasicMaterial[] = [];
@@ -364,6 +378,13 @@ export class BusInterior implements Zone, WalkableSpace {
   /** Beside the window, where the view is best. */
   get seat(): THREE.Vector3 {
     return this.spot(0.1, -0.85);
+  }
+
+  /** On the rail of the seat behind the child: seen, and out of the way of the view. */
+  get perch(): THREE.Vector3 {
+    const perch = this.spot(-1.9, -0.85);
+    perch.y += 1.72;
+    return perch;
   }
 
   seatOf(index: number): THREE.Vector3 {
