@@ -27,6 +27,7 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | Vida real C2: zonas sob demanda, mundo mais leve, qualidade automática, jogo offline         | ✅ feito   | —         |
 | Vida real C3: criança feita por código, criador, roupas, ações, rostos e pessoas da cidade   | ✅ feito   | —         |
 | Vida real C4: o jogo começa em casa, com agenda do dia; portais e travas por estrelas saíram | ✅ feito   | —         |
+| Vida real C5: fases do dia, clima com semente, céu, chuva, janela, roupa e sons do tempo     | ✅ feito   | —         |
 | Currículo 3: áudio gravado, rimas, vogais e sílabas (depende da gravação)                    | ⏭️ próximo | —         |
 | Vida real 2: casa e mercado para andar, agenda do dia, fim dos portais, receita completa     | ⏳ depois  | —         |
 | Vida real 3: ônibus de verdade, escola e fazenda caminháveis, histórias em figuras           | ⏳ depois  | —         |
@@ -229,7 +230,7 @@ Páginas: `https://poly.pizza/m/<id>`. Confirmar "Quaternius" e "CC0 1.0" antes 
 - **Testar no navegador:**
   - O usuário costuma deixar o próprio servidor na porta **5173**: não mexer nele e usar `pnpm exec vite --port 5180 --strictPort`.
   - Screenshots com puppeteer-core e o Chrome do sistema, com `--use-angle=metal --enable-gpu` (cerca de 30 FPS; o SwiftShader fica em 1 FPS).
-  - Atalhos só de dev no console: `window.lilo.goTo('market' | 'home' | 'bakery' | 'bus-stop')`, `window.lilo.use(id)`, `window.lilo.addPlayTime(min)`, `window.lilo.stats()` (chamadas de desenho, memória, FPS e qualidade), `window.lilo.people([['pajamas'], ['teacher', 'Wave', 0.5, 'happy']])` (mostra roupas ou pessoas, com ação e rosto congelados). `window.lilo.step()` e `window.lilo.skipBlock()` (agenda do dia). `pnpm size` mostra o peso do build.
+  - Atalhos só de dev no console: `window.lilo.goTo('market' | 'home' | 'bakery' | 'bus-stop')`, `window.lilo.use(id)`, `window.lilo.addPlayTime(min)`, `window.lilo.stats()` (chamadas de desenho, memória, FPS e qualidade), `window.lilo.people([['pajamas'], ['teacher', 'Wave', 0.5, 'happy']])` (mostra roupas ou pessoas, com ação e rosto congelados). `window.lilo.step()`, `window.lilo.skipBlock()` (agenda do dia) e `window.lilo.moment('night', 'rain')` (hora e clima). `pnpm size` mostra o peso do build.
   - Subir servidor HTTP local é bloqueado; para páginas de teste fora do projeto, abrir via `file://` com `--allow-file-access-from-files`.
 - **Visual:** o padrão é alto, porque o público joga Minecraft e Goat Simulator. Toda mudança visual precisa ser conferida por screenshot.
 - **Princípios** (checklist em [CONTRIBUTING.md](CONTRIBUTING.md)):

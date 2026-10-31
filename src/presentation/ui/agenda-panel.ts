@@ -5,8 +5,17 @@ import {
   nextStep,
   type DayState,
 } from '@domain/day/day-plan';
+import type { Weather } from '@domain/day/weather';
 import { stepLooks } from '@presentation/ui/day-looks';
 import { h } from '@presentation/ui/dom';
+
+const weatherIcons: Readonly<Record<Weather, string>> = {
+  sunny: '☀️',
+  cloudy: '☁️',
+  rain: '🌧️',
+  wind: '🍃',
+  cold: '🧣',
+};
 
 const blockIcons = { morning: '🌅', afternoon: '☀️', night: '🌙' } as const;
 
@@ -23,7 +32,7 @@ export class AgendaPanel {
     );
   }
 
-  open(day: DayState): void {
+  open(day: DayState, weather: Weather): void {
     const now = currentStep(day);
     const next = nextStep(day);
     const big = (title: string, step: typeof now, className: string) =>
@@ -36,7 +45,7 @@ export class AgendaPanel {
           ]);
     const block = currentBlock(day);
     this.sheet.replaceChildren(
-      h('h2', { className: 'sheet__title', text: `📅 Dia ${day.number}` }),
+      h('h2', { className: 'sheet__title', text: `📅 Dia ${day.number} ${weatherIcons[weather]}` }),
       h('div', { className: 'agenda__now' }, [
         big('Agora', now, 'is-now'),
         h('span', { className: 'agenda__arrow', text: '→', attrs: { 'aria-hidden': 'true' } }),

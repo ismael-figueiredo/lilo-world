@@ -126,6 +126,10 @@ export class City {
   readonly places: Interactable[] = [];
   private readonly trafficLights: TrafficLight[] = [];
   private fountainWater?: THREE.Mesh;
+  private readonly lamps: { x: number; z: number }[] = [];
+  private lightPools!: THREE.InstancedMesh;
+  private puddles!: THREE.InstancedMesh;
+  private glass: readonly THREE.MeshStandardMaterial[] | undefined;
   private readonly stations = new LearningStations(CITY.height);
   private readonly plan = planStreets(ROADS, CROSSINGS.map(crossingRect));
   /** Follows the child near the streets. */
@@ -147,6 +151,8 @@ export class City {
     this.group.add(this.stations.group);
     this.colliders.push(...this.stations.colliders);
     this.places.push(...this.stations.places);
+    this.lightPools = this.spots(3.4, 0xffe2a0, 0.28, 0.9);
+    this.puddles = this.spots(1.1, 0x5a7a9a, 0.45, -1.6);
     mergeStatic(this.group, [
       this.stations.group,
       ...this.trafficLights.map((light) => light.group),
@@ -163,6 +169,63 @@ export class City {
     this.stations.update(time);
     if (this.fountainWater !== undefined)
       this.fountainWater.position.y = 0.62 + Math.sin(time * 2) * 0.03;
+  }
+
+  private addLamp(x: number, z: number): void {
+    this.place(streetLamp(), x, z);
+    this.lamps.push({ x, z });
+  }
+
+  /** Soft circles on the ground, one per lamp: they stand for light without costing lights. */
+  private spots(
+    radius: number,
+    color: number,
+    opacity: number,
+    shift: number,
+  ): THREE.InstancedMesh {
+    const spots = new THREE.InstancedMesh(
+      new THREE.CircleGeometry(radius, 20).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false }),
+      this.lamps.length,
+    );
+    const matrix = new THREE.Matrix4();
+    this.lamps.forEach(({ x, z }, index) => {
+      spots.setMatrixAt(index, matrix.makeTranslation(x + shift, 0.19, z - shift / 2));
+    });
+    spots.visible = false;
+    this.group.add(spots);
+    return spots;
+  }
+
+  /** Lamps pour light on the sidewalks after dark. */
+  setLightsOn(on: boolean): void {
+    this.lightPools.visible = on;
+    for (const glass of this.windowGlass()) {
+      glass.emissive.setHex(0xffcf7a);
+      glass.emissiveIntensity = on ? 0.9 : 0;
+    }
+  }
+
+  /** The glass of houses and shops, as the models name it. */
+  private windowGlass(): readonly THREE.MeshStandardMaterial[] {
+    if (this.glass === undefined) {
+      const found = new Set<THREE.MeshStandardMaterial>();
+      this.group.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return;
+        const materials = [object.material].flat() as THREE.Material[];
+        for (const material of materials) {
+          if (material.name === 'window' && material instanceof THREE.MeshStandardMaterial) {
+            found.add(material);
+          }
+        }
+      });
+      this.glass = [...found];
+    }
+    return this.glass;
+  }
+
+  setPuddles(on: boolean): void {
+    this.puddles.visible = on;
   }
 
   private place(object: THREE.Object3D, x: number, z: number, facingSouth = true): THREE.Object3D {
@@ -463,7 +526,7 @@ export class City {
     for (const x of [-44, -24, -14, 4, 22, 44]) {
       for (const side of [-1, 1]) {
         if (side === -1 && Math.abs(x + 12) < 4) continue;
-        this.place(streetLamp(), x, side * lampZ);
+        this.addLamp(x, side * lampZ);
         this.colliders.push(circle(x, side * lampZ, 0.25));
       }
     }
@@ -512,7 +575,7 @@ export class City {
     // Lamps and trees on the avenue, between the houses.
     const walkZ = AVENUE_Z + AVENUE.width / 2 + AVENUE.sidewalk / 2;
     for (const x of [-32.5, -19.5, -6.5, 6.5, 19.5, 32.5]) {
-      this.place(streetLamp(), x, walkZ);
+      this.addLamp(x, walkZ);
       this.colliders.push(circle(x, walkZ, 0.25));
     }
     const avenueTrees: readonly (readonly [number, number])[] = [
@@ -569,7 +632,7 @@ export class City {
       [-radius - 1.5, 0],
       [radius + 1.5, 0],
     ] as const) {
-      this.place(streetLamp(), sx + dx, sz + dz);
+      this.addLamp(sx + dx, sz + dz);
       this.colliders.push(circle(sx + dx, sz + dz, 0.25));
     }
     const squareSign = createPostSign(

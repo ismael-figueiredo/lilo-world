@@ -1,4 +1,5 @@
 import type { SkillChoice } from '@domain/curriculum/session-plan';
+import { weathers, type Weather } from '@domain/day/weather';
 
 /** Comfort and sensory settings, one set per child. */
 export interface Settings {
@@ -18,6 +19,8 @@ export interface Settings {
   readonly sessionLimitMinutes: SessionLimit;
   /** Skills an adult pinned or hid, by id. */
   readonly skillChoices: Readonly<Record<string, SkillChoice>>;
+  /** 'auto' lets each day have its own weather. */
+  readonly fixedWeather: Weather | 'auto';
 }
 
 export type VoiceSpeed = 'slow' | 'normal';
@@ -41,6 +44,7 @@ export const defaultSettings: Settings = {
   showMinimap: true,
   sessionLimitMinutes: 10,
   skillChoices: {},
+  fixedWeather: 'auto',
 };
 
 const volume = (value: unknown, fallback: number): number =>
@@ -82,6 +86,7 @@ export function sanitizeSettings(raw: unknown, base: Settings = defaultSettings)
     showMinimap: flag(data.showMinimap, base.showMinimap),
     sessionLimitMinutes: oneOf(sessionLimits, data.sessionLimitMinutes, base.sessionLimitMinutes),
     skillChoices: skillChoices(data.skillChoices, base.skillChoices),
+    fixedWeather: oneOf(['auto', ...weathers], data.fixedWeather, base.fixedWeather),
   };
 }
 

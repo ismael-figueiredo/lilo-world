@@ -120,7 +120,25 @@ export class SettingsPanel {
               ),
             ]),
       ]),
-      ...(this.limitUnlocked ? [this.skipRow(), ...this.skillSections(settings)] : []),
+      ...(this.limitUnlocked
+        ? [this.skipRow(), this.weatherRow(settings), ...this.skillSections(settings)]
+        : []),
+    );
+  }
+
+  private weatherRow(settings: Settings): HTMLElement {
+    return this.choice(
+      'Tempo do dia',
+      settings.fixedWeather,
+      [
+        ['auto', 'Muda sozinho'],
+        ['sunny', 'Sol'],
+        ['cloudy', 'Nublado'],
+        ['rain', 'Chuva'],
+        ['wind', 'Vento'],
+        ['cold', 'Frio'],
+      ],
+      (fixedWeather) => ({ fixedWeather }),
     );
   }
 

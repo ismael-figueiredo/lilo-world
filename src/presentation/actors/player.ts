@@ -87,6 +87,7 @@ export class Player {
   private readonly defaultTrim: number | undefined;
   private readonly groundOffset: number;
   private foam: THREE.Group | undefined;
+  private idle = 'idle';
 
   constructor(
     private readonly model: THREE.Object3D,
@@ -171,6 +172,12 @@ export class Player {
   /** Costumes can walk and greet, but only the child has the motions of daily life. */
   canDo(emote: Emote): boolean {
     return this.actions.has(emoteClips[emote][0] ?? '');
+  }
+
+  /** How the character stands still: hugging itself in the cold, or hiding from the rain. */
+  setPosture(posture: 'fine' | 'cold' | 'wet'): void {
+    const name = { fine: 'idle', cold: 'shiver', wet: 'cover' }[posture];
+    this.idle = this.actions.has(name) ? name : 'idle';
   }
 
   /** Ends a motion that holds, such as sitting. */
@@ -321,7 +328,7 @@ export class Player {
     }
     if (this.emote !== null) return;
     const motion: Motion = this.speed > 5.2 ? 'run' : this.speed > 0.3 ? 'walk' : 'idle';
-    this.play(motion, 0.25);
+    this.play(motion === 'idle' ? this.idle : motion, 0.25);
     if (this.current !== undefined && motion !== 'idle') {
       this.current.timeScale =
         motion === 'run' ? this.speed / RUN_SPEED + 0.2 : this.speed / WALK_SPEED;

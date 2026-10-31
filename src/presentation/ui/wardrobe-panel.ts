@@ -19,6 +19,8 @@ export interface WardrobeView {
   readonly outfit: OutfitId;
   readonly pictureOf: (avatarId: string) => string;
   readonly outfitPicture: (outfit: OutfitId) => string;
+  /** Good for today's weather: a small mark, never a rule. */
+  readonly fitsToday: (outfit: OutfitId) => boolean;
 }
 
 type Tab = WardrobeSlot | 'avatar' | 'outfit';
@@ -171,6 +173,9 @@ export class WardrobePanel {
         }),
         h('span', { className: 'item-card__name', text: outfit.name }),
         selected ? h('span', { className: 'item-card__status', text: '✅ Usando' }) : null,
+        !selected && view.fitsToday(outfit.id)
+          ? h('span', { className: 'item-card__status', text: '🌤️ Bom para hoje' })
+          : null,
       ],
     );
   }

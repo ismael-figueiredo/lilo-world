@@ -704,6 +704,29 @@ function dailyClips(hips: number): THREE.AnimationClip[] {
     ForearmR: still([-26, 0, 0]),
   };
   return [
+    shared('shiver', 0.5, {
+      ArmL: still([-52, 0, -24]),
+      ArmR: still([-52, 0, 24]),
+      ForearmL: still([-98, 0, 0]),
+      ForearmR: still([-98, 0, 0]),
+      Torso: [
+        [6, 0, -1.5],
+        [6, 0, 1.5],
+        [6, 0, -1.5],
+      ],
+      Head: still([10, 0, 0]),
+    }),
+    shared('cover', 1.2, {
+      ArmL: still([-170, 0, 8]),
+      ArmR: still([-170, 0, -8]),
+      ForearmL: still([-72, 0, 0]),
+      ForearmR: still([-72, 0, 0]),
+      Head: [
+        [10, -3, 0],
+        [10, 3, 0],
+        [10, -3, 0],
+      ],
+    }),
     shared('sit', 0.6, sitting, [-0.24, -0.24]),
     shared('sit-eat', 1.5, { ...sitting, ...toMouth([-108, 0, 30], [-72, 0, 0]) }, [-0.24, -0.24]),
     shared(

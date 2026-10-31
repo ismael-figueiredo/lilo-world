@@ -1,3 +1,4 @@
+import type { Phase, Weather } from '@domain/day/weather';
 import type * as THREE from 'three';
 import type { Random } from '@presentation/engine/math';
 import type { Quality } from '@presentation/engine/quality';
@@ -6,7 +7,9 @@ import type { Collider } from '@presentation/world/collision';
 import { House } from '@presentation/world/house';
 import type { Interactable } from '@presentation/world/interactable';
 import { Sky } from '@presentation/world/sky';
+import { skyLook } from '@presentation/world/sky-looks';
 import { Town } from '@presentation/world/town';
+import { WeatherEffects } from '@presentation/world/weather-effects';
 import type { WorldAssets } from '@presentation/world/world-assets';
 
 const shadowSizes: Readonly<Record<Quality, number>> = { high: 2048, medium: 1536, low: 1024 };
@@ -18,6 +21,9 @@ const shadowSizes: Readonly<Record<Quality, number>> = { high: 2048, medium: 153
 export class GameWorld {
   readonly sky: Sky;
   readonly house = new House();
+  private readonly effects = new WeatherEffects();
+  private phase: Phase = 'morning';
+  private weather: Weather = 'sunny';
   /** Where the child stands: only what is around them is drawn. */
   indoors = true;
   private town: Town | undefined;
@@ -32,7 +38,7 @@ export class GameWorld {
     private readonly loadAssets: () => Promise<WorldAssets>,
   ) {
     this.sky = new Sky(scene);
-    scene.add(this.house.group);
+    scene.add(this.house.group, this.effects.group);
   }
 
   /** Starts the download without building anything: nobody waits for it. */
@@ -64,8 +70,10 @@ export class GameWorld {
     this.scene.add(town.group);
     town.setMotionScale(this.motion);
     town.setDetailed(this.quality !== 'low');
+    this.showOutside();
     await town.prepareIsland();
     this.town = town;
+    this.showOutside();
     return town;
   }
 
@@ -111,11 +119,14 @@ export class GameWorld {
     this.indoors = indoors;
     this.house.group.visible = indoors;
     if (this.town !== undefined) this.town.group.visible = !indoors;
+    this.sky.setIndoors(indoors);
+    this.showOutside();
   }
 
   setMotionScale(scale: number): void {
     this.motion = scale;
     this.town?.setMotionScale(scale);
+    this.effects.setMoving(scale >= 1);
   }
 
   setQuality(quality: Quality): void {
@@ -124,9 +135,30 @@ export class GameWorld {
     this.sky.setShadowSize(shadowSizes[quality]);
   }
 
-  update(time: number, dt: number, focus: THREE.Vector3): void {
+  /** The moment of the day and its weather. `now` skips the glide, behind a fade. */
+  setMoment(phase: Phase, weather: Weather, now = false): void {
+    this.phase = phase;
+    this.weather = weather;
+    const look = skyLook(phase, weather);
+    this.sky.setLook(look, now);
+    this.house.setWindow(phase, weather);
+    this.effects.setWeather(weather);
+    this.showOutside();
+  }
+
+  private showOutside(): void {
+    const look = skyLook(this.phase, this.weather);
+    const shade = this.weather === 'rain' ? 1 : this.weather === 'cloudy' ? 0.6 : 0;
+    this.town?.setSky(look.night, shade, this.weather === 'rain');
+    this.effects.group.visible = !this.indoors;
+  }
+
+  update(time: number, dt: number, focus: THREE.Vector3, face: THREE.Vector3): void {
     if (this.indoors) this.house.update(time);
-    else this.town?.update(time, dt, focus);
-    this.sky.follow(focus);
+    else {
+      this.town?.update(time, dt, focus);
+      this.effects.update(time, dt, focus, face);
+    }
+    this.sky.follow(focus, dt);
   }
 }

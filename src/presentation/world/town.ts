@@ -6,6 +6,7 @@ import { isInsideAny, type Area, type Collider } from '@presentation/world/colli
 import type { Interactable } from '@presentation/world/interactable';
 import type { MarketInterior } from '@presentation/world/market-interior';
 import { Nature } from '@presentation/world/nature';
+import { lampGlass } from '@presentation/world/props';
 import type { RoadSafety } from '@presentation/world/road-safety';
 import { createTerrainMesh } from '@presentation/world/terrain-mesh';
 import { defaultTerrainOptions, TerrainShape } from '@presentation/world/terrain-shape';
@@ -117,6 +118,14 @@ export class Town {
 
   setMotionScale(scale: number): void {
     this.water.motionScale = scale;
+  }
+
+  /** The time and the weather as the town shows them. */
+  setSky(night: number, shade: number, wet: boolean): void {
+    lampGlass().emissiveIntensity = night > 0.3 ? 2.4 : 0.6;
+    this.city.setLightsOn(night > 0.3);
+    this.city.setPuddles(wet);
+    this.nature.setClouds(shade);
   }
 
   setDetailed(detailed: boolean): void {

@@ -1,4 +1,4 @@
-import type { AudioPlayer, AudioVolumes, SoundEffect } from '@application/ports/audio';
+import type { Ambience, AudioPlayer, AudioVolumes, SoundEffect } from '@application/ports/audio';
 
 interface Note {
   readonly frequency: number;
@@ -52,6 +52,13 @@ const CHORDS = [
 ];
 const BEAT = 60 / 72;
 
+/** Rain and wind are filtered noise; birds and crickets are soft, scattered notes. */
+const NOISES: Readonly<Partial<Record<Ambience, { frequency: number; gain: number }>>> = {
+  rain: { frequency: 1800, gain: 0.16 },
+  wind: { frequency: 320, gain: 0.3 },
+};
+const CALLS_EVERY_MS = 900;
+
 /** Sound effects and a gentle generative background tune, made with Web Audio (no files). */
 export class WebAudioPlayer implements AudioPlayer {
   private context: AudioContext | undefined;
@@ -61,6 +68,11 @@ export class WebAudioPlayer implements AudioPlayer {
   private musicTimer: number | undefined;
   private nextBeatTime = 0;
   private beat = 0;
+  private ambienceGain: GainNode | undefined;
+  private readonly noises = new Map<Ambience, { source: AudioBufferSourceNode; gain: GainNode }>();
+  private calls: readonly Ambience[] = [];
+  private callsTimer: number | undefined;
+  private noiseBuffer: AudioBuffer | undefined;
 
   constructor(private readonly createContext: () => AudioContext | undefined) {}
 
@@ -85,12 +97,81 @@ export class WebAudioPlayer implements AudioPlayer {
   stopMusic(): void {
     window.clearInterval(this.musicTimer);
     this.musicTimer = undefined;
+    this.setAmbience([]);
+  }
+
+  setAmbience(sounds: readonly Ambience[]): void {
+    const context = this.ensureContext();
+    if (context === undefined || this.ambienceGain === undefined) return;
+    for (const [sound, noise] of this.noises) {
+      if (sounds.includes(sound)) continue;
+      noise.gain.gain.setTargetAtTime(0, context.currentTime, 0.5);
+      noise.source.stop(context.currentTime + 2);
+      this.noises.delete(sound);
+    }
+    for (const sound of sounds) {
+      const look = NOISES[sound];
+      if (look !== undefined && !this.noises.has(sound)) this.startNoise(context, sound, look);
+    }
+    this.calls = sounds.filter((sound) => sound === 'birds' || sound === 'crickets');
+    window.clearInterval(this.callsTimer);
+    if (this.calls.length === 0) return;
+    this.callsTimer = window.setInterval(() => {
+      this.call();
+    }, CALLS_EVERY_MS);
+  }
+
+  private startNoise(
+    context: AudioContext,
+    sound: Ambience,
+    look: { frequency: number; gain: number },
+  ): void {
+    if (this.ambienceGain === undefined) return;
+    this.noiseBuffer ??= this.createNoise(context);
+    const source = context.createBufferSource();
+    source.buffer = this.noiseBuffer;
+    source.loop = true;
+    const filter = context.createBiquadFilter();
+    filter.type = sound === 'rain' ? 'highpass' : 'lowpass';
+    filter.frequency.value = look.frequency;
+    const gain = context.createGain();
+    gain.gain.value = 0;
+    gain.gain.setTargetAtTime(look.gain, context.currentTime, 0.8);
+    source.connect(filter).connect(gain).connect(this.ambienceGain);
+    source.start();
+    this.noises.set(sound, { source, gain });
+  }
+
+  private createNoise(context: AudioContext): AudioBuffer {
+    const buffer = context.createBuffer(1, context.sampleRate * 2, context.sampleRate);
+    const samples = buffer.getChannelData(0);
+    for (let i = 0; i < samples.length; i += 1) samples[i] = Math.random() * 2 - 1;
+    return buffer;
+  }
+
+  /** One bird or one cricket, now and then: never a steady pattern to fixate on. */
+  private call(): void {
+    const context = this.context;
+    const output = this.ambienceGain;
+    if (context === undefined || output === undefined || Math.random() > 0.45) return;
+    const at = context.currentTime + 0.02;
+    if (this.calls.includes('birds')) {
+      const pitch = 2200 + Math.random() * 900;
+      this.tone(context, output, note(pitch, 0, 0.09, 'sine', 0.05, pitch * 1.2), at);
+      this.tone(context, output, note(pitch * 1.1, 0.12, 0.09, 'sine', 0.05, pitch), at);
+    }
+    if (this.calls.includes('crickets')) {
+      for (const delay of [0, 0.07, 0.14]) {
+        this.tone(context, output, note(4300, delay, 0.04, 'sine', 0.025), at);
+      }
+    }
   }
 
   setVolumes(volumes: AudioVolumes): void {
     this.volumes = volumes;
     const now = this.context?.currentTime ?? 0;
     this.effectsGain?.gain.setTargetAtTime(volumes.effects, now, 0.05);
+    this.ambienceGain?.gain.setTargetAtTime(volumes.effects, now, 0.3);
     this.musicGain?.gain.setTargetAtTime(volumes.music * 0.5, now, 0.3);
   }
 
@@ -103,6 +184,9 @@ export class WebAudioPlayer implements AudioPlayer {
         this.effectsGain = context.createGain();
         this.effectsGain.gain.value = this.volumes.effects;
         this.effectsGain.connect(context.destination);
+        this.ambienceGain = context.createGain();
+        this.ambienceGain.gain.value = this.volumes.effects;
+        this.ambienceGain.connect(context.destination);
 
         // Music goes through a soft low-pass filter: no sharp, bright sounds.
         const filter = context.createBiquadFilter();

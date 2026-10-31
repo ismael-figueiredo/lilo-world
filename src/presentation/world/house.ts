@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 import type { SchoolThing } from '@domain/day/day-plan';
+import type { Phase, Weather } from '@domain/day/weather';
 import { box, type Collider } from '@presentation/world/collision';
+import { paintRain, paintWindow } from '@presentation/world/window-view';
 import { routeInside, type HouseSpot } from '@presentation/world/house-plan';
 import type { Interactable } from '@presentation/world/interactable';
 import { lowPoly, solid } from '@presentation/world/materials';
@@ -94,6 +96,9 @@ export class House {
   private readonly showerWater: THREE.Mesh;
   private readonly curtain: THREE.Mesh;
   private readonly sunbeam: THREE.Mesh;
+  private windowPane!: THREE.Mesh;
+  private view: THREE.CanvasTexture | undefined;
+  private rainPane!: THREE.Mesh;
   private mirror: Reflector | undefined;
   private lit: HouseThing | undefined;
 
@@ -136,6 +141,8 @@ export class House {
       this.showerWater,
       this.curtain,
       this.sunbeam,
+      this.windowPane,
+      this.rainPane,
     ]);
     this.setCurtain(false);
     this.setWater(undefined);
@@ -174,6 +181,10 @@ export class House {
 
   update(time: number): void {
     const shine = 0.35 + Math.sin(time * 3) * 0.25;
+    if (this.rainPane.visible) {
+      const rain = (this.rainPane.material as THREE.MeshBasicMaterial).map;
+      if (rain !== null) rain.offset.y = (time * 0.6) % 1;
+    }
     if (this.lit !== undefined) {
       const surface = this.surfaces.get(this.lit);
       if (surface !== undefined) surface.emissiveIntensity = shine;
@@ -182,6 +193,15 @@ export class House {
       (dot.material as THREE.MeshBasicMaterial).opacity =
         0.45 + Math.sin(time * 4 - index * 0.7) * 0.3;
     });
+  }
+
+  /** The window paints what is outside: the child knows the weather by looking. */
+  setWindow(phase: Phase, weather: Weather): void {
+    this.view?.dispose();
+    this.view = paintWindow(phase, weather);
+    (this.windowPane.material as THREE.MeshBasicMaterial).map = this.view;
+    (this.windowPane.material as THREE.MeshBasicMaterial).needsUpdate = true;
+    this.rainPane.visible = weather === 'rain';
   }
 
   setMorningLight(on: boolean): void {
@@ -380,7 +400,18 @@ export class House {
     this.piece([1.72, 0.1, 1.7], this.shining('bed', 0x9b6bf2), [-6.2, 0.58, -3.9]);
     this.piece([1.1, 0.16, 0.5], 0xfff1d6, [-6.2, 0.6, -5.4]);
     this.block(-6.2, -4.4, 1.9, 2.9);
-    this.piece([2, 1.1, 0.04], 0xcfeeff, [-6.2, 1.8, -5.88]);
+    this.windowPane = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 1.1),
+      new THREE.MeshBasicMaterial({ color: 0xffffff }),
+    );
+    this.windowPane.position.set(-6.2, 1.8, -5.86);
+    this.group.add(this.windowPane);
+    this.rainPane = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 1.1),
+      new THREE.MeshBasicMaterial({ map: paintRain(), transparent: true, depthWrite: false }),
+    );
+    this.rainPane.position.set(-6.2, 1.8, -5.85);
+    this.group.add(this.rainPane);
     this.piece([2.2, 0.08, 0.1], 0xffffff, [-6.2, 2.38, -5.86]);
     // Wardrobe and a tall mirror.
     this.piece([2, 2.3, 0.8], this.shining('wardrobe', 0xf6c28b), [-2.2, 1.15, -5.45]);

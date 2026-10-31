@@ -1,3 +1,5 @@
+import type { DayState } from '@domain/day/day-plan';
+import type { Weather } from '@domain/day/weather';
 import type { HomeController } from '@presentation/controllers/home-controller';
 import type { WardrobeController } from '@presentation/controllers/wardrobe-controller';
 import type { Town } from '@presentation/world/town';
@@ -71,6 +73,10 @@ export interface GameContext {
   editChild(changed: () => void): void;
   avatarPicture(avatarId: string): string;
   outfitPicture(outfit: OutfitId): string;
+  /** The day moved on: the sky, the weather and the sounds follow it. */
+  showDay(day: DayState): void;
+  /** Today's weather for this child. */
+  readonly weather: Weather;
   /** A block of the day ended: saves and lets a due rest come now, between things. */
   stopPoint(): Promise<void>;
   /** Waits until a calm pause is over. */

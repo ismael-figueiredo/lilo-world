@@ -35,6 +35,13 @@ export class Nature {
   /** Grass, flowers and mushrooms: pretty, and the first thing to go on a slow tablet. */
   private readonly cover = new THREE.Group();
   private readonly clouds: THREE.Group[] = [];
+  private readonly cloudSurface = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    flatShading: true,
+    roughness: 1,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.25,
+  });
 
   constructor(
     private readonly shape: TerrainShape,
@@ -188,14 +195,16 @@ export class Nature {
     this.instanced('mushroom', this.scatter(24, 1.4), 0.5, cover);
   }
 
+  /** Heavier, darker clouds on grey days; `shade` goes from 0 (white) to 1. */
+  setClouds(shade: number): void {
+    const level = 1 - shade * 0.5;
+    this.cloudSurface.color.setRGB(level, level, level * 1.04);
+    this.cloudSurface.emissiveIntensity = 0.25 * (1 - shade);
+    for (const cloud of this.clouds) cloud.scale.setScalar(1 + shade * 0.7);
+  }
+
   private addClouds(): void {
-    const material = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      flatShading: true,
-      roughness: 1,
-      emissive: 0xffffff,
-      emissiveIntensity: 0.25,
-    });
+    const material = this.cloudSurface;
     const puff = new THREE.IcosahedronGeometry(1, 1);
     for (let i = 0; i < 18; i += 1) {
       const cloud = new THREE.Group();

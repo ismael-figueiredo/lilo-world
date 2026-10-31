@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { phrases } from '@application/phrases';
 import type { GameServices, PlayerServices } from '@application/game-services';
-import type { SoundEffect } from '@application/ports/audio';
+import type { Ambience, SoundEffect } from '@application/ports/audio';
 import type { Goal } from '@application/use-cases/suggest-next-goal';
 import {
   CHILD_AVATAR_ID,
@@ -9,6 +9,8 @@ import {
   type ChildChoices,
   type OutfitId,
 } from '@domain/avatar/child';
+import { firstDay, type DayState } from '@domain/day/day-plan';
+import { comfortIn, phaseOf, weatherOf, type Phase, type Weather } from '@domain/day/weather';
 import { startRoutine, stepRoutine } from '@domain/people/routine';
 import type { PlayerProfile } from '@domain/profile/player-profile';
 import { sessionTimeStatus } from '@domain/session/session';
@@ -57,6 +59,7 @@ import { RestScreen } from '@presentation/ui/rest-screen';
 import { CityPlace } from '@presentation/world/city';
 import { firstObstruction, resolveCollisions } from '@presentation/world/collision';
 import { GameWorld } from '@presentation/world/game-world';
+import { skyLook } from '@presentation/world/sky-looks';
 import type { Town } from '@presentation/world/town';
 import { GoalMarker } from '@presentation/world/goal-marker';
 import type { Interactable } from '@presentation/world/interactable';
@@ -166,6 +169,8 @@ export class GameApp implements GameContext {
   private fps = 60;
   private people: readonly Person[] = [];
   private guardian: Person | undefined;
+  private today: DayState = firstDay;
+  private readonly breath = new THREE.Vector3();
   private readonly studio = new ChildStudio();
   private readonly creator = new ChildCreator(this.studio, {
     onSpeak: (text) => void this.services.speech.speak(text),
@@ -317,7 +322,11 @@ export class GameApp implements GameContext {
   }
 
   applySettings(settings: Settings): void {
+    const fixed = this.currentSettings.fixedWeather;
     this.currentSettings = settings;
+    if (fixed !== settings.fixedWeather && this.activeProfile !== undefined) {
+      this.showDay(this.today);
+    }
     if (this.renderer !== undefined) {
       this.renderer.domElement.style.filter = settings.softColors
         ? 'saturate(0.68) brightness(1.03)'
@@ -391,6 +400,8 @@ export class GameApp implements GameContext {
     this.world.setIndoors(indoors);
     this.rig.setIndoors(indoors);
     this.marker.setSize(indoors ? INDOOR_MARKER : 1);
+    this.showComfort();
+    this.playAmbience();
     this.mascot.root.scale.setScalar(indoors ? INDOOR_MASCOT : 1);
   }
 
@@ -446,6 +457,43 @@ export class GameApp implements GameContext {
     if (!result.ok) return;
     this.activeProfile = result.value;
     this.character?.wear(outfitClothes[outfit]);
+    this.showComfort();
+  }
+
+  showDay(day: DayState): void {
+    this.today = day;
+    this.world.setMoment(phaseOf(day), this.weather);
+    this.showComfort();
+    this.playAmbience();
+  }
+
+  get weather(): Weather {
+    const seed = this.activeProfile?.id ?? '';
+    return weatherOf(this.today.number, seed, this.currentSettings.fixedWeather);
+  }
+
+  /** The body answers the weather outside; indoors everyone is fine. */
+  private showComfort(): void {
+    const outside = this.gameWorld?.indoors === false;
+    const child = this.activeProfile?.avatarId === CHILD_AVATAR_ID;
+    const outfit = this.activeProfile?.outfit ?? 'home';
+    this.character?.setPosture(outside && child ? comfortIn(this.weather, outfit) : 'fine');
+  }
+
+  private playAmbience(): void {
+    const { weather } = this;
+    const night = phaseOf(this.today) === 'night';
+    const sounds: Ambience[] = [night ? 'crickets' : 'birds'];
+    if (weather === 'rain') sounds.push('rain');
+    if (weather === 'wind') sounds.push('wind');
+    const indoors = this.gameWorld?.indoors === true;
+    this.services.audio.setAmbience(indoors ? sounds.filter((s) => s !== 'birds') : sounds);
+  }
+
+  private breathSpot(player: Player): THREE.Vector3 {
+    return this.breath
+      .copy(player.position)
+      .add(new THREE.Vector3(Math.sin(player.facing) * 0.4, 1.15, Math.cos(player.facing) * 0.4));
   }
 
   editChild(changed: () => void): void {
@@ -711,7 +759,7 @@ export class GameApp implements GameContext {
     );
     this.mascot.update(this.elapsed, dt, player.position, cameraYaw);
     this.marker.update(this.elapsed);
-    world.update(this.elapsed, dt, player.position);
+    world.update(this.elapsed, dt, player.position, this.breathSpot(player));
     rig.update(dt, player.position);
 
     if (exploring) {
@@ -1221,6 +1269,11 @@ export class GameApp implements GameContext {
           return { ...render, ...memory, quality: this.governor.quality, fps: this.fps };
         },
         step: () => this.home.step,
+        moment: (phase: Phase, weather: Weather) => {
+          this.world.setMoment(phase, weather);
+          this.world.sky.setLook(skyLook(phase, weather), true);
+          this.character?.setPosture(comfortIn(weather, this.profile.outfit));
+        },
         skipBlock: async () => {
           await this.player.followDay.skipBlock();
           await this.home.begin(false, this.avatar.position.clone());

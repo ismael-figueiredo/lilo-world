@@ -188,14 +188,14 @@ Objetivo: primeira experiência nova e completa.
 
 Objetivo: o mundo muda e a criança responde a isso.
 
-- [ ] **C5.1 Fases do dia.** Domínio ligado à agenda. Pronto: testado.
-- [ ] **C5.2 Céu dinâmico.** Manhã, meio-dia, entardecer, noite, com luz, cor e sombra. Pronto: transição suave, com luzes de janela e postes à noite.
-- [ ] **C5.3 Clima do dia.** Sol, nublado, chuva, vento, frio. Sorteio com semente e adulto pode fixar. Pronto: testado.
-- [ ] **C5.4 Efeitos leves.** Chuva, poças, folhas e galhos ao vento, respiração no frio. Pronto: dentro da meta de desempenho e desligado em "Reduzir movimento".
-- [ ] **C5.5 Olhar pela janela.** Cena mostra o tempo. Pronto: a criança sabe o tempo sem texto.
-- [ ] **C5.6 Roupa combina com o tempo.** Regras de roupa. Pronto: escolher errado gera conselho gentil, sem punir, e a roupa pode ser trocada.
-- [ ] **C5.7 Consequência visível.** Com capa, a chuva não incomoda; sem casaco, o personagem encolhe de frio. Pronto: animação, sem perda de pontos.
-- [ ] **C5.8 Sons do tempo.** Chuva, vento, pássaros de dia, grilos à noite. Pronto: ligados aos volumes dos ajustes.
+- [x] **C5.1 Fases do dia.** Domínio ligado à agenda. Pronto: testado.
+- [x] **C5.2 Céu dinâmico.** Manhã, meio-dia, entardecer, noite, com luz, cor e sombra. Pronto: transição suave, com luzes de janela e postes à noite.
+- [x] **C5.3 Clima do dia.** Sol, nublado, chuva, vento, frio. Sorteio com semente e adulto pode fixar. Pronto: testado.
+- [x] **C5.4 Efeitos leves.** Chuva, poças, folhas ao vento, respiração no frio (galhos parados por enquanto). Pronto: dentro da meta de desempenho e desligado em "Reduzir movimento".
+- [x] **C5.5 Olhar pela janela.** Cena mostra o tempo. Pronto: a criança sabe o tempo sem texto.
+- [x] **C5.6 Roupa combina com o tempo.** Regras de roupa. Pronto: escolher errado gera conselho gentil, sem punir, e a roupa pode ser trocada.
+- [x] **C5.7 Consequência visível.** Com capa, a chuva não incomoda; sem casaco, o personagem encolhe de frio. Pronto: animação, sem perda de pontos.
+- [x] **C5.8 Sons do tempo.** Chuva, vento, pássaros de dia, grilos à noite. Pronto: ligados aos volumes dos ajustes.
 
 ### C6. Estudar
 

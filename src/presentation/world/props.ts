@@ -40,6 +40,10 @@ function roundedBox(width: number, height: number, depth: number, radius: number
   return geometry;
 }
 
+/** The glass of the street lamps, shared: lighting one lights them all. */
+export const lampGlass = (): THREE.MeshStandardMaterial =>
+  lowPoly(0xfff3c4, { emissive: 0xffe9a3, emissiveIntensity: 1 });
+
 export function streetLamp(): THREE.Group {
   const group = new THREE.Group();
   group.add(solid(new THREE.CylinderGeometry(0.22, 0.3, 0.35, 12), metal(), [0, 0.17, 0]));
@@ -47,13 +51,7 @@ export function streetLamp(): THREE.Group {
   const arm = solid(new THREE.TorusGeometry(0.45, 0.05, 6, 12, Math.PI), metal(), [0.45, 4.4, 0]);
   group.add(arm);
   group.add(solid(new THREE.ConeGeometry(0.42, 0.35, 12), metal(), [0.9, 4.3, 0]));
-  group.add(
-    solid(
-      new THREE.SphereGeometry(0.24, 12, 8),
-      lowPoly(0xfff3c4, { emissive: 0xffe9a3, emissiveIntensity: 1 }),
-      [0.9, 4.12, 0],
-    ),
-  );
+  group.add(solid(new THREE.SphereGeometry(0.24, 12, 8), lampGlass(), [0.9, 4.12, 0]));
   return group;
 }
 

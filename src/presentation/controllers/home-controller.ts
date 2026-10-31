@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-import { phrases, stepTips } from '@application/phrases';
+import { outfitTips, phrases, stepTips, weatherTips } from '@application/phrases';
 import {
   backpackList,
   currentBlock,
@@ -10,9 +10,11 @@ import {
   type SchoolThing,
   type StepId,
 } from '@domain/day/day-plan';
+import { fitsWeather, phaseOf } from '@domain/day/weather';
 import type { GameContext } from '@presentation/game-context';
 import { AgendaPanel } from '@presentation/ui/agenda-panel';
 import { schoolThingLooks, stepLooks } from '@presentation/ui/day-looks';
+import { skyLook } from '@presentation/world/sky-looks';
 import { HomeSheet, type Picture } from '@presentation/ui/home-sheet';
 import { placeOf, standSpots, type FoodId, type HouseThing } from '@presentation/world/house';
 import { doorsOnTheWay, type HouseSpot } from '@presentation/world/house-plan';
@@ -45,6 +47,8 @@ const DESK_CHAIR = { x: -6.6, z: -1.45, facing: 0 } as const;
 const IN_BED = { x: -6.2, z: -4.5, facing: 0 } as const;
 const IN_SHOWER = { x: 6.6, z: -4.4, facing: 0 } as const;
 const AT_MIRROR = { x: -3.8, z: -3.7, facing: Math.PI } as const;
+const WINDOW = { x: -6.2, z: -5.9 } as const;
+const WINDOW_LOOK_MS = 3200;
 const CHAIR_HEIGHT = 0.2;
 const BED_HEIGHT = 0.42;
 /** A close look at the thing being used; the rest of the time the camera follows. */
@@ -89,6 +93,7 @@ export class HomeController {
   readonly agenda: AgendaPanel;
   private day: DayState = firstDay;
   private busy = false;
+  private warnedDoor = false;
   private walking: { readonly to: THREE.Vector3; readonly arrive: () => void } | undefined;
 
   constructor(private readonly ctx: GameContext) {
@@ -120,6 +125,9 @@ export class HomeController {
   /** Where the child starts: in bed in a new morning, or back at home. */
   async begin(isNew: boolean, resumeAt: THREE.Vector3 | undefined): Promise<void> {
     this.day = await this.ctx.player.followDay.load();
+    this.ctx.showDay(this.day);
+    this.ctx.world.sky.setLook(skyLook(phaseOf(this.day), this.ctx.weather), true);
+    this.warnedDoor = false;
     this.busy = false;
     this.house.clearTable();
     this.house.setCurtain(false);
@@ -146,7 +154,7 @@ export class HomeController {
 
   openAgenda(): void {
     this.ctx.enterPanel('session');
-    this.agenda.open(this.day);
+    this.agenda.open(this.day, this.ctx.weather);
   }
 
   closeAgenda(): void {
@@ -222,6 +230,7 @@ export class HomeController {
   private async complete(step: StepId): Promise<void> {
     const result = await this.ctx.player.followDay.complete(step);
     this.day = result.day;
+    this.ctx.showDay(this.day);
     if (result.counted) this.ctx.sound('star');
     if (result.blockEnded) await this.ctx.stopPoint();
   }
@@ -321,10 +330,22 @@ export class HomeController {
       avatar.feel('calm');
       this.house.setMorningLight(false);
     });
+    await this.lookOutside();
     await this.complete('wake');
     this.busy = false;
     this.ctx.backToExploring(isNew ? phrases.firstWalk : this.tip);
     this.showGoal();
+  }
+
+  /** The window tells the weather before anybody has to say it. */
+  private async lookOutside(): Promise<void> {
+    this.ctx.avatar.faceTowards(this.house.world(WINDOW));
+    this.ctx.rig.setFocus(
+      this.house.world({ x: WINDOW.x + 0.4, z: WINDOW.z + 3.6 }).setY(1.5),
+      this.house.world(WINDOW).setY(1.6),
+    );
+    this.ctx.say(weatherTips[this.ctx.weather]);
+    await wait(WINDOW_LOOK_MS);
   }
 
   private async eat(): Promise<void> {
@@ -468,11 +489,14 @@ export class HomeController {
     this.house.setMirror(undefined);
     const { outfit, avatarId } = this.ctx.profile;
     const costume = avatarId !== 'child';
+    const dressing = this.isOpen('dress') && (costume || outfit !== 'pajamas');
     if (this.isOpen('pajamas') && (costume || outfit === 'pajamas')) await this.complete('pajamas');
-    else if (this.isOpen('dress') && (costume || outfit !== 'pajamas'))
-      await this.complete('dress');
+    else if (dressing) await this.complete('dress');
     this.busy = false;
-    this.ctx.backToExploring(this.tip);
+    // A tip, never a block: the child keeps what they chose and can change it.
+    const { weather } = this.ctx;
+    const advice = dressing && !costume && !fitsWeather(weather, outfit);
+    this.ctx.backToExploring(advice ? outfitTips[weather] : this.tip);
     this.showGoal();
   }
 
@@ -539,6 +563,13 @@ export class HomeController {
     }
     if (!this.isOpen('outside')) {
       this.ctx.say(phrases.firstThis(stepLooks[this.step].name));
+      return;
+    }
+    const { weather } = this.ctx;
+    const { outfit, avatarId } = this.ctx.profile;
+    if (!this.warnedDoor && avatarId === 'child' && !fitsWeather(weather, outfit)) {
+      this.warnedDoor = true;
+      this.ctx.say(outfitTips[weather]);
       return;
     }
     this.busy = true;

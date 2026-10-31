@@ -1,3 +1,4 @@
+import type { Weather } from '@domain/day/weather';
 import type { StepId } from '@domain/day/day-plan';
 /**
  * Everything Lilo says that is not content of an activity or mission, by id:
@@ -16,6 +17,23 @@ export const stepTips: Readonly<Record<StepId, string>> = {
   shower: 'Hora do banho!',
   pajamas: 'Vamos vestir o pijama.',
   sleep: 'Boa noite! Vamos para a cama.',
+};
+
+/** How the mascot tells the weather, looking out of the window. */
+export const weatherTips: Readonly<Record<Weather, string>> = {
+  sunny: 'Olhe pela janela: hoje tem sol!',
+  cloudy: 'Olhe pela janela: hoje está nublado.',
+  rain: 'Olhe pela janela: hoje está chovendo.',
+  wind: 'Olhe pela janela: hoje está ventando.',
+  cold: 'Olhe pela janela: hoje está frio.',
+};
+
+export const outfitTips: Readonly<Record<Weather, string>> = {
+  sunny: 'Com sol, uma roupa leve fica mais gostosa.',
+  cloudy: 'Hoje uma roupa de casa ou um casaco combinam.',
+  rain: 'Está chovendo. A capa de chuva ajuda a não se molhar.',
+  wind: 'Está ventando. Um casaco ajuda.',
+  cold: 'Está frio. Um casaco deixa você quentinho.',
 };
 
 export const phrases = {
@@ -50,7 +68,7 @@ export const phrases = {
   mapOutside: 'O mapa é da rua. Vamos vê-lo lá fora!',
   backHome: 'Chegamos em casa!',
   streetNotReady: 'A rua ainda não abriu. Tente de novo com internet.',
-  outsideNow: 'Que dia bonito! Explore a rua.',
+  outsideNow: 'Vamos explorar a rua!',
   correct: 'Isso!',
   completed: 'Você conseguiu! Muito bem!',
   model: 'Olhe, é esta:',

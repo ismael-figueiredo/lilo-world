@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import type { WardrobeEntry } from '@application/use-cases/get-wardrobe';
 import type { AvatarDefinition } from '@domain/avatar/avatar';
 import { outfits, type OutfitId } from '@domain/avatar/child';
+import { fitsWeather } from '@domain/day/weather';
 import type { GameContext } from '@presentation/game-context';
 import { WardrobePanel, type WardrobeView } from '@presentation/ui/wardrobe-panel';
 
@@ -58,6 +59,7 @@ export class WardrobeController {
       outfit: this.ctx.profile.outfit,
       pictureOf: (id) => this.ctx.avatarPicture(id),
       outfitPicture: (id) => this.ctx.outfitPicture(id),
+      fitsToday: (id) => fitsWeather(this.ctx.weather, id),
     };
   }
 
