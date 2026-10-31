@@ -111,6 +111,8 @@ const GREET_GAP = 2.5;
 /** Rooms are smaller than streets: the arrow and Lilo fit them. */
 const INDOOR_MARKER = 0.42;
 const INDOOR_MASCOT = 0.6;
+const WALK_PATIENCE_MS = 4000;
+const ARRIVED = 0.3;
 /** Where the adult at home is, at the kitchen counter. */
 const KITCHEN_SPOT = { x: 5, z: 1.5, facing: 0 } as const;
 const GUARDIAN_SPOTS = {
@@ -160,6 +162,7 @@ export class GameApp implements GameContext {
   private readonly marker = new GoalMarker();
   private readonly guide = new GuideArrow();
   private readonly mascot = new Mascot();
+  private walking: { readonly target: THREE.Vector3; readonly done: () => void } | undefined;
   private readonly minimap = new Minimap(() => {
     if (this.currentMode === 'explore') this.menus.openMap();
   });
@@ -304,6 +307,32 @@ export class GameApp implements GameContext {
 
   bringGuardian(at: THREE.Vector3): void {
     this.guardianPerson?.character.placeAt(at.clone().setX(at.x + 2), Math.PI);
+  }
+
+  walkTo(target: THREE.Vector3): Promise<void> {
+    return new Promise((done) => {
+      this.walking = { target, done };
+      window.setTimeout(() => {
+        this.arrive();
+      }, WALK_PATIENCE_MS);
+    });
+  }
+
+  private arrive(): void {
+    this.walking?.done();
+    this.walking = undefined;
+  }
+
+  private walkStep(from: THREE.Vector3): { x: number; z: number } | undefined {
+    if (this.walking === undefined) return undefined;
+    const x = this.walking.target.x - from.x;
+    const z = this.walking.target.z - from.z;
+    const left = Math.hypot(x, z);
+    if (left < ARRIVED) {
+      this.arrive();
+      return undefined;
+    }
+    return { x: x / left, z: z / left };
   }
 
   perchGuide(at: THREE.Vector3): void {
@@ -911,7 +940,7 @@ export class GameApp implements GameContext {
     const move = exploring ? input.move : { x: 0, y: 0, running: false };
     if (exploring && input.consumeGesture()) this.gesture(player, world);
     const standing = standingGround(world);
-    const steered = this.home.steer(player.position);
+    const steered = this.walkStep(player.position) ?? this.home.steer(player.position);
     if (steered !== undefined) player.update(dt, steered, true, standing);
     else player.update(dt, cameraRelative(move, rig.yaw), move.running, world);
     this.updatePeople(dt, player, standing);

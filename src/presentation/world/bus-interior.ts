@@ -18,6 +18,8 @@ const SILL = 1.15;
 const PANE_TOP = 2.25;
 const PANES = 5;
 const BEEP_FADE = 0.7;
+const SEAT_TOP = 0.55;
+const DRIVER_SEAT_TOP = 0.5;
 /** Room Lilo keeps from the walls and the roof: its size, at indoor scale. */
 const WING_ROOM = 0.45;
 
@@ -358,8 +360,11 @@ export class BusInterior implements Zone, WalkableSpace {
   }
 
   get reader(): THREE.Vector3 {
-    return this.spot(3.2, 0.08);
+    return this.spot(3.2, 0.56);
   }
+
+  readonly seatTop = SEAT_TOP;
+  readonly driverSeatTop = DRIVER_SEAT_TOP;
 
   /** Beside the reader, to see the card touch it. */
   get payCamera(): { position: THREE.Vector3; lookAt: THREE.Vector3 } {

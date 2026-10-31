@@ -6,8 +6,8 @@ import type { Interactable } from '@presentation/world/interactable';
 import { SCHOOL_BUILDING } from '@presentation/world/market-position';
 import { lowPoly, solid } from '@presentation/world/materials';
 import { mergeStatic } from '@presentation/world/merge-static';
-import { slide, swings } from '@presentation/world/props';
-import { HOPSCOTCH_SQUARES } from '@domain/play/games';
+import { slide, swings, swingSeat } from '@presentation/world/props';
+import { BOARD_SQUARES, HOPSCOTCH_SQUARES } from '@domain/play/games';
 import { treeRing } from '@presentation/world/scenery';
 import { createSign } from '@presentation/world/sign';
 import { StudyDesk } from '@presentation/world/study-desk';
@@ -24,6 +24,19 @@ const DOOR = 2.4;
 const YARD_HALF_X = 23;
 const YARD_NORTH = -34;
 const ROPE_TURNS = 5;
+/** The tops of what one sits on, over the floor. */
+export const CHAIR_TOP = 0.42;
+export const BENCH_TOP = 0.42;
+export const TOILET_TOP = 0.42;
+const SWING_X = 0.8;
+const SWING_BAR = 2.75;
+const SWING_SEAT = 2.05;
+const SEAT_THICK = 0.04;
+const SEESAW_TOP = 0.55;
+const SEESAW_REACH = 1.45;
+/** The chute, from where one sits at the top to the sand at the bottom, on the slide's own axis. */
+const CHUTE = { topY: 2.1, topZ: -0.5, bottomY: 0.3, bottomZ: 2.25 } as const;
+const BLOCK_HEIGHT = 0.16;
 
 /** Spots in the building's own coordinates. */
 const spots = {
@@ -34,10 +47,18 @@ const spots = {
   cubby: { x: -14, z: -0.3 },
   desk: { x: -9, z: -6 },
   seat: { x: -9, z: -5.15 },
-  toilet: { x: -13, z: 7 },
+  toilet: { x: -14.5, z: 7.5 },
+  toiletSeat: { x: -17.2, z: 7.5 },
+  stall: { x: -15.2, z: 7.5 },
+  sink: { x: -11.5, z: 11.3 },
   line: { x: 13, z: 3.6 },
   table: { x: 10.2, z: 9 },
   friend: { x: 11.4, z: 9 },
+  afterSnack: { x: 10.2, z: 8 },
+  library: { x: 9, z: -3 },
+  gameSeat: { x: 8.4, z: -4.05 },
+  gameFriend: { x: 9.6, z: -6.35 },
+  warmUp: { x: 9, z: -3.3 },
   yardDoor: { x: 16.4, z: 0 },
 } as const;
 
@@ -97,6 +118,11 @@ const COLORS = {
   corridor: 0xece6da,
 } as const;
 
+const GAME_TABLE_TOP = 0.62;
+const BLOCK_COLORS = [0xe8604c, 0xffc93c, 0x3fae5a, 0x3f7fd6, 0x9b6bf2] as const;
+/** The squares of the board, across the table. */
+const boardX = (square: number): number => 7.8 + square * 0.26;
+
 /** A whole school, open from above like the house: every room can be seen and walked to. */
 export class SchoolBuilding implements Zone, WalkableSpace {
   readonly group = new THREE.Group();
@@ -115,6 +141,19 @@ export class SchoolBuilding implements Zone, WalkableSpace {
   readonly walkColliders: Collider[] = [];
   readonly study: StudyDesk;
   private readonly desk = new THREE.Group();
+  private readonly swing = swingSeat();
+  private readonly seesaw = new THREE.Group();
+  private readonly childPiece = solid(new THREE.ConeGeometry(0.1, 0.26, 8), lowPoly(0xffc93c), [
+    0,
+    GAME_TABLE_TOP + 0.15,
+    -4.95,
+  ]);
+  private readonly friendPiece = solid(new THREE.ConeGeometry(0.1, 0.26, 8), lowPoly(0x3f7fd6), [
+    0,
+    GAME_TABLE_TOP + 0.15,
+    -5.25,
+  ]);
+  private readonly blocks = new THREE.Group();
   /** Turned by two friends, around whoever jumps. */
   private readonly rope = solid(
     new THREE.TorusGeometry(1.6, 0.03, 6, 24).rotateY(Math.PI / 2),
@@ -151,8 +190,19 @@ export class SchoolBuilding implements Zone, WalkableSpace {
     }
     this.rope.visible = false;
     this.group.add(this.study.group, this.desk, this.ball, this.rope);
-    this.group.add(this.cubby);
-    mergeStatic(this.group, [this.study.group, this.ball, this.rope, this.cubby]);
+    this.group.add(this.cubby, this.swing, this.seesaw, this.childPiece);
+    this.group.add(this.friendPiece, this.blocks);
+    mergeStatic(this.group, [
+      this.study.group,
+      this.ball,
+      this.rope,
+      this.cubby,
+      this.swing,
+      this.seesaw,
+      this.childPiece,
+      this.friendPiece,
+      this.blocks,
+    ]);
   }
 
   /** A spot of the building, in the world. */
@@ -168,6 +218,7 @@ export class SchoolBuilding implements Zone, WalkableSpace {
       ['escola:toilet', spots.toilet, '🚻', 'Usar o banheiro', 'Banheiro'],
       ['escola:line', spots.line, '🍎', 'Entrar na fila', 'Refeitório'],
       ['escola:yard', spots.yardDoor, '⛹️', 'Ir para o pátio', 'Pátio'],
+      ['escola:library', spots.library, '🎲', 'Brincar aqui dentro', 'Biblioteca'],
       ...gamePlaces,
       ['play:back', yard.back, '🔔', 'Voltar para a sala', 'Voltar'],
       ['escola:exit', spots.exit, '🚪', 'Ir para casa', 'Saída'],
@@ -205,6 +256,44 @@ export class SchoolBuilding implements Zone, WalkableSpace {
     return this.at(spots.friend);
   }
 
+  /** Beside the canteen's bench, for getting up from it. */
+  get afterSnackSpot(): THREE.Vector3 {
+    return this.at(spots.afterSnack);
+  }
+
+  get toiletSeat(): THREE.Vector3 {
+    return this.at(spots.toiletSeat);
+  }
+
+  /** In front of the stall. */
+  get stallSpot(): THREE.Vector3 {
+    return this.at(spots.stall);
+  }
+
+  get sinkSpot(): THREE.Vector3 {
+    return this.at(spots.sink);
+  }
+
+  /** Where the board game is played. */
+  get gameSeat(): THREE.Vector3 {
+    return this.at(spots.gameSeat);
+  }
+
+  get gameFriendSeat(): THREE.Vector3 {
+    return this.at(spots.gameFriend);
+  }
+
+  /** Over the table, for the whole board to be seen above the buttons. */
+  get gameCamera(): { position: THREE.Vector3; lookAt: THREE.Vector3 } {
+    const position = this.at({ x: 9.8, z: -2.9 }).setY(FLOOR + 3.4);
+    return { position, lookAt: this.at({ x: 9, z: -6.4 }) };
+  }
+
+  /** The free floor of the library, for warming up on rainy days. */
+  get warmUpSpot(): THREE.Vector3 {
+    return this.at(spots.warmUp);
+  }
+
   deskOf(index: number): THREE.Vector3 {
     const desk = OTHER_DESKS[index] ?? OTHER_DESKS[0];
     return this.at({ x: desk.x, z: desk.z + 0.85 });
@@ -212,7 +301,7 @@ export class SchoolBuilding implements Zone, WalkableSpace {
 
   /** Who stands in the line, from the counter back. The child is the last. */
   linePlace(place: number): THREE.Vector3 {
-    return this.at({ x: spots.line.x, z: 9 - place * 1.7 });
+    return this.at({ x: spots.line.x, z: 10.2 - place * 1.7 });
   }
 
   contains(x: number, z: number): boolean {
@@ -246,9 +335,57 @@ export class SchoolBuilding implements Zone, WalkableSpace {
     return this.at(yard.goal).setY(FLOOR + 0.8);
   }
 
-  /** Where one sits on a toy of the playground. */
-  toySeat(toy: 'swing' | 'slide' | 'seesaw'): THREE.Vector3 {
-    return this.at({ x: yard[toy].x, z: yard[toy].z - 1.5 });
+  /** The seat of the swing, at this angle: it moves and whoever sits moves with it. */
+  swingTo(angle: number): THREE.Vector3 {
+    this.swing.rotation.x = angle;
+    const { x, y, z } = this.swing.position;
+    return new THREE.Vector3(
+      SCHOOL_BUILDING.x + x,
+      FLOOR + y - SWING_SEAT * Math.cos(angle) + SEAT_THICK,
+      SCHOOL_BUILDING.z + z + SWING_SEAT * Math.sin(angle),
+    );
+  }
+
+  /** The seesaw at this tilt, and where each of the two sits on it. */
+  tiltSeesaw(tilt: number): readonly [THREE.Vector3, THREE.Vector3] {
+    this.seesaw.rotation.z = tilt;
+    const { x, y, z } = this.seesaw.position;
+    const end = (side: number) =>
+      new THREE.Vector3(
+        SCHOOL_BUILDING.x + x + side * SEESAW_REACH * Math.cos(tilt),
+        FLOOR + y + side * SEESAW_REACH * Math.sin(tilt) + 0.05,
+        SCHOOL_BUILDING.z + z,
+      );
+    return [end(1), end(-1)];
+  }
+
+  /** Along the chute of the slide, from 0 at the top to 1 at the bottom. */
+  chuteAt(along: number): THREE.Vector3 {
+    return new THREE.Vector3(
+      SCHOOL_BUILDING.x + yard.slide.x,
+      FLOOR + CHUTE.topY + (CHUTE.bottomY - CHUTE.topY) * along,
+      SCHOOL_BUILDING.z + yard.slide.z - 1.6 + CHUTE.topZ + (CHUTE.bottomZ - CHUTE.topZ) * along,
+    );
+  }
+
+  /** A piece on the board, on its square from 0. */
+  movePiece(who: 'child' | 'friend', square: number): void {
+    const piece = who === 'child' ? this.childPiece : this.friendPiece;
+    piece.position.x = boardX(Math.min(square, BOARD_SQUARES - 1));
+  }
+
+  /** The tower on the table, of this many blocks. */
+  stackBlocks(count: number): void {
+    this.blocks.clear();
+    for (let block = 0; block < count; block += 1) {
+      this.blocks.add(
+        solid(
+          new THREE.BoxGeometry(0.4, BLOCK_HEIGHT, 0.4),
+          lowPoly(BLOCK_COLORS[block % BLOCK_COLORS.length] ?? 0xffc93c),
+          [9, GAME_TABLE_TOP + BLOCK_HEIGHT * (block + 0.5), -5.6],
+        ),
+      );
+    }
   }
 
   showRope(on: boolean): void {
@@ -294,9 +431,6 @@ export class SchoolBuilding implements Zone, WalkableSpace {
 
   private addGround(): void {
     this.group.add(solid(new THREE.BoxGeometry(120, 0.08, 120), lowPoly(0x8fd07a), [0, -0.02, 0]));
-    // The court and the yard behind the building, for the games to come.
-    this.floor(0, -24, 30, 18, 0xd9775a);
-    this.group.add(solid(new THREE.BoxGeometry(26, 0.02, 0.15), lowPoly(0xffffff), [0, 0.12, -24]));
   }
 
   private addRooms(): void {
@@ -370,17 +504,54 @@ export class SchoolBuilding implements Zone, WalkableSpace {
         );
       });
     }
-    // A rug to sit on: it is only the floor.
+    // The table of the rainy days: a board with squares, pieces, blocks and two stools.
     this.group.add(
-      solid(new THREE.BoxGeometry(1.8, 0.04, 1.8), lowPoly(0x7ec8a3), [9, 0.12, -4.8]),
+      solid(new THREE.BoxGeometry(4.2, 0.04, 3.4), lowPoly(0x7ec8a3), [9, 0.12, -5.2]),
     );
+    this.solidBox(9, -5.2, 2.8, 1.4, GAME_TABLE_TOP, 0xd08c4a);
+    for (let square = 0; square < BOARD_SQUARES; square += 1) {
+      this.group.add(
+        solid(
+          new THREE.BoxGeometry(0.22, 0.02, 0.56),
+          lowPoly(square === BOARD_SQUARES - 1 ? 0xffc93c : square % 2 === 0 ? 0xffffff : 0xe8604c),
+          [boardX(square), GAME_TABLE_TOP + 0.01, -5.1],
+        ),
+      );
+    }
+    this.movePiece('child', 0);
+    this.movePiece('friend', 0);
+    for (const { x, z } of [spots.gameSeat, spots.gameFriend]) {
+      this.group.add(
+        solid(new THREE.CylinderGeometry(0.3, 0.3, CHAIR_TOP, 10), lowPoly(0x3fa9f5), [
+          x,
+          CHAIR_TOP / 2,
+          z,
+        ]),
+      );
+    }
   }
 
+  /** Three stalls along the west wall, and the sinks along the south wall. */
   private addBathroom(): void {
-    for (const x of [-16, -13, -10]) this.solidBox(x, 11.8, 2.2, 0.8, 1.2, 0x8fd3f4);
-    for (const x of [-16, -13, -10]) {
+    for (const z of [4.5, 7.5, 10.5]) {
+      this.solidBox(-17.45, z, 0.3, 0.7, 0.85, 0xffffff);
       this.group.add(
-        solid(new THREE.BoxGeometry(0.8, 0.3, 0.5), lowPoly(0xffffff), [x, 1.3, 11.6]),
+        solid(new THREE.BoxGeometry(0.6, 0.34, 0.5), lowPoly(0xffffff), [-17.1, 0.17, z]),
+        solid(new THREE.CylinderGeometry(0.27, 0.27, 0.06, 12), lowPoly(0x8fd3f4), [
+          -17.05,
+          TOILET_TOP - 0.03,
+          z,
+        ]),
+      );
+    }
+    for (const z of [3, 6, 9, 12]) this.solidBox(-16.8, z, 2.1, 0.12, 1.2, 0x8fd3f4);
+    this.solidBox(-11.5, 12.3, 6, 0.7, 0.72, 0xf6f1e6);
+    for (const x of [-13.5, -11.5, -9.5]) {
+      this.group.add(
+        solid(new THREE.BoxGeometry(0.8, 0.05, 0.42), lowPoly(0xbfe9ff), [x, 0.74, 12.2]),
+        solid(new THREE.BoxGeometry(0.06, 0.22, 0.06), lowPoly(0xc9ced8), [x, 0.84, 12.48]),
+        solid(new THREE.BoxGeometry(0.06, 0.05, 0.2), lowPoly(0xc9ced8), [x, 0.94, 12.4]),
+        solid(new THREE.BoxGeometry(0.9, 0.5, 0.03), lowPoly(0xd9eef7), [x, 1.05, 12.64]),
       );
     }
   }
@@ -388,6 +559,12 @@ export class SchoolBuilding implements Zone, WalkableSpace {
   private addCanteen(): void {
     this.solidBox(13, 11.6, 9, 1, 1, 0x3fae5a);
     this.solidBox(10.8, 10.2, 3, 1, 0.74, 0xd08c4a);
+    this.solidBox(10.8, 9, 3, 0.5, BENCH_TOP, 0xa8744a);
+    for (const x of [10.2, 11.4]) {
+      this.group.add(
+        solid(new THREE.CylinderGeometry(0.22, 0.2, 0.04, 12), lowPoly(0xffffff), [x, 0.76, 9.95]),
+      );
+    }
   }
 
   private addYard(): void {
@@ -428,19 +605,15 @@ export class SchoolBuilding implements Zone, WalkableSpace {
       this.group.add(sign);
     }
     // The playground.
-    const seat = swings();
+    const seat = swings(SWING_X);
     seat.position.set(yard.swing.x, 0, yard.swing.z - 1.6);
+    this.swing.position.set(yard.swing.x + SWING_X, SWING_BAR, yard.swing.z - 1.6);
     const chute = slide();
     chute.position.set(yard.slide.x, 0, yard.slide.z - 1.6);
     this.group.add(seat, chute);
-    this.solidBox(yard.seesaw.x, yard.seesaw.z - 1.4, 0.4, 0.4, 0.5, 0x8a8f99);
-    this.group.add(
-      solid(new THREE.BoxGeometry(3.4, 0.1, 0.4), lowPoly(0xe8604c), [
-        yard.seesaw.x,
-        0.55,
-        yard.seesaw.z - 1.4,
-      ]),
-    );
+    this.solidBox(yard.seesaw.x, yard.seesaw.z - 1.4, 0.4, 0.4, SEESAW_TOP - 0.05, 0x8a8f99);
+    this.seesaw.position.set(yard.seesaw.x, SEESAW_TOP, yard.seesaw.z - 1.4);
+    this.seesaw.add(solid(new THREE.BoxGeometry(3.4, 0.1, 0.4), lowPoly(0xe8604c), [0, 0, 0]));
     // Bushes and a shed to hide behind, low enough to always show a head.
     for (const { x, z } of hidingSpots) {
       this.group.add(

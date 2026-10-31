@@ -56,7 +56,7 @@ const BEAT = 60 / 72;
 
 /** Rain and wind are filtered noise; birds and crickets are soft, scattered notes. */
 const NOISES: Readonly<Partial<Record<Ambience, { frequency: number; gain: number }>>> = {
-  rain: { frequency: 1800, gain: 0.16 },
+  rain: { frequency: 900, gain: 0.045 },
   wind: { frequency: 320, gain: 0.3 },
   street: { frequency: 170, gain: 0 },
 };

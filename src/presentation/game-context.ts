@@ -60,6 +60,8 @@ export interface GameContext {
   readonly school: SchoolController;
   /** The adult comes along on an outing, starting at this spot. */
   bringGuardian(at: THREE.Vector3): void;
+  /** The child walks there alone, and it ends on arrival. */
+  walkTo(target: THREE.Vector3): Promise<void>;
   /** Lilo settles at this spot until the child moves on to another place. */
   perchGuide(at: THREE.Vector3): void;
   /** Into a place of its own, at its entrance. */

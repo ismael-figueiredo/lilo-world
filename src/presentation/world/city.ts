@@ -9,6 +9,8 @@ import {
   bench,
   bus,
   busStop,
+  DOOR_X,
+  setBusDoor,
   fountain,
   gazebo,
   slide,
@@ -62,6 +64,9 @@ export const CityPlace = {
   crosswalk: 'crosswalk',
 } as const;
 
+const DOOR_SPEED = 1.6;
+/** From the middle of the lane to the curb, beside the bus. */
+const DOOR_STEP = 1.75;
 /** Buildings start this far from the middle of the main road. */
 const LOT_START = ROAD_WIDTH / 2 + SIDEWALK + 0.5;
 /** The town square, between the main street's lots and the avenue. */
@@ -103,6 +108,7 @@ export class City {
   private readonly schoolBus = bus();
   private busRun: Bus | undefined;
   private busMayLeave = false;
+  private busDoor = 0;
   private readonly animals = new StreetAnimals(
     { x: SQUARE.x, z: SQUARE.z - SQUARE.radius + 1.6 },
     [
@@ -162,6 +168,15 @@ export class City {
     return this.busRun?.state === 'stopped';
   }
 
+  /** On the curb, right at the door of the bus. */
+  get busDoorStep(): THREE.Vector3 {
+    return new THREE.Vector3(
+      this.schoolBus.position.x - DOOR_X,
+      CITY.height,
+      BUS_STOP.lane - DOOR_STEP,
+    );
+  }
+
   sendBusAway(): void {
     this.busMayLeave = true;
   }
@@ -179,6 +194,10 @@ export class City {
     this.busRun = next;
     this.schoolBus.position.set(next.x, 0.08, BUS_STOP.lane);
     this.schoolBus.visible = next.state !== 'gone';
+    const wanted = next.state === 'stopped' && !this.busMayLeave ? 1 : 0;
+    this.busDoor +=
+      Math.sign(wanted - this.busDoor) * Math.min(Math.abs(wanted - this.busDoor), dt * DOOR_SPEED);
+    setBusDoor(this.schoolBus, this.busDoor);
   }
 
   /** The moving solid things: for what walks, not for the camera. */

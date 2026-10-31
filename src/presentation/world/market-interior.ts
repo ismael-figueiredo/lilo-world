@@ -20,7 +20,12 @@ const FLIGHT_SECONDS = 0.8;
 const ISLAND = { x: -1.6, z: 0.6, width: 7.4, depth: 0.9, height: 1.15 } as const;
 const REACH = 1.25;
 const CART_FOLLOW = 7;
-const CART_BEHIND = 1.5;
+const CART_AHEAD = 1.2;
+const CART_SIZE = 0.7;
+/** Room the cart needs around its middle, to stay out of walls and counters. */
+const CART_ROOM = 0.7;
+/** Ahead when there is room; otherwise it swings aside, and never through the child. */
+const CART_ANGLES = [0, 0.7, -0.7, 1.4, -1.4, 2.1, -2.1, Math.PI] as const;
 
 /** What goes on the shelves for a task: it can be walked to and picked. */
 export interface ShelfItem {
@@ -95,6 +100,7 @@ export class MarketInterior implements Zone, WalkableSpace {
   private readonly items = new Map<string, Item>();
   private readonly flights: Flight[] = [];
   private inCart = 0;
+  private cartAngle = Math.PI / 2;
   private hinted: string | undefined;
   private readonly cart = new THREE.Group();
   private readonly tags = new THREE.Group();
@@ -167,8 +173,8 @@ export class MarketInterior implements Zone, WalkableSpace {
 
   get checkoutCamera(): { position: THREE.Vector3; lookAt: THREE.Vector3 } {
     return {
-      position: this.world(COUNTER.x - 4.4, 3.6, COUNTER.z + 4.2),
-      lookAt: this.world(COUNTER.x + 0.6, 0.2, COUNTER.z + 2),
+      position: this.world(COUNTER.x - 2.6, 3.4, COUNTER.z + 4.6),
+      lookAt: this.world(COUNTER.x - 0.6, 0.4, COUNTER.z),
     };
   }
 
@@ -181,6 +187,7 @@ export class MarketInterior implements Zone, WalkableSpace {
     this.emptyCart();
     this.cart.position.set(CART.x, 0, CART.z);
     this.cart.rotation.y = 0;
+    this.cartAngle = Math.PI / 2;
     this.walkPlaces = [];
     this.hinted = undefined;
     const slots = SHELF_LEVELS.flatMap((y) => SHELF_XS.map((x) => [x, y] as const));
@@ -297,16 +304,31 @@ export class MarketInterior implements Zone, WalkableSpace {
 
   /** The cart stays just ahead of the child, as if pushed. */
   followWithCart(position: THREE.Vector3, facing: number, dt: number): void {
-    const x = position.x + Math.sin(facing) * CART_BEHIND - MARKET_INTERIOR.x;
-    const z = position.z + Math.cos(facing) * CART_BEHIND - MARKET_INTERIOR.z;
+    const free = CART_ANGLES.find((turn) => this.cartFits(position, facing + turn)) ?? 0;
     const blend = Math.min(1, dt * CART_FOLLOW);
-    this.cart.position.x += (x - this.cart.position.x) * blend;
-    this.cart.position.z += (z - this.cart.position.z) * blend;
-    const turn = Math.atan2(
-      Math.sin(facing - Math.PI / 2 - this.cart.rotation.y),
-      Math.cos(facing - Math.PI / 2 - this.cart.rotation.y),
+    const wanted = facing + free;
+    this.cartAngle +=
+      Math.atan2(Math.sin(wanted - this.cartAngle), Math.cos(wanted - this.cartAngle)) * blend;
+    // Around the child, not across: its handle stays in front of them at any turn.
+    this.cart.position.x = position.x + Math.sin(this.cartAngle) * CART_AHEAD - MARKET_INTERIOR.x;
+    this.cart.position.z = position.z + Math.cos(this.cartAngle) * CART_AHEAD - MARKET_INTERIOR.z;
+    this.cart.rotation.y = this.cartAngle - Math.PI / 2;
+  }
+
+  private cartFits(position: THREE.Vector3, angle: number): boolean {
+    const x = position.x + Math.sin(angle) * CART_AHEAD;
+    const z = position.z + Math.cos(angle) * CART_AHEAD;
+    return (
+      this.contains(x, z) &&
+      !this.walkColliders.some(
+        (wall) =>
+          wall.kind === 'box' &&
+          x > wall.minX - CART_ROOM &&
+          x < wall.maxX + CART_ROOM &&
+          z > wall.minZ - CART_ROOM &&
+          z < wall.maxZ + CART_ROOM,
+      )
     );
-    this.cart.rotation.y += turn * blend;
   }
 
   /** The item flies from the shelf into the cart. */
@@ -437,6 +459,7 @@ export class MarketInterior implements Zone, WalkableSpace {
     const metal = lowPoly(0x9aa0b4, { roughness: 0.4 });
     const red = lowPoly(0xe8504c);
     const { cart } = this;
+    cart.scale.setScalar(CART_SIZE);
     cart.add(solid(new THREE.BoxGeometry(1.5, 0.08, 1), metal, [0, 0.95, 0]));
     for (const [w, d, x, z] of [
       [1.5, 0.06, 0, -0.5],

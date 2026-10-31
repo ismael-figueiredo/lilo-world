@@ -1,6 +1,23 @@
 type Child = Node | string | null | undefined | false;
 
 /** Tiny element builder, so UI code stays readable without a framework. */
+const COIN = '🪙';
+
+/** Writes text, with the game's own yellow coin wherever a coin is mentioned. */
+export function setText(element: HTMLElement, text: string): void {
+  element.textContent = '';
+  text.split(COIN).forEach((piece, index) => {
+    if (index > 0) {
+      const coin = document.createElement('span');
+      coin.className = 'coin';
+      coin.setAttribute('role', 'img');
+      coin.setAttribute('aria-label', 'moeda');
+      element.append(coin);
+    }
+    if (piece !== '') element.append(piece);
+  });
+}
+
 export function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   props: {
@@ -13,7 +30,7 @@ export function h<K extends keyof HTMLElementTagNameMap>(
 ): HTMLElementTagNameMap[K] {
   const element = document.createElement(tag);
   if (props.className !== undefined) element.className = props.className;
-  if (props.text !== undefined) element.textContent = props.text;
+  if (props.text !== undefined) setText(element, props.text);
   for (const [name, value] of Object.entries(props.attrs ?? {})) element.setAttribute(name, value);
   if (props.onTap !== undefined) {
     const onTap = props.onTap;

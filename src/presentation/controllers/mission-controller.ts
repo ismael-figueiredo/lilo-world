@@ -148,9 +148,12 @@ export class MissionController {
     return this.crossing !== undefined;
   }
 
-  /** Every frame: keeps the cashier breathing and waving. */
+  /** Every frame: keeps the cashier breathing and waving, and the cart beside the child. */
   tick(dt: number): void {
     if (this.cashier !== undefined) this.cashier.update(dt, { x: 0, z: 0 }, false, this.ctx.world);
+    if (this.indoors) {
+      this.ctx.town.market?.followWithCart(this.ctx.avatar.position, this.ctx.avatar.facing, dt);
+    }
   }
 
   /** Into the market: today's groceries on the shelves, the cart, the cashier. */
@@ -164,6 +167,7 @@ export class MissionController {
       cashier.placeAt(market.cashierSpot, -Math.PI / 2);
       const view = market.shelfCamera;
       this.ctx.rig.setFocus(view.position, view.lookAt, true);
+      this.ctx.world.setInside(market);
       this.indoors = true;
     });
     market.hint(attempt.currentStep?.targetId);
@@ -172,6 +176,7 @@ export class MissionController {
   /** Back at the market's door, with the camera behind the child again. */
   private goOutside(): void {
     this.indoors = false;
+    this.ctx.world.setInside(undefined);
     const door = this.ctx.world.places.find((p) => p.id === CityPlace.market);
     if (door === undefined) return;
     // The building is behind the door: the camera stays on the street side.

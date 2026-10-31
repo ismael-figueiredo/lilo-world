@@ -119,6 +119,19 @@ function destination(): THREE.CanvasTexture {
   return texture;
 }
 
+/** The door, along the bus. */
+export const DOOR_X = 3.03;
+const DOOR_LEAVES = [-1, 1] as const;
+const DOOR_TRAVEL = 0.56;
+
+/** Slides the leaves of the bus's door: 0 is closed and 1 is open. */
+export function setBusDoor(busGroup: THREE.Group, open: number): void {
+  DOOR_LEAVES.forEach((side, index) => {
+    const leaf = busGroup.getObjectByName(`door-leaf-${String(index)}`);
+    if (leaf !== undefined) leaf.position.x = DOOR_X + side * (0.31 + open * DOOR_TRAVEL);
+  });
+}
+
 /** Where the nose of the bus really ends: the rounded edges add to its length. */
 const FRONT = 4.14;
 
@@ -157,11 +170,17 @@ export function bus(): THREE.Group {
       solid(new THREE.BoxGeometry(0.08, 0.3, 0.5), lowPoly(0xe8504c), [-4.16, 1.1, side * 0.9]),
     );
   }
-  // The door has two glass leaves, on the curb side (local +z).
-  for (const x of [2.72, 3.34]) {
-    group.add(solid(new THREE.BoxGeometry(0.62, 2.1, 0.05), dark, [x, 0.72, 1.32]));
-    group.add(solid(new THREE.BoxGeometry(0.46, 1.8, 0.03), paned, [x, 0.9, 1.35]));
-  }
+  // The doorway, dark inside, with two glass leaves that slide apart, on the curb side (local +z).
+  group.add(solid(new THREE.BoxGeometry(1.26, 2.2, 0.04), dark, [DOOR_X, 1.68, 1.31]));
+  group.add(solid(new THREE.BoxGeometry(1.2, 0.08, 0.3), lowPoly(0x9aa0b4), [DOOR_X, 0.6, 1.42]));
+  DOOR_LEAVES.forEach((side, index) => {
+    const leaf = new THREE.Group();
+    leaf.name = `door-leaf-${String(index)}`;
+    leaf.position.set(DOOR_X + side * 0.31, 1.68, 1.34);
+    leaf.add(solid(new THREE.BoxGeometry(0.62, 2.1, 0.05), dark, [0, 0, 0]));
+    leaf.add(solid(new THREE.BoxGeometry(0.46, 1.8, 0.03), paned, [0, 0.05, 0.03]));
+    group.add(leaf);
+  });
 
   // A wide windshield, with its wipers and the name of the line above it.
   group.add(solid(new THREE.BoxGeometry(0.06, 1.5, 2.4), dark, [FRONT, 2.05, 0]));
@@ -185,7 +204,8 @@ export function bus(): THREE.Group {
   tire.rotateX(Math.PI / 2);
   const hub = new THREE.CylinderGeometry(0.26, 0.26, 0.44, 12);
   hub.rotateX(Math.PI / 2);
-  for (const x of [-2.6, 2.6]) {
+  // The front wheels stay behind the door, as on a real bus.
+  for (const x of [-2.6, 1.7]) {
     for (const z of [-1.2, 1.2]) {
       group.add(solid(tire, lowPoly(0x2d3142), [x, 0.55, z]));
       group.add(solid(hub, lowPoly(0xd9dde6), [x, 0.55, z]));
@@ -406,8 +426,18 @@ export function slide(): THREE.Group {
   return group;
 }
 
-/** Two swings on an A-frame, along local x. */
-export function swings(): THREE.Group {
+/** One swing, hanging from the origin: it swings by turning around x. */
+export function swingSeat(): THREE.Group {
+  const group = new THREE.Group();
+  for (const dx of [-0.25, 0.25]) {
+    group.add(solid(new THREE.CylinderGeometry(0.02, 0.02, 2, 6), lowPoly(0x3d4a5c), [dx, -1, 0]));
+  }
+  group.add(solid(roundedBox(0.7, 0.08, 0.35, 0.04), lowPoly(0x3fae5a), [0, -2.05, 0]));
+  return group;
+}
+
+/** Two swings on an A-frame, along local x. `movingAt` leaves a place for a swing that moves. */
+export function swings(movingAt?: number): THREE.Group {
   const group = new THREE.Group();
   const frame = lowPoly(0xff7a6b);
   for (const x of [-1.8, 1.8]) {
@@ -421,12 +451,10 @@ export function swings(): THREE.Group {
   bar.rotation.z = Math.PI / 2;
   group.add(bar);
   for (const x of [-0.8, 0.8]) {
-    for (const dx of [-0.25, 0.25]) {
-      group.add(
-        solid(new THREE.CylinderGeometry(0.02, 0.02, 2, 6), lowPoly(0x3d4a5c), [x + dx, 1.75, 0]),
-      );
-    }
-    group.add(solid(roundedBox(0.7, 0.08, 0.35, 0.04), lowPoly(0x3fae5a), [x, 0.7, 0]));
+    if (x === movingAt) continue;
+    const seat = swingSeat();
+    seat.position.set(x, 2.75, 0);
+    group.add(seat);
   }
   return group;
 }

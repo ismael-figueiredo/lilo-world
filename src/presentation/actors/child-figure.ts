@@ -510,7 +510,7 @@ export class Figure {
   private readonly buttons: THREE.Mesh;
   private readonly zipper: THREE.Mesh;
   private readonly print: THREE.Mesh;
-  private readonly hand = new THREE.Group();
+  readonly hand = new THREE.Group();
   private clothes: Clothes = outfitClothes.home;
   private tintTop: number | undefined;
   private tintBottom: number | undefined;

@@ -2,19 +2,23 @@ import type * as THREE from 'three';
 import { phrases } from '@application/phrases';
 import {
   ballArc,
+  BOARD_SQUARES,
+  boardAfter,
   CATCHES,
+  dieRoll,
   hidingPlaces,
   HOPSCOTCH_SQUARES,
   inviteOf,
   peSport,
   ROPE_JUMPS,
   shotHits,
+  TOWER_BLOCKS,
   TRIES,
 } from '@domain/play/games';
 import type { HomeController } from '@presentation/controllers/home-controller';
 import type { Player } from '@presentation/actors/player';
 import type { GameContext } from '@presentation/game-context';
-import type { SchoolBuilding } from '@presentation/world/school-building';
+import { CHAIR_TOP, type SchoolBuilding } from '@presentation/world/school-building';
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
@@ -25,7 +29,28 @@ const CALM_AIM_SECONDS = 2;
 const TURN_MS = 3000;
 const FOUND_RANGE = 2.2;
 const FACE_NORTH = Math.PI;
-const TOY_HEIGHT = 0.5;
+const FACE_SOUTH = 0;
+const FACE_EAST = Math.PI / 2;
+const BALL_REST = 0.3;
+const DROP_SECONDS = 0.45;
+const BOUNCE_SECONDS = 0.5;
+const BOUNCE_HEIGHT = 0.6;
+const SWING_PERIOD = 2.6;
+const SWING_REACH = [0.18, 0.32, 0.5] as const;
+const SEESAW_TILT = 0.2;
+const SEESAW_PERIOD = 2.4;
+const SLIDE_SECONDS = 1.8;
+const CALM_RIDE = 0.5;
+const PUSH_MS = 1900;
+
+type Toy = 'swing' | 'slide' | 'seesaw';
+
+interface Ride {
+  readonly toy: Toy;
+  readonly riders: readonly Player[];
+  reach: number;
+  age: number;
+}
 
 const friendNames = ['Ana', 'Teo', 'Ju'];
 
@@ -33,6 +58,7 @@ interface Flight {
   readonly from: THREE.Vector3;
   readonly to: THREE.Vector3;
   readonly height: number;
+  readonly seconds: number;
   readonly done: () => void;
   age: number;
 }
@@ -47,6 +73,7 @@ export class PlayController {
   private flight: Flight | undefined;
   private played = false;
   private seeking: Player[] = [];
+  private ride: Ride | undefined;
 
   constructor(
     private readonly ctx: GameContext,
@@ -160,7 +187,7 @@ export class PlayController {
     const { flight, building } = this;
     building?.turnRope(dt);
     if (flight !== undefined && building !== undefined) {
-      flight.age += dt / BALL_SECONDS;
+      flight.age += dt / flight.seconds;
       const { x, y, z } = ballArc(flight.from, flight.to, flight.height, flight.age);
       building.moveBall(x, y, z);
       if (flight.age >= 1) {
@@ -168,9 +195,45 @@ export class PlayController {
         flight.done();
       }
     }
+    if (this.ride !== undefined && building !== undefined) this.moveRide(this.ride, building, dt);
   }
 
-  private throwBall(from: THREE.Vector3, to: THREE.Vector3, height: number): Promise<void> {
+  private moveRide(ride: Ride, building: SchoolBuilding, dt: number): void {
+    ride.age += dt;
+    const calm = this.ctx.settings.reducedMotion ? CALM_RIDE : 1;
+    const seat = (who: Player | undefined, at: THREE.Vector3, facing: number): void => {
+      if (who === undefined) return;
+      const floor = who.position.y;
+      who.placeAt(at.clone().setY(floor), facing);
+      who.sitOn(at.y - floor);
+    };
+    if (ride.toy === 'swing') {
+      const swing = Math.sin((ride.age / SWING_PERIOD) * Math.PI * 2) * ride.reach * calm;
+      seat(ride.riders[0], building.swingTo(swing), FACE_SOUTH);
+    } else if (ride.toy === 'seesaw') {
+      const wave = Math.sin((ride.age / SEESAW_PERIOD) * Math.PI * 2);
+      const [right, left] = building.tiltSeesaw(wave * SEESAW_TILT * calm);
+      seat(ride.riders[0], right, -FACE_EAST);
+      seat(ride.riders[1], left, FACE_EAST);
+    } else {
+      const along = Math.min(1, ride.age / SLIDE_SECONDS);
+      seat(ride.riders[0], building.chuteAt(along * along), FACE_SOUTH);
+    }
+  }
+
+  /** What the ball does after a shot: it falls, bounces and stays on the ground. */
+  private async ballFalls(from: THREE.Vector3): Promise<void> {
+    const ground = from.clone().setY(this.ctx.avatar.position.y + BALL_REST);
+    await this.throwBall(from, ground, 0, DROP_SECONDS);
+    await this.throwBall(ground, ground, BOUNCE_HEIGHT, BOUNCE_SECONDS);
+  }
+
+  private throwBall(
+    from: THREE.Vector3,
+    to: THREE.Vector3,
+    height: number,
+    seconds = BALL_SECONDS,
+  ): Promise<void> {
     return new Promise((resolve) => {
       const finish = () => {
         window.clearTimeout(limit);
@@ -179,9 +242,10 @@ export class PlayController {
       // Whatever the frames do, the game goes on.
       const limit = window.setTimeout(() => {
         this.flight = undefined;
+        this.building?.moveBall(to.x, to.y, to.z);
         resolve();
-      }, BALL_SECONDS * 3000);
-      this.flight = { from, to, height, done: finish, age: 0 };
+      }, seconds * 3000);
+      this.flight = { from, to, height, seconds, done: finish, age: 0 };
     });
   }
 
@@ -209,6 +273,7 @@ export class PlayController {
       const hit = shotHits(aim, misses);
       const target = hit ? building.hoop : building.hoop.clone().setX(building.hoop.x + 1.1);
       await this.throwBall(this.hand(ctx.avatar), target, 2.2);
+      await this.ballFalls(target);
       if (hit) {
         ctx.sound('correct');
         ctx.avatar.playEmote('Yes');
@@ -242,6 +307,7 @@ export class PlayController {
     await this.home.sheet.press([{ icon: '🥅', label: 'Chutar ao gol' }], 0);
     ctx.avatar.playEmote('Kick');
     await this.throwBall(ctx.avatar.position.clone(), building.goal, 0.8);
+    await this.ballFalls(building.goal);
     ctx.sound('correct');
     friend.playEmote('Yes');
     ctx.say(phrases.soccerGoal);
@@ -331,32 +397,174 @@ export class PlayController {
     this.building?.showRope(false);
   }
 
-  /** The playground is shared: first the friend, then the child, on the toy itself. */
-  private async turnOn(toy: 'swing' | 'slide' | 'seesaw', done: string): Promise<void> {
+  /** The playground is shared: first the friends, then the child, on the toy itself. */
+  private async turnOn(toy: Toy, done: string): Promise<void> {
     const { ctx, building } = this;
-    const friend = this.friends[2];
     if (building === undefined) return;
+    const [, partner, friend] = this.friends;
     ctx.enterPanel('home');
     ctx.say(phrases.waitTurn);
-    const seat = building.toySeat(toy);
-    friend?.setPerch(TOY_HEIGHT);
-    friend?.placeAt(seat, FACE_NORTH);
-    if (friend?.canDo('Sit') === true) friend.playEmote('Sit');
-    await wait(TURN_MS);
-    friend?.release();
-    friend?.setPerch(0);
-    friend?.placeAt(ctx.avatar.position.clone().setX(ctx.avatar.position.x + 1.4), FACE_NORTH);
+    if (friend !== undefined) {
+      this.takeTurn(toy, [friend, ...(partner === undefined ? [] : [partner])]);
+      await wait(toy === 'slide' ? SLIDE_SECONDS * 1000 + 300 : TURN_MS);
+    }
+    this.endRide();
     ctx.say(phrases.yourTurnNow);
     await this.home.sheet.press([{ icon: '🛝', label: 'Brincar' }], 0);
     const back = ctx.avatar.position.clone();
-    ctx.avatar.setPerch(TOY_HEIGHT);
-    ctx.avatar.placeAt(seat, FACE_NORTH);
-    if (ctx.avatar.canDo('Sit')) ctx.avatar.playEmote('Sit');
-    await wait(TURN_MS);
-    ctx.avatar.release();
-    ctx.avatar.setPerch(0);
+    this.takeTurn(toy, [ctx.avatar, ...(friend === undefined ? [] : [friend])]);
+    await this.ridePushed(toy);
+    this.endRide();
     ctx.avatar.placeAt(back, FACE_NORTH);
     ctx.say(done);
+    await wait(STEP_MS);
+  }
+
+  private takeTurn(toy: Toy, riders: readonly Player[]): void {
+    const seated = riders.slice(0, toy === 'seesaw' ? 2 : 1);
+    for (const rider of seated) {
+      rider.release();
+      if (rider.canDo('Sit')) rider.playEmote('Sit');
+    }
+    this.ride = { toy, riders: seated, reach: SWING_REACH[0], age: 0 };
+  }
+
+  /** The child gives the push: each press swings higher. */
+  private async ridePushed(toy: Toy): Promise<void> {
+    const { ride, ctx } = this;
+    if (ride === undefined) return;
+    if (toy === 'slide') {
+      await wait(SLIDE_SECONDS * 1000 + 300);
+      return;
+    }
+    ctx.say(toy === 'swing' ? phrases.swingPush : phrases.seesawPush);
+    for (const reach of SWING_REACH) {
+      await this.home.sheet.press([{ icon: '👆', label: 'Empurrar' }], 0);
+      ctx.sound('tap');
+      ride.reach = reach;
+      await wait(PUSH_MS);
+    }
+  }
+
+  /** Everybody gets off: the swing stops and whoever was riding stands beside the toy. */
+  private endRide(): void {
+    const { ride, building, ctx } = this;
+    if (ride === undefined || building === undefined) return;
+    this.ride = undefined;
+    building.swingTo(0);
+    building.tiltSeesaw(0);
+    ride.riders.forEach((rider, index) => {
+      rider.release();
+      rider.setPerch(0);
+      if (rider === ctx.avatar) return;
+      const spot = ctx.avatar.position;
+      rider.placeAt(spot.clone().setX(spot.x + 1.4 + index), FACE_NORTH);
+    });
+  }
+
+  /** The way to the library: warming up on its free floor. */
+  async warmUpInside(building: SchoolBuilding, friends: readonly Player[]): Promise<void> {
+    this.building = building;
+    this.friends = friends;
+    this.played = false;
+    this.ctx.enterPanel('home');
+    await this.ctx.transition(() => {
+      this.ctx.avatar.setPerch(0);
+      this.ctx.avatar.release();
+      this.ctx.avatar.placeAt(building.warmUpSpot, FACE_NORTH);
+      this.ctx.rig.snapTo(this.ctx.avatar.position);
+    });
+  }
+
+  /** Rainy days: at the table in the library, with a friend, a board or a tower of blocks. */
+  async playInside(
+    building: SchoolBuilding,
+    friends: readonly Player[],
+    dayNumber: number,
+  ): Promise<void> {
+    const { ctx } = this;
+    this.building = building;
+    this.friends = friends;
+    const friend = friends[0];
+    ctx.enterPanel('home');
+    await ctx.transition(() => {
+      this.sitAtTable(ctx.avatar, building.gameSeat, FACE_NORTH);
+      if (friend !== undefined) {
+        friend.root.visible = true;
+        this.sitAtTable(friend, building.gameFriendSeat, FACE_SOUTH);
+      }
+      building.movePiece('child', 0);
+      building.movePiece('friend', 0);
+      building.stackBlocks(0);
+      const view = building.gameCamera;
+      ctx.rig.setFocus(view.position, view.lookAt, true);
+    });
+    ctx.say(phrases.chooseInside);
+    const chosen = await this.home.sheet.choose(phrases.chooseInside, [
+      { id: 'board', icon: '🎲', label: 'Tabuleiro' },
+      { id: 'tower', icon: '🧱', label: 'Torre de blocos' },
+    ]);
+    if (chosen === 'tower') await this.tower(building);
+    else await this.board(building, dayNumber);
+    this.played = true;
+    ctx.rig.clearFocus();
+    ctx.rig.snapTo(building.warmUpSpot);
+    ctx.avatar.setPerch(0);
+    ctx.avatar.release();
+    ctx.avatar.placeAt(building.warmUpSpot, FACE_NORTH);
+    if (friend !== undefined) {
+      friend.setPerch(0);
+      friend.release();
+      friend.placeAt(building.warmUpSpot.setX(building.warmUpSpot.x + 1.4), FACE_NORTH);
+    }
+    ctx.avatar.playEmote('Dance');
+    ctx.say(phrases.gameDone);
+    await wait(STEP_MS * 2);
+  }
+
+  private sitAtTable(who: Player, at: THREE.Vector3, facing: number): void {
+    who.sitOn(CHAIR_TOP);
+    who.release();
+    who.placeAt(at, facing);
+    if (who.canDo('Sit')) who.playEmote('Sit');
+  }
+
+  /** Both pieces go all the way: the game ends when the child's reaches the last square. */
+  private async board(building: SchoolBuilding, dayNumber: number): Promise<void> {
+    const { ctx } = this;
+    ctx.say(phrases.boardRule);
+    let mine = 0;
+    let theirs = 0;
+    for (let turn = 0; mine < BOARD_SQUARES - 1; turn += 2) {
+      await this.home.sheet.press([{ icon: '🎲', label: 'Jogar o dado' }], 0);
+      const roll = dieRoll(turn, dayNumber);
+      ctx.sound('tap');
+      ctx.say(phrases.boardRolled(roll));
+      mine = boardAfter(mine, roll);
+      building.movePiece('child', mine);
+      await wait(STEP_MS);
+      if (mine >= BOARD_SQUARES - 1) break;
+      ctx.say(phrases.boardFriend);
+      await wait(STEP_MS);
+      theirs = boardAfter(theirs, dieRoll(turn + 1, dayNumber));
+      building.movePiece('friend', theirs);
+      await wait(STEP_MS);
+    }
+    ctx.sound('correct');
+    ctx.say(phrases.boardDone);
+    await wait(STEP_MS);
+  }
+
+  private async tower(building: SchoolBuilding): Promise<void> {
+    const { ctx } = this;
+    ctx.say(phrases.towerRule);
+    for (let block = 1; block <= TOWER_BLOCKS; block += 1) {
+      await this.home.sheet.press([{ icon: String(block), label: 'Colocar bloco' }], 0);
+      building.stackBlocks(block);
+      ctx.sound('tap');
+    }
+    ctx.sound('correct');
+    ctx.say(phrases.towerDone);
     await wait(STEP_MS);
   }
 }

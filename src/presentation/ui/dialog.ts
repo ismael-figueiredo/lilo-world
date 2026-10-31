@@ -1,4 +1,4 @@
-import { h, replayAnimation } from '@presentation/ui/dom';
+import { h, replayAnimation, setText } from '@presentation/ui/dom';
 
 /** Lilo's speech balloon: one short sentence at a time, also read aloud by the game. */
 export class Dialog {
@@ -20,7 +20,7 @@ export class Dialog {
   }
 
   say(message: string, durationMs = 7000): void {
-    this.text.textContent = message;
+    setText(this.text, message);
     this.element.classList.add('is-visible');
     replayAnimation(this.element, 'is-popping');
     window.clearTimeout(this.hideTimer);

@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { armGestures } from '@presentation/actors/arm-poses';
 
-/** Thigh room between the seat and the hips, as a part of the thigh. */
-const ON_THE_SEAT = 0.5;
+/** Seated, the hips stand this far over the feet's floor, as a part of the height: as a figure's. */
+const ON_THE_SEAT = 0.23;
 
 /** Height of the hips over the mattress, as a part of their height over the floor. */
 const ON_THE_BED = 0.45;
@@ -50,13 +50,17 @@ const fixedTurn = (object: THREE.Object3D, local: THREE.Quaternion): THREE.Keyfr
   new THREE.QuaternionKeyframeTrack(`${object.name}.quaternion`, [0], local.toArray());
 
 /** The hips come down to the seat, the thighs go forward and the shins hang. */
-function seatedLegs(body: THREE.Object3D, legs: readonly Leg[]): THREE.KeyframeTrack[] {
+function seatedLegs(
+  model: THREE.Object3D,
+  body: THREE.Object3D,
+  legs: readonly Leg[],
+): THREE.KeyframeTrack[] {
   const floor = Math.min(...legs.map((leg) => place(leg.foot).y));
   const [first] = legs;
   if (first === undefined) return [];
   const hips = place(first.thigh);
-  const thighLength = hips.distanceTo(place(first.shin));
-  const drop = hips.y - floor - thighLength * ON_THE_SEAT;
+  const height = new THREE.Box3().setFromObject(model, true).getSize(new THREE.Vector3()).y;
+  const drop = hips.y - floor - height * ON_THE_SEAT;
   const tracks = [fixedPlace(body, place(body).setY(place(body).y - drop))];
 
   for (const { thigh, shin, foot } of legs) {
@@ -118,7 +122,7 @@ export function restClips(
   mixer.clipAction(idle).play();
   mixer.update(0);
   model.updateMatrixWorld(true);
-  const legTracks = seatedLegs(body, legs);
+  const legTracks = seatedLegs(model, body, legs);
   const bedTracks = lyingBody(whole, legs);
   const arm = armGestures(model);
   mixer.stopAllAction();

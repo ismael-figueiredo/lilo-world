@@ -2,7 +2,7 @@ import type { Wardrobe, WardrobeEntry } from '@application/use-cases/get-wardrob
 import type { AvatarDefinition } from '@domain/avatar/avatar';
 import { CHILD_AVATAR_ID, outfits, type OutfitId } from '@domain/avatar/child';
 import type { WardrobeLook, WardrobeSlot } from '@domain/avatar/wardrobe-item';
-import { h, toCssColor } from '@presentation/ui/dom';
+import { h, setText, toCssColor } from '@presentation/ui/dom';
 
 export interface WardrobePanelCallbacks {
   onSelect(entry: WardrobeEntry): void;
@@ -101,7 +101,7 @@ export class WardrobePanel {
     );
     if (!visibleTabs.some((t) => t.tab === this.tab)) this.tab = 'avatar';
 
-    this.coins.textContent = `🪙 ${view.wardrobe.coins}`;
+    setText(this.coins, `🪙 ${view.wardrobe.coins}`);
     // Up to four fit on one line; more would cut their names.
     const columns = visibleTabs.length > 4 ? 3 : visibleTabs.length;
     this.tabBar.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;

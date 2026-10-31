@@ -11,6 +11,21 @@ export const TRIES = 5;
 export const HOPSCOTCH_SQUARES = 8;
 export const CATCHES = 5;
 export const ROPE_JUMPS = 5;
+export const BOARD_SQUARES = 10;
+export const TOWER_BLOCKS = 5;
+
+const DIE_FACES = [2, 1, 3, 2, 3, 1] as const;
+
+/** The die of the board game: each turn is another number, always small, never a surprise. */
+export const dieRoll = (turn: number, dayNumber: number): number =>
+  DIE_FACES[(turn + dayNumber) % DIE_FACES.length] ?? 1;
+
+/** Moving along the board, without going past the last square. */
+export const boardAfter = (square: number, roll: number): number =>
+  Math.min(BOARD_SQUARES - 1, square + roll);
+
+/** Rain keeps everybody in: games that need a yard wait for another day. */
+export const playsInside = (weather: string): boolean => weather === 'rain';
 
 /** How far from the middle a shot may be, -1 to 1 being the whole bar. */
 const FIRST_TOLERANCE = 0.25;

@@ -1,6 +1,7 @@
 import type * as THREE from 'three';
 import { rideSeconds } from '@domain/city/bus';
 import { backpackPlace } from '@domain/day/day-plan';
+import { playsInside } from '@domain/play/games';
 import { phrases } from '@application/phrases';
 import type { PlannedActivity } from '@domain/curriculum/session-plan';
 import {
@@ -20,8 +21,12 @@ import type { GameContext } from '@presentation/game-context';
 import type { Player } from '@presentation/actors/player';
 import { CityPlace } from '@presentation/world/city';
 import { standingGround } from '@presentation/world/neighbors';
-import type { SchoolBuilding } from '@presentation/world/school-building';
-import { BUS_STOP } from '@presentation/world/street-layout';
+import {
+  BENCH_TOP,
+  CHAIR_TOP,
+  TOILET_TOP,
+  type SchoolBuilding,
+} from '@presentation/world/school-building';
 import { schoolSpotOf } from '@presentation/world/market-position';
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -31,12 +36,12 @@ const STEP_MS = 1400;
 const CARD_REACH_MS = 350;
 const BUS_PATIENCE_MS = 14_000;
 const GET_OFF_SECONDS = 2;
-const SEAT_HEIGHT = 0.3;
 const ACTIVITIES_IN_CLASS = 2;
 const LINE_MS = 2200;
 const AHEAD = 2;
 const FACE_SOUTH = 0;
 const FACE_NORTH = Math.PI;
+const FACE_EAST = Math.PI / 2;
 
 const needs: readonly { readonly id: Need; readonly icon: string; readonly label: string }[] = [
   { id: 'toilet', icon: '🚻', label: 'Ir ao banheiro' },
@@ -88,11 +93,25 @@ export class SchoolController {
     if (stage === undefined) return undefined;
     if (!this.atSchool) return CityPlace.busStop;
     if (stage === 'recess' && this.play.isOut) return this.play.hasPlayed ? 'play:back' : undefined;
-    return schoolSpotOf[stage];
+    return this.spotOf(stage);
+  }
+
+  /** With rain the games stay inside: the library takes the place of the yard. */
+  private get rainy(): boolean {
+    return playsInside(this.ctx.weather);
+  }
+
+  private spotOf(stage: SchoolStage): string | undefined {
+    const outside = stage === 'pe' || stage === 'recess';
+    return outside && this.rainy ? 'escola:library' : schoolSpotOf[stage];
   }
 
   get tip(): string | undefined {
-    switch (this.hereIs) {
+    const here = this.hereIs;
+    if (this.rainy && this.atSchool && (here === 'pe' || here === 'recess')) {
+      return phrases.rainInside;
+    }
+    switch (here) {
       case undefined:
         return undefined;
       case 'greet':
@@ -129,7 +148,7 @@ export class SchoolController {
       await this.playAt(placeId);
       return true;
     }
-    if (schoolSpotOf[stage] !== placeId) {
+    if (this.spotOf(stage) !== placeId) {
       if (!placeId.startsWith('escola:')) return false;
       this.ctx.say(this.tip ?? phrases.toExit);
       return true;
@@ -173,7 +192,8 @@ export class SchoolController {
   private async haveSports(): Promise<void> {
     const { ctx, building } = this;
     if (building === undefined) return;
-    await this.play.goOut(building, this.classmates);
+    if (this.rainy) await this.play.warmUpInside(building, this.classmates);
+    else await this.play.goOut(building, this.classmates);
     ctx.enterPanel('home');
     ctx.say(phrases.warmUp);
     const moves = [
@@ -188,7 +208,12 @@ export class SchoolController {
     }
     ctx.say(phrases.warmDone);
     await wait(STEP_MS);
-    await this.play.sport(this.home.dayNumber);
+    if (this.rainy) {
+      await this.play.playInside(building, this.classmates, this.home.dayNumber);
+      await this.play.goBack();
+    } else {
+      await this.play.sport(this.home.dayNumber);
+    }
     await this.save(nextSchoolStage('pe'));
     ctx.backToExploring(this.tip);
   }
@@ -196,6 +221,11 @@ export class SchoolController {
   private async goToRecess(): Promise<void> {
     const { building } = this;
     if (building === undefined) return;
+    if (this.rainy) {
+      await this.play.playInside(building, this.classmates, this.home.dayNumber);
+      await this.endRecess();
+      return;
+    }
     await this.play.goOut(building, this.classmates);
     await this.play.invite(this.home.dayNumber);
     this.ctx.backToExploring(this.tip);
@@ -204,24 +234,26 @@ export class SchoolController {
 
   private async playAt(placeId: string): Promise<void> {
     if (placeId === 'play:back') {
-      if (this.hereIs !== 'recess') return;
-      if (this.ctx.settings.feelingScenes) {
-        const { FeelingsController } =
-          await import('@presentation/controllers/feelings-controller');
-        await new FeelingsController(this.ctx, this.home).playToday(
-          this.classmates[0],
-          this.classmates[1],
-        );
-      }
-      this.ctx.say(phrases.bellRings);
-      await this.play.goBack();
-      await this.save(nextSchoolStage('recess'));
-      this.ctx.backToExploring(this.tip);
+      if (this.hereIs === 'recess') await this.endRecess();
       return;
     }
     await this.play.game(placeId, this.home.dayNumber);
     this.ctx.backToExploring(this.tip);
     this.ctx.refreshGoal();
+  }
+
+  private async endRecess(): Promise<void> {
+    if (this.ctx.settings.feelingScenes) {
+      const { FeelingsController } = await import('@presentation/controllers/feelings-controller');
+      await new FeelingsController(this.ctx, this.home).playToday(
+        this.classmates[0],
+        this.classmates[1],
+      );
+    }
+    this.ctx.say(phrases.bellRings);
+    await this.play.goBack();
+    await this.save(nextSchoolStage('recess'));
+    this.ctx.backToExploring(this.tip);
   }
 
   /** Every frame: the one who got off the bus walks away. */
@@ -259,8 +291,8 @@ export class SchoolController {
     }
   }
 
-  private sit(character: Player, at: THREE.Vector3, facing: number): void {
-    character.setPerch(SEAT_HEIGHT);
+  private sit(character: Player, at: THREE.Vector3, facing: number, seatTop: number): void {
+    character.sitOn(seatTop);
     character.release();
     character.placeAt(at, facing);
     if (character.canDo('Sit')) character.playEmote('Sit');
@@ -295,14 +327,12 @@ export class SchoolController {
     ctx.say(phrases.letOff);
     const character = ctx.addPerson('student');
     character.root.visible = true;
-    character.placeAt(
-      stop?.position.clone().setZ(BUS_STOP.signZ) ?? ctx.avatar.position,
-      FACE_NORTH,
-    );
+    character.placeAt(street.busDoorStep, FACE_NORTH);
     this.passenger = { character, left: GET_OFF_SECONDS };
     await wait(GET_OFF_SECONDS * 1000 + 400);
     ctx.say(phrases.boardBus);
     await this.home.sheet.press([{ icon: '🚌', label: 'Entrar' }], 0);
+    await ctx.walkTo(street.busDoorStep);
     await this.ride(arrive);
   }
 
@@ -314,13 +344,15 @@ export class SchoolController {
     await ctx.transition(() => {
       town.bus.sendBusAway();
       ctx.enterSpace(bus);
-      ctx.avatar.placeAt(bus.reader, FACE_SOUTH);
+      ctx.avatar.placeToReach(bus.reader, FACE_SOUTH);
       const pay = bus.payCamera;
       ctx.rig.setFocus(pay.position, pay.lookAt, true);
       this.classmates.forEach((friend, index) => {
-        this.sit(friend, bus.seatOf(index), Math.PI / 2);
+        this.sit(friend, bus.seatOf(index), Math.PI / 2, bus.seatTop);
       });
-      if (this.driver !== undefined) this.sit(this.driver, bus.driver, Math.PI / 2);
+      if (this.driver !== undefined) {
+        this.sit(this.driver, bus.driver, Math.PI / 2, bus.driverSeatTop);
+      }
     });
     ctx.say(phrases.passCard);
     ctx.avatar.hold('card');
@@ -334,7 +366,7 @@ export class SchoolController {
     ctx.avatar.hold(undefined);
     ctx.say(phrases.sitOnBus);
     await this.home.sheet.press([{ icon: '💺', label: 'Sentar' }], 0);
-    this.sit(ctx.avatar, bus.seat, Math.PI / 2);
+    this.sit(ctx.avatar, bus.seat, Math.PI / 2, bus.seatTop);
     ctx.perchGuide(bus.perch);
     const view = bus.camera;
     ctx.rig.setFocus(view.position, view.lookAt, true);
@@ -359,7 +391,7 @@ export class SchoolController {
       ctx.enterSpace(school);
       if (this.teacher !== undefined) this.stand(this.teacher, school.teacherSpot, FACE_SOUTH);
       this.classmates.forEach((friend, index) => {
-        this.sit(friend, school.deskOf(index), FACE_NORTH);
+        this.sit(friend, school.deskOf(index), FACE_NORTH, CHAIR_TOP);
       });
     });
     const arrived = schoolStages.indexOf(saved) < schoolStages.indexOf('greet') ? 'greet' : saved;
@@ -394,7 +426,7 @@ export class SchoolController {
     const { ctx, building } = this;
     if (building === undefined) return;
     ctx.enterPanel('home');
-    this.sit(ctx.avatar, building.seatSpot, FACE_NORTH);
+    this.sit(ctx.avatar, building.seatSpot, FACE_NORTH, CHAIR_TOP);
     if (this.teacher !== undefined) {
       this.stand(this.teacher, building.at({ x: -9, z: -11.8 }), FACE_SOUTH);
     }
@@ -439,11 +471,27 @@ export class SchoolController {
   }
 
   private async useToilet(): Promise<void> {
-    const { ctx } = this;
+    const { ctx, building } = this;
+    if (building === undefined) return;
     ctx.enterPanel('home');
+    ctx.say(phrases.useToilet);
+    await this.home.sheet.press([{ icon: '🚽', label: 'Sentar no vaso' }], 0);
+    await ctx.transition(() => {
+      this.sit(ctx.avatar, building.toiletSeat, FACE_EAST, TOILET_TOP);
+    });
+    await wait(STEP_MS);
+    ctx.say(phrases.flushToilet);
+    await this.home.sheet.press([{ icon: '💦', label: 'Dar a descarga' }], 0);
+    ctx.sound('tap');
+    await ctx.transition(() => {
+      this.stand(ctx.avatar, building.sinkSpot, FACE_SOUTH);
+    });
+    ctx.say(phrases.washHands);
+    ctx.avatar.hold('soap');
     await this.home.sheet.press([{ icon: '🧼', label: 'Lavar as mãos' }], 0);
     ctx.avatar.playEmote('Wash');
     await wait(STEP_MS);
+    ctx.avatar.hold(undefined);
     ctx.say(phrases.toiletDone);
     await this.save('snack');
     ctx.backToExploring(this.tip);
@@ -478,14 +526,14 @@ export class SchoolController {
     ctx.avatar.playEmote('Pick');
     await wait(STEP_MS);
     ctx.say(phrases.sitWithFriend);
-    this.sit(ctx.avatar, building.tableSpot, FACE_SOUTH);
-    if (friend !== undefined) this.sit(friend, building.friendSpot, FACE_SOUTH);
+    this.sit(ctx.avatar, building.tableSpot, FACE_SOUTH, BENCH_TOP);
+    if (friend !== undefined) this.sit(friend, building.friendSpot, FACE_SOUTH, BENCH_TOP);
     await wait(STEP_MS);
     ctx.say(phrases.friendHello);
     if (ctx.avatar.canDo('SitEat')) ctx.avatar.playEmote('SitEat');
     await wait(STEP_MS * 2);
     for (const who of line) who.root.visible = true;
-    this.stand(ctx.avatar, building.tableSpot, FACE_NORTH);
+    this.stand(ctx.avatar, building.afterSnackSpot, FACE_NORTH);
     await this.save(schoolStageAfterSnack(this.home.dayNumber));
     ctx.backToExploring(this.tip);
   }

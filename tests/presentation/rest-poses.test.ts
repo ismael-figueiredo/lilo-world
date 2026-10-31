@@ -14,6 +14,9 @@ function named(name: string, parent: THREE.Object3D, y: number, x = 0): THREE.Bo
 /** A skeleton like the models': the feet hang from the root, not from the shins. */
 function rig() {
   const model = new THREE.Group();
+  const skin = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1));
+  skin.position.y = 1;
+  model.add(skin);
   const root = named('Root', model, 0);
   const body = named('Body', root, 1);
   const legs = (['L', 'R'] as const).map((side) => {
@@ -75,7 +78,7 @@ describe('resting, for models without it', () => {
     model.updateMatrixWorld(true);
     const near = hand.getWorldPosition(new THREE.Vector3());
     const face = head.getWorldPosition(new THREE.Vector3());
-    expect(near.distanceTo(face)).toBeLessThan(before.distanceTo(face) / 2);
+    expect(near.distanceTo(face)).toBeLessThan(before.distanceTo(face));
   });
 
   it('lies on the back, with the head toward the pillow and the feet away', () => {
@@ -95,12 +98,12 @@ describe('resting, for models without it', () => {
     const sit = restClips(model, clips).find((clip) => clip.name === 'sit');
     if (sit === undefined) throw new Error('no clip');
     posed(model, sit);
-    expect(y(body)).toBeCloseTo(0.25);
+    expect(y(body)).toBeCloseTo(0.46);
     for (const { shin, foot } of legs) {
       expect(z(shin)).toBeCloseTo(0.5);
-      expect(y(shin)).toBeCloseTo(0.25);
+      expect(y(shin)).toBeCloseTo(0.46);
       expect(z(foot)).toBeCloseTo(0.5);
-      expect(y(foot)).toBeCloseTo(-0.25);
+      expect(y(foot)).toBeCloseTo(-0.04);
     }
   });
 

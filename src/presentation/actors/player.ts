@@ -60,6 +60,9 @@ const emoteClips: Record<Emote, readonly string[]> = {
   Swim: ['swim'],
 };
 
+/** Sitting, the hips are over the feet's own level by this much above the seat's top. */
+const HIPS_OVER_SEAT = 0.24;
+
 /** These stay until the character moves again: sitting does not end by itself. */
 const heldEmotes: ReadonlySet<Emote> = new Set(['Sit', 'Lie', 'Carry', 'Swim']);
 
@@ -106,6 +109,8 @@ export class Player {
   private foam: THREE.Group | undefined;
   private idle = 'idle';
   private readonly hand: Hand | undefined;
+  /** Where the hand ends up in a reaching gesture, from the feet, facing +z. */
+  private readonly reach: THREE.Vector3;
 
   constructor(
     private readonly model: THREE.Object3D,
@@ -160,6 +165,34 @@ export class Player {
     this.mixer.update(0);
     model.updateMatrixWorld(true);
     this.hand = figure === undefined ? handHolder(model) : undefined;
+    this.reach = this.measureReach(figure?.hand ?? this.hand?.holder);
+  }
+
+  private measureReach(hand: THREE.Object3D | undefined): THREE.Vector3 {
+    const tap = this.actions.get('tap');
+    const idle = this.current;
+    if (hand === undefined || tap === undefined) return new THREE.Vector3(0, 0, 0.5);
+    idle?.stop();
+    tap.reset().play();
+    tap.time = tap.getClip().duration / 2;
+    this.mixer.update(0);
+    this.root.updateMatrixWorld(true);
+    const point = hand.getWorldPosition(new THREE.Vector3());
+    tap.stop();
+    idle?.play();
+    this.mixer.update(0);
+    return point;
+  }
+
+  /** Stands where the hand, stretched out, touches this point. */
+  placeToReach(point: THREE.Vector3, facing: number): void {
+    const hand = this.reach.clone().setY(0).applyAxisAngle(THREE.Object3D.DEFAULT_UP, facing);
+    this.placeAt(point.clone().sub(hand), facing);
+  }
+
+  /** How high the stretched hand is over the floor. */
+  get reachHeight(): number {
+    return this.reach.y;
   }
 
   get position(): THREE.Vector3 {
@@ -230,6 +263,11 @@ export class Player {
   /** Ends a motion that holds, such as sitting. */
   release(): void {
     this.emote = null;
+  }
+
+  /** Sits on something whose top is at this height: everybody fits the same seat. */
+  sitOn(top: number): void {
+    this.setPerch(top - HIPS_OVER_SEAT);
   }
 
   /** Raises the body over the floor: on a chair or in bed. */
