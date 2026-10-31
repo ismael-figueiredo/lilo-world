@@ -1,11 +1,43 @@
 import { fileURLToPath } from 'node:url';
+import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
+
+/**
+ * Only what the game itself ships can run: no script from anywhere else, and
+ * nothing sent anywhere. The dev server needs its own inline scripts, so this
+ * goes in the build only. WebAssembly decodes the 3D models.
+ */
+const CONTENT_POLICY = [
+  "default-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "media-src 'self' blob:",
+  "connect-src 'self' data: blob:",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'none'",
+].join('; ');
+
+const contentPolicy = (): Plugin => ({
+  name: 'content-policy',
+  apply: 'build',
+  transformIndexHtml: () => [
+    {
+      tag: 'meta',
+      attrs: { 'http-equiv': 'Content-Security-Policy', content: CONTENT_POLICY },
+      injectTo: 'head-prepend',
+    },
+  ],
+});
 
 const fromRoot = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
 
 export default defineConfig({
   // Relative base keeps the static build portable (VPS subfolder, GitHub Pages, file server).
   base: './',
+  plugins: [contentPolicy()],
   resolve: {
     alias: {
       '@domain': fromRoot('./src/domain'),

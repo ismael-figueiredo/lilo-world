@@ -176,7 +176,11 @@ export class MarketInterior implements Zone {
     for (const item of this.items.values()) this.group.remove(item.sprite);
     this.items.clear();
     this.flights.length = 0;
-    this.inCart = 0;
+    this.tags.clear();
+    this.emptyCart();
+    this.cart.position.set(CART.x, 0, CART.z);
+    this.cart.rotation.y = 0;
+    this.walkPlaces = [];
     this.hinted = undefined;
     const slots = SHELF_LEVELS.flatMap((y) => SHELF_XS.map((x) => [x, y] as const));
     choices.forEach((choice, index) => {

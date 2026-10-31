@@ -512,6 +512,7 @@ export class GameApp implements GameContext {
     this.services.audio.stopMusic();
     this.missions.close();
     this.learning.close();
+    this.errands.close();
     this.day.close();
     this.wardrobe.close();
     this.menus.closeAll();
@@ -761,6 +762,7 @@ export class GameApp implements GameContext {
     const session = await this.player.loadSession.execute();
     const world = this.world;
     this.rig.clearFocus();
+    world.shopping = undefined;
     this.setIndoors(true);
     this.addGuardian(profile, world);
     const resumeAt =

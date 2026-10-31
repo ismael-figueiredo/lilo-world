@@ -95,8 +95,10 @@ export function completeStep(day: DayState, step: StepId): StepResult {
       dayEnded: true,
     };
   }
+  // With lunch eaten, the task is over: its list leaves the agenda.
+  const { number, errand } = day;
   return {
-    day: { ...day, done },
+    day: { number, done, ...(step === 'lunch' || errand === undefined ? {} : { errand }) },
     counted: true,
     blockEnded: block.steps.every((candidate) => done.includes(candidate)),
     dayEnded: false,

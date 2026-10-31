@@ -113,6 +113,13 @@ describe('the lunch task', () => {
     ).toMatchObject({ list: ['carrot'], wallet: [500] });
   });
 
+  it('ends with lunch, and stays with any other step before that', () => {
+    const morning = ['wake', 'eat', 'teeth', 'dress', 'backpack'];
+    const day = { number: 1, done: morning as never[], errand: planErrand(1, 'exact') };
+    expect(completeStep(day, 'study').day.errand).toBeDefined();
+    expect(completeStep(day, 'lunch').day.errand).toBeUndefined();
+  });
+
   it('lives in the day: saved with it and gone with a new day', () => {
     const errand = planErrand(1, 'exact');
     const day = { ...firstDay, errand };
