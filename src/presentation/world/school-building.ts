@@ -27,7 +27,7 @@ const spots = {
   exit: { x: 0, z: 12.4 },
   teacher: { x: -9, z: 0.8 },
   teacherStands: { x: -9, z: -0.8 },
-  cubby: { x: -14, z: 0.6 },
+  cubby: { x: -14, z: -0.3 },
   desk: { x: -9, z: -6 },
   seat: { x: -9, z: -5.15 },
   toilet: { x: -13, z: 7 },
@@ -296,11 +296,11 @@ export class SchoolBuilding implements Zone, WalkableSpace {
       solid(new THREE.BoxGeometry(9, 1.7, 0.1), lowPoly(0x2f5d50), [-9, 1.9, -HALF_Z + 0.25]),
     );
     this.solidBox(-3, -11, 2.4, 0.9, 0.85, 0xa8744a);
-    // Cubbies along the corridor.
+    // Cubbies on the corridor's wall without doors, beside the classroom's door.
     for (let i = 0; i < 5; i += 1) {
       this.solidBox(
         -16.4 + i * 1.3,
-        CORRIDOR - 0.55,
+        -CORRIDOR + 0.45,
         1.2,
         0.5,
         1.05,
@@ -323,7 +323,10 @@ export class SchoolBuilding implements Zone, WalkableSpace {
         );
       });
     }
-    this.solidBox(9, -4.8, 1.8, 1.8, 0.1, 0x7ec8a3);
+    // A rug to sit on: it is only the floor.
+    this.group.add(
+      solid(new THREE.BoxGeometry(1.8, 0.04, 1.8), lowPoly(0x7ec8a3), [9, 0.12, -4.8]),
+    );
   }
 
   private addBathroom(): void {

@@ -262,7 +262,10 @@ export class SchoolController {
     const { ctx } = this;
     ctx.enterPanel('home');
     const stop = ctx.world.places.find((place) => place.id === CityPlace.busStop);
-    if (stop !== undefined) ctx.avatar.placeAt(stop.position, 0);
+    // Looking down the street, where the bus comes from, with the stop at hand.
+    if (stop !== undefined) ctx.avatar.placeAt(stop.position, Math.PI / 2);
+    ctx.rig.yaw = -Math.PI / 2;
+    ctx.letLookAround();
     const { town } = ctx;
     const street = town.bus;
     street.callBus();
