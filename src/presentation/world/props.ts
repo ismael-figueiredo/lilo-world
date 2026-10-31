@@ -9,7 +9,7 @@ import { lowPoly, solid } from '@presentation/world/materials';
  */
 
 const glass = () =>
-  lowPoly(0xbfe9ff, { emissive: 0x9fdcff, emissiveIntensity: 0.25, roughness: 0.2 });
+  lowPoly(0xa9def7, { emissive: 0x9fdcff, emissiveIntensity: 0.3, roughness: 0.08 });
 const metal = () => lowPoly(0x3d4a5c, { roughness: 0.5 });
 
 /** Box with round edges: the "toy" look instead of sharp blocks. */
@@ -79,43 +79,107 @@ export function busStop(): THREE.Group {
     group.add(solid(new THREE.CylinderGeometry(0.07, 0.07, 2.8, 10), metal(), [x, 1.4, -0.6]));
   const roof = solid(roundedBox(4.4, 0.2, 1.9, 0.1), lowPoly(0x2e86de), [0, 2.8, 0]);
   group.add(roof);
-  group.add(solid(new THREE.BoxGeometry(3.6, 1.9, 0.06), glass(), [0, 1.45, -0.66]));
+  // Clear, so nobody waiting disappears behind it.
+  group.add(
+    solid(
+      new THREE.BoxGeometry(3.6, 1.9, 0.06),
+      new THREE.MeshStandardMaterial({
+        color: 0xbfe9ff,
+        transparent: true,
+        opacity: 0.22,
+        roughness: 0.1,
+        depthWrite: false,
+      }),
+      [0, 1.45, -0.66],
+    ),
+  );
   const seat = bench();
   seat.position.set(0, 0, -0.2);
   group.add(seat);
   return group;
 }
 
+/** The name of the line above the windshield, as on a real bus. */
+function destination(): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 64;
+  const context = canvas.getContext('2d');
+  if (context !== null) {
+    context.fillStyle = '#1b2333';
+    context.fillRect(0, 0, 256, 64);
+    context.fillStyle = '#ffd23f';
+    context.font = 'bold 44px sans-serif';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText('ESCOLA', 128, 34);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+/** Where the nose of the bus really ends: the rounded edges add to its length. */
+const FRONT = 4.14;
+
 export function bus(): THREE.Group {
   const group = new THREE.Group();
-  const yellow = lowPoly(0xffb02e, { roughness: 0.6 });
+  const yellow = lowPoly(0xffb02e, { roughness: 0.5 });
+  const dark = lowPoly(0x1b2333, { roughness: 0.4 });
+  const white = lowPoly(0xf4f1ea);
+  const paned = glass();
+  const shine = lowPoly(0xffffff, { emissive: 0xffffff, emissiveIntensity: 0.4 });
   // Body along local x, so the bus drives sideways along the street.
-  const body = solid(roundedBox(8, 2.7, 2.6, 0.55), yellow, [0, 0.55, 0]);
-  group.add(body);
-  group.add(solid(roundedBox(7.6, 0.18, 2.66, 0.08), lowPoly(0xffffff), [0, 1.2, 0]));
-  group.add(solid(roundedBox(7.4, 0.25, 2.3, 0.12), lowPoly(0xf08c00), [0, 3.2, 0]));
+  group.add(solid(roundedBox(8, 2.7, 2.6, 0.22), yellow, [0, 0.55, 0]));
+  group.add(solid(roundedBox(7.96, 0.16, 2.64, 0.06), white, [0, 1.3, 0]));
+  group.add(solid(roundedBox(7.96, 0.3, 2.64, 0.06), dark, [0, 0.55, 0]));
+  group.add(solid(roundedBox(7, 0.22, 2.2, 0.1), lowPoly(0xf08c00), [0, 3.25, 0]));
 
-  const windowMaterial = lowPoly(0x2b3a55, {
-    emissive: 0x9fdcff,
-    emissiveIntensity: 0.12,
-    roughness: 0.15,
-  });
+  // A dark band behind the panes, so each one reads as glass in a frame.
+  group.add(solid(roundedBox(7.4, 1.06, 2.64, 0.08), dark, [-0.3, 1.58, 0]));
   for (const side of [-1, 1]) {
     for (let i = 0; i < 5; i += 1) {
-      group.add(
-        solid(roundedBox(1.15, 0.85, 0.06, 0.15), windowMaterial, [
-          -2.9 + i * 1.35,
-          2.05,
-          side * 1.31,
-        ]),
-      );
+      const x = -3.1 + i * 1.3;
+      group.add(solid(new THREE.BoxGeometry(1.16, 0.88, 0.04), paned, [x, 2.11, side * 1.33]));
+      const glare = solid(new THREE.BoxGeometry(0.09, 0.8, 0.02), shine, [
+        x - 0.2,
+        2.11,
+        side * 1.35,
+      ]);
+      glare.rotation.z = -0.5;
+      group.add(glare);
     }
+    group.add(
+      solid(new THREE.BoxGeometry(0.1, 0.08, 0.3), dark, [4.14, 2.3, side * 1.34]),
+      solid(new THREE.BoxGeometry(0.1, 0.5, 0.22), dark, [4.24, 2.05, side * 1.48]),
+    );
+    group.add(
+      solid(new THREE.BoxGeometry(0.08, 0.3, 0.5), lowPoly(0xe8504c), [-4.16, 1.1, side * 0.9]),
+    );
   }
-  const windshield = solid(roundedBox(2.1, 1.05, 0.06, 0.15), windowMaterial, [4.02, 1.85, 0]);
-  windshield.rotation.y = Math.PI / 2;
-  group.add(windshield);
-  // Door on the curb side, at the right of who drives (local +z).
-  group.add(solid(roundedBox(1, 1.9, 0.06, 0.1), windowMaterial, [2.9, 0.75, 1.31]));
+  // The door has two glass leaves, on the curb side (local +z).
+  for (const x of [2.72, 3.34]) {
+    group.add(solid(new THREE.BoxGeometry(0.62, 2.1, 0.05), dark, [x, 0.72, 1.32]));
+    group.add(solid(new THREE.BoxGeometry(0.46, 1.8, 0.03), paned, [x, 0.9, 1.35]));
+  }
+
+  // A wide windshield, with its wipers and the name of the line above it.
+  group.add(solid(new THREE.BoxGeometry(0.06, 1.5, 2.4), dark, [FRONT, 2.05, 0]));
+  group.add(solid(new THREE.BoxGeometry(0.05, 1.3, 2.2), paned, [FRONT + 0.03, 1.98, 0]));
+  for (const z of [-0.5, 0.5]) {
+    const wiper = solid(new THREE.BoxGeometry(0.03, 0.9, 0.05), dark, [FRONT + 0.07, 1.75, z]);
+    wiper.rotation.x = 0.7;
+    group.add(wiper);
+  }
+  const sign = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.5, 0.3),
+    new THREE.MeshBasicMaterial({ map: destination() }),
+  );
+  sign.rotation.y = Math.PI / 2;
+  sign.position.set(FRONT + 0.04, 2.98, 0);
+  group.add(sign);
+  group.add(solid(new THREE.BoxGeometry(0.2, 0.26, 2.5), dark, [FRONT + 0.04, 0.5, 0]));
+  group.add(solid(new THREE.BoxGeometry(0.2, 0.26, 2.5), dark, [-FRONT - 0.04, 0.5, 0]));
 
   const tire = new THREE.CylinderGeometry(0.55, 0.55, 0.42, 16);
   tire.rotateX(Math.PI / 2);
@@ -132,7 +196,7 @@ export function bus(): THREE.Group {
       solid(
         new THREE.SphereGeometry(0.17, 10, 8),
         lowPoly(0xfff6cf, { emissive: 0xfff2b0, emissiveIntensity: 0.9 }),
-        [4.05, 1.0, z],
+        [FRONT + 0.03, 1.0, z],
       ),
     );
   }

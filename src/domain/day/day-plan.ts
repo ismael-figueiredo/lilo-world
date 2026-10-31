@@ -1,5 +1,5 @@
 import { sanitizeErrand, type Errand } from '@domain/errand/errand';
-import { isSchoolStage, type SchoolStage } from '@domain/school/school-day';
+import { isSchoolStage, schoolStages, type SchoolStage } from '@domain/school/school-day';
 
 export type BlockId = 'morning' | 'school' | 'afternoon' | 'night';
 
@@ -132,6 +132,17 @@ export type SchoolThing = 'notebook' | 'pencil' | 'book' | 'lunchbox' | 'sneaker
 /** What every school day needs, and what changes from one day to the next. */
 const always: readonly SchoolThing[] = ['notebook', 'pencil'];
 const changing: readonly SchoolThing[] = ['book', 'sneakers', 'paints', 'lunchbox'];
+
+/** There is one backpack, and it is always in one place. */
+export type BackpackPlace = 'home' | 'back' | 'cubby';
+
+/** Packed in the morning, on the back to school, in the cubby during class, and home again. */
+export function backpackPlace(day: DayState): BackpackPlace {
+  if (!day.done.includes('backpack') || day.done.includes('school')) return 'home';
+  const stage = day.school;
+  if (stage === undefined || stage === 'leave') return 'back';
+  return schoolStages.indexOf(stage) <= schoolStages.indexOf('backpack') ? 'back' : 'cubby';
+}
 
 /** Today's list for the backpack: it follows the day, so it is never a surprise twice. */
 export function backpackList(day: DayState): readonly SchoolThing[] {

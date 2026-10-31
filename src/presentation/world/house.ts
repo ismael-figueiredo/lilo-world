@@ -1,14 +1,16 @@
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 import type { SchoolThing } from '@domain/day/day-plan';
-import type { Phase, Weather } from '@domain/day/weather';
+import type { Weather } from '@domain/day/weather';
+import { buildAccessory } from '@presentation/actors/wardrobe-meshes';
 import { box, type Collider } from '@presentation/world/collision';
-import { paintRain, paintWindow } from '@presentation/world/window-view';
+import { paintRain } from '@presentation/world/window-view';
 import { routeInside, type HouseSpot } from '@presentation/world/house-plan';
 import type { Interactable } from '@presentation/world/interactable';
 import { pictureOf, StudyDesk } from '@presentation/world/study-desk';
 import { lowPoly, solid } from '@presentation/world/materials';
 import { mergeStatic } from '@presentation/world/merge-static';
+import type { DryArea } from '@presentation/world/weather-effects';
 
 /** The house stands far beyond the sea, where it is never seen from the island. */
 export const HOUSE = { x: 460, z: 0 } as const;
@@ -33,6 +35,10 @@ const HALF_DEPTH = 6;
 const WALL = 2.6;
 /** Walls between the camera and the room are low, as in a dollhouse. */
 const LOW_WALL = 0.7;
+/** Every wall between two rooms, low enough for the camera to see over. */
+const ROOM_WALL = 1.2;
+/** A real opening in the back wall: what is outside is the world itself. */
+const WINDOW_GAP = { left: -7.2, right: -5.2, bottom: 1.25, top: 2.35 } as const;
 const THICK = 0.2;
 const BITES = 3;
 
@@ -123,9 +129,9 @@ export class House {
   private readonly curtain: THREE.Mesh;
   private readonly sunbeam: THREE.Mesh;
   private windowPane!: THREE.Mesh;
-  private view: THREE.CanvasTexture | undefined;
   private rainPane!: THREE.Mesh;
   private mirror: Reflector | undefined;
+  private readonly backpack = new THREE.Group();
   /** Faces the back rooms only, so a mirror shows a room and not the garden behind the low wall. */
   private readonly wallInMirror = new THREE.Mesh(
     new THREE.PlaneGeometry(HALF_WIDTH * 2, 6),
@@ -169,6 +175,7 @@ export class House {
       this.fridgeInside,
       this.cooking,
       this.decor,
+      this.backpack,
     );
 
     for (const thing of Object.keys(standSpots) as HouseThing[]) this.addPlace(thing);
@@ -180,6 +187,7 @@ export class House {
       this.fridgeInside,
       this.cooking,
       this.decor,
+      this.backpack,
       this.sinkWater,
       this.showerWater,
       this.curtain,
@@ -189,6 +197,11 @@ export class House {
     ]);
     this.setCurtain(false);
     this.setWater(undefined);
+  }
+
+  /** Under the walls nothing falls: the rain stays around the house. */
+  get roofed(): DryArea {
+    return { x: HOUSE.x, z: HOUSE.z, halfX: HALF_WIDTH + 0.2, halfZ: HALF_DEPTH + 0.2 };
   }
 
   contains(x: number, z: number): boolean {
@@ -238,13 +251,21 @@ export class House {
     });
   }
 
-  /** The window paints what is outside: the child knows the weather by looking. */
-  setWindow(phase: Phase, weather: Weather): void {
-    this.view?.dispose();
-    this.view = paintWindow(phase, weather);
-    (this.windowPane.material as THREE.MeshBasicMaterial).map = this.view;
-    (this.windowPane.material as THREE.MeshBasicMaterial).needsUpdate = true;
+  /** Through the glass the child sees the real weather, and on rainy days the drops too. */
+  setWindow(weather: Weather): void {
     this.rainPane.visible = weather === 'rain';
+  }
+
+  /** The backpack on the floor by the desk, or nothing when it is somewhere else. */
+  setBackpack(color: number | undefined): void {
+    this.backpack.clear();
+    if (color === undefined) return;
+    const model = buildAccessory('backpack', color);
+    if (model === undefined) return;
+    model.object.scale.setScalar(0.46);
+    model.object.position.set(-5, 0.2, -0.5);
+    model.object.rotation.y = Math.PI;
+    this.backpack.add(model.object);
   }
 
   setMorningLight(on: boolean): void {
@@ -275,7 +296,7 @@ export class House {
       color: 0xdfeeff,
     });
     this.mirror.position.set(x, y, -5.8);
-    this.wallInMirror.position.set(0, LOW_WALL + 3, 0);
+    this.wallInMirror.position.set(0, ROOM_WALL + 3, 0);
     this.wallInMirror.rotation.y = Math.PI;
     this.group.add(this.mirror, this.wallInMirror);
   }
@@ -435,6 +456,54 @@ export class House {
     return surface;
   }
 
+  /** The same street as outside, seen over the walls and through the window. */
+  private addNeighborhood(): void {
+    const ground = (size: readonly [number, number], color: number, z: number, y: number) => {
+      const strip = new THREE.Mesh(
+        new THREE.PlaneGeometry(...size).rotateX(-Math.PI / 2),
+        lowPoly(color),
+      );
+      strip.position.set(0, y, z);
+      strip.receiveShadow = true;
+      this.group.add(strip);
+    };
+    ground([140, 2.4], 0xcfc8b6, 8.6, 0);
+    ground([140, 9], 0x2f3a55, 14.3, 0);
+    ground([140, 2.4], 0xcfc8b6, 20, 0);
+    for (const x of [-18, -9, 0, 9, 18]) this.piece([4, 0.02, 0.3], 0xf4efe4, [x, 0.02, 14.3]);
+    const homes: readonly [number, number, number, number][] = [
+      [-24, 30, 0xbde0fe, 0x3f7fd6],
+      [-8, 30, 0xffc8dd, 0xe8604c],
+      [10, 30, 0xc8f2c2, 0x9b6bf2],
+      [27, 30, 0xfff1a8, 0x3fae5a],
+      [-26, -24, 0xffd6a5, 0xe8604c],
+      [-2, -30, 0xbde0fe, 0x9b6bf2],
+      [24, -24, 0xe3b8ff, 0x3f7fd6],
+    ];
+    for (const [x, z, wall, roof] of homes) {
+      this.piece([9, 3.6, 7], wall, [x, 1.8, z]);
+      const top = solid(new THREE.ConeGeometry(6.6, 2.8, 4), lowPoly(roof), [x, 5, z]);
+      top.rotation.y = Math.PI / 4;
+      top.scale.z = 0.8;
+      this.group.add(top);
+    }
+    const trees: readonly [number, number, number][] = [
+      [-14, -11, 1.5],
+      [-5, -14, 1.9],
+      [5, -11, 1.4],
+      [13, -15, 1.8],
+      [-19, -3, 1.7],
+      [20, 1, 1.6],
+      [-30, 8, 1.5],
+      [33, 12, 1.7],
+    ];
+    for (const [x, z, size] of trees) {
+      this.piece([0.36, size * 1.6, 0.36], 0x8a5a3b, [x, size * 0.8, z]);
+      const crown = new THREE.IcosahedronGeometry(size, 1);
+      this.group.add(solid(crown, lowPoly(0x4f9a56), [x, size * 2.2, z]));
+    }
+  }
+
   private addGrounds(): void {
     const lawn = new THREE.Mesh(
       new THREE.CircleGeometry(70, 40).rotateX(-Math.PI / 2),
@@ -443,6 +512,7 @@ export class House {
     lawn.position.y = -0.02;
     lawn.receiveShadow = true;
     this.group.add(lawn);
+    this.addNeighborhood();
     const rooms: readonly [number, number, number][] = [
       [-4, -3, 0xf6d9e6],
       [4, -3, 0xd6f0fb],
@@ -472,7 +542,14 @@ export class House {
   private addWalls(): void {
     const outer = 0xf7efe0;
     const inner = 0xfdf6ea;
-    this.wall(-HALF_WIDTH, -HALF_DEPTH, HALF_WIDTH, -HALF_DEPTH, WALL, outer);
+    const { left, right, bottom, top } = WINDOW_GAP;
+    this.wall(-HALF_WIDTH, -HALF_DEPTH, left, -HALF_DEPTH, WALL, outer);
+    this.wall(right, -HALF_DEPTH, HALF_WIDTH, -HALF_DEPTH, WALL, outer);
+    const middle = (left + right) / 2;
+    const gap = right - left;
+    this.piece([gap, bottom, THICK], outer, [middle, bottom / 2, -HALF_DEPTH]);
+    this.piece([gap, WALL - top, THICK], outer, [middle, (WALL + top) / 2, -HALF_DEPTH]);
+    this.block(middle, -HALF_DEPTH, gap, THICK);
     this.wall(-HALF_WIDTH, -HALF_DEPTH, -HALF_WIDTH, HALF_DEPTH, WALL, outer);
     this.wall(HALF_WIDTH, -HALF_DEPTH, HALF_WIDTH, HALF_DEPTH, WALL, outer);
     // The front wall, with the street door.
@@ -482,12 +559,12 @@ export class House {
     this.piece([1.9, 2.2, 0.1], this.shining('door', 0xc4513c), [-4, 1.1, HALF_DEPTH]);
     this.piece([0.1, 0.1, 0.16], 0xffd23f, [-3.4, 1.05, HALF_DEPTH - 0.05]);
     // Between the back rooms and the front rooms.
-    this.wall(-HALF_WIDTH, 0, -5, 0, LOW_WALL, inner);
-    this.wall(-3.2, 0, HALF_WIDTH, 0, LOW_WALL, inner);
+    this.wall(-HALF_WIDTH, 0, -5, 0, ROOM_WALL, inner);
+    this.wall(-3.2, 0, HALF_WIDTH, 0, ROOM_WALL, inner);
     // Between left and right, with two doorways.
-    this.wall(0, -HALF_DEPTH, 0, -3.4, WALL, inner);
-    this.wall(0, -1.8, 0, 2, WALL, inner);
-    this.wall(0, 3.6, 0, HALF_DEPTH, WALL, inner);
+    this.wall(0, -HALF_DEPTH, 0, -3.4, ROOM_WALL, inner);
+    this.wall(0, -1.8, 0, 2, ROOM_WALL, inner);
+    this.wall(0, 3.6, 0, HALF_DEPTH, ROOM_WALL, inner);
   }
 
   private addBedroom(): void {
@@ -499,7 +576,12 @@ export class House {
     this.block(-6.2, -4.4, 1.9, 2.9);
     this.windowPane = new THREE.Mesh(
       new THREE.PlaneGeometry(2, 1.1),
-      new THREE.MeshBasicMaterial({ color: 0xffffff }),
+      new THREE.MeshBasicMaterial({
+        color: 0xcfeaff,
+        transparent: true,
+        opacity: 0.14,
+        depthWrite: false,
+      }),
     );
     this.windowPane.position.set(-6.2, 1.8, -5.86);
     this.group.add(this.windowPane);
@@ -510,6 +592,9 @@ export class House {
     this.rainPane.position.set(-6.2, 1.8, -5.85);
     this.group.add(this.rainPane);
     this.piece([2.2, 0.08, 0.1], 0xffffff, [-6.2, 2.38, -5.86]);
+    this.piece([2.2, 0.08, 0.1], 0xffffff, [-6.2, 1.22, -5.86]);
+    this.piece([0.07, 1.1, 0.08], 0xffffff, [-6.2, 1.8, -5.86]);
+    for (const x of [-7.23, -5.17]) this.piece([0.08, 1.2, 0.1], 0xffffff, [x, 1.8, -5.86]);
     // Wardrobe and a tall mirror.
     this.piece([2, 2.3, 0.8], this.shining('wardrobe', 0xf6c28b), [-2.2, 1.15, -5.45]);
     this.piece([0.03, 2.1, 0.03], 0x8a5a3b, [-2.2, 1.15, -5.04]);
@@ -522,8 +607,7 @@ export class House {
     this.block(-6.6, -0.6, 2.3, 0.9);
     this.piece([0.55, 0.08, 0.55], 0x7ec8a3, [-6.6, 0.42, -1.45]);
     this.piece([0.5, 0.42, 0.5], 0x5fa883, [-6.6, 0.2, -1.45]);
-    // Backpack on the floor, and a round rug.
-    this.piece([0.5, 0.6, 0.28], 0xe8604c, [-5.0, 0.3, -0.45]);
+    // A round rug. The backpack waits beside it, when it is at home.
     const rug = solid(
       new THREE.CylinderGeometry(1, 1, 0.03, 24),
       lowPoly(0x7ec8a3),

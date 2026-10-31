@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   backpackList,
+  backpackPlace,
   completeStep,
   currentBlock,
   currentStep,
@@ -13,6 +14,7 @@ import {
   type DayState,
   type StepId,
 } from '@domain/day/day-plan';
+import type { SchoolStage } from '@domain/school/school-day';
 
 const after = (...steps: readonly StepId[]): DayState =>
   steps.reduce((day, step) => completeStep(day, step).day, firstDay);
@@ -86,5 +88,28 @@ describe('the backpack', () => {
     const day = { number: 2, done: [] };
     for (const thing of notForToday(day)) expect(backpackList(day)).not.toContain(thing);
     expect(notForToday(day)).toHaveLength(2);
+  });
+});
+
+describe('the one backpack', () => {
+  const packed = ['wake', 'eat', 'teeth', 'dress', 'backpack'] as const;
+
+  it('stays at home until it is packed', () => {
+    expect(backpackPlace({ number: 2, done: ['wake'] })).toBe('home');
+  });
+
+  it('goes on the back to school, stays in the cubby and comes back', () => {
+    const on = (school: SchoolStage) => backpackPlace({ number: 2, done: packed, school });
+    expect(backpackPlace({ number: 2, done: packed })).toBe('back');
+    expect(on('stop')).toBe('back');
+    expect(on('greet')).toBe('back');
+    expect(on('backpack')).toBe('back');
+    expect(on('seat')).toBe('cubby');
+    expect(on('recess')).toBe('cubby');
+    expect(on('leave')).toBe('back');
+  });
+
+  it('is home again once school is over', () => {
+    expect(backpackPlace({ number: 2, done: [...packed, 'school'] })).toBe('home');
   });
 });

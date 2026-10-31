@@ -1,5 +1,6 @@
 import type * as THREE from 'three';
 import { rideSeconds } from '@domain/city/bus';
+import { backpackPlace } from '@domain/day/day-plan';
 import { phrases } from '@application/phrases';
 import type { PlannedActivity } from '@domain/curriculum/session-plan';
 import {
@@ -26,6 +27,8 @@ import { schoolSpotOf } from '@presentation/world/market-position';
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 const STEP_MS = 1400;
+/** The moment the card touches the reader. */
+const CARD_REACH_MS = 350;
 const BUS_PATIENCE_MS = 14_000;
 const GET_OFF_SECONDS = 2;
 const SEAT_HEIGHT = 0.3;
@@ -236,7 +239,11 @@ export class SchoolController {
 
   private async save(stage: SchoolStage): Promise<void> {
     await this.ctx.player.followDay.saveSchool(stage);
-    this.home.setDay(await this.ctx.player.followDay.load());
+    const day = await this.ctx.player.followDay.load();
+    this.home.setDay(day);
+    this.building?.keepBackpack(
+      backpackPlace(day) === 'cubby' ? this.ctx.avatar.backpackColor : undefined,
+    );
     this.ctx.refreshGoal();
   }
 
@@ -307,9 +314,9 @@ export class SchoolController {
     await ctx.transition(() => {
       town.bus.sendBusAway();
       ctx.enterSpace(bus);
-      ctx.avatar.placeAt(bus.reader, -Math.PI / 2);
-      const view = bus.camera;
-      ctx.rig.setFocus(view.position, view.lookAt, true);
+      ctx.avatar.placeAt(bus.reader, FACE_SOUTH);
+      const pay = bus.payCamera;
+      ctx.rig.setFocus(pay.position, pay.lookAt, true);
       this.classmates.forEach((friend, index) => {
         this.sit(friend, bus.seatOf(index), Math.PI / 2);
       });
@@ -318,13 +325,18 @@ export class SchoolController {
     ctx.say(phrases.passCard);
     ctx.avatar.hold('card');
     await this.home.sheet.press([{ icon: '💳', label: 'Passar o cartão' }], 0);
-    ctx.avatar.playEmote('ThumbsUp');
+    ctx.avatar.playEmote('Tap');
+    await wait(CARD_REACH_MS);
+    bus.acceptCard();
     ctx.sound('coin');
+    ctx.say(phrases.cardAccepted);
     await wait(STEP_MS);
     ctx.avatar.hold(undefined);
     ctx.say(phrases.sitOnBus);
     await this.home.sheet.press([{ icon: '💺', label: 'Sentar' }], 0);
     this.sit(ctx.avatar, bus.seat, Math.PI / 2);
+    const view = bus.camera;
+    ctx.rig.setFocus(view.position, view.lookAt, true);
     bus.setMoving(true);
     ctx.say(phrases.lookOutside);
     await wait(rideSeconds(ctx.settings.shortRides) * 1000);

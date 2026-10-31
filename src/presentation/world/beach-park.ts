@@ -24,6 +24,7 @@ export class BeachPark implements Zone, WalkableSpace {
   readonly colliders: readonly Collider[] = [];
   readonly places: readonly Interactable[] = [];
   readonly height = FLOOR;
+  readonly open = true;
   readonly walkColliders: Collider[] = [];
   readonly walkPlaces: Interactable[] = [];
   private readonly castle = new THREE.Group();

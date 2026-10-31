@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { buildAccessory } from '@presentation/actors/wardrobe-meshes';
 import { box, type Collider } from '@presentation/world/collision';
 import type { WalkableSpace } from '@presentation/world/game-world';
 import type { Interactable } from '@presentation/world/interactable';
@@ -10,6 +11,7 @@ import { HOPSCOTCH_SQUARES } from '@domain/play/games';
 import { treeRing } from '@presentation/world/scenery';
 import { createSign } from '@presentation/world/sign';
 import { StudyDesk } from '@presentation/world/study-desk';
+import type { DryArea } from '@presentation/world/weather-effects';
 import type { Zone } from '@presentation/world/zones/zone';
 
 const FLOOR = -5;
@@ -101,6 +103,15 @@ export class SchoolBuilding implements Zone, WalkableSpace {
   readonly colliders: readonly Collider[] = [];
   readonly places: readonly Interactable[] = [];
   readonly height = FLOOR;
+  /** The yard is outside; the rooms keep the rain out. */
+  readonly open = true;
+  readonly roofed: DryArea = {
+    x: SCHOOL_BUILDING.x,
+    z: SCHOOL_BUILDING.z,
+    halfX: HALF_X + 0.3,
+    halfZ: HALF_Z + 0.3,
+  };
+  private readonly cubby = new THREE.Group();
   readonly walkColliders: Collider[] = [];
   readonly study: StudyDesk;
   private readonly desk = new THREE.Group();
@@ -140,7 +151,8 @@ export class SchoolBuilding implements Zone, WalkableSpace {
     }
     this.rope.visible = false;
     this.group.add(this.study.group, this.desk, this.ball, this.rope);
-    mergeStatic(this.group, [this.study.group, this.ball, this.rope]);
+    this.group.add(this.cubby);
+    mergeStatic(this.group, [this.study.group, this.ball, this.rope, this.cubby]);
   }
 
   /** A spot of the building, in the world. */
@@ -331,6 +343,17 @@ export class SchoolBuilding implements Zone, WalkableSpace {
         i % 2 === 0 ? 0xffc93c : 0x3fa9f5,
       );
     }
+  }
+
+  /** The child's backpack on top of their cubby, or nothing while they carry it. */
+  keepBackpack(color: number | undefined): void {
+    this.cubby.clear();
+    if (color === undefined) return;
+    const model = buildAccessory('backpack', color);
+    if (model === undefined) return;
+    model.object.scale.setScalar(0.46);
+    model.object.position.set(-13.8, 1.25, -CORRIDOR + 0.45);
+    this.cubby.add(model.object);
   }
 
   private addLibrary(): void {

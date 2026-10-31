@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import { outfitTips, phrases, stepTips, weatherTips } from '@application/phrases';
 import {
   backpackList,
+  backpackPlace,
   currentBlock,
   currentStep,
   firstDay,
@@ -183,13 +184,26 @@ export class HomeController {
   /** The task saved something: what is lit follows it. */
   setDay(day: DayState): void {
     this.day = day;
+    this.showBackpack();
     this.showGoal();
+  }
+
+  /** The backpack follows the day, and nothing else moves it. */
+  showBackpack(): void {
+    const { avatar } = this.ctx;
+    avatar.setBackpackPlace(backpackPlace(this.day));
+    this.house.setBackpack(
+      backpackPlace(this.day) === 'home' && !avatar.wearsBackpack
+        ? avatar.backpackColor
+        : undefined,
+    );
   }
 
   /** Where the child starts: in bed in a new morning, or back at home. */
   async begin(isNew: boolean, resumeAt: THREE.Vector3 | undefined): Promise<void> {
     this.day = await this.ctx.player.followDay.load();
     this.ctx.showDay(this.day);
+    this.showBackpack();
     // The swimsuit never leaves the beach, even if the game closed there.
     if (this.ctx.profile.outfit === 'swim') await this.ctx.changeOutfit('home');
     this.ctx.world.sky.setLook(skyLook(phaseOf(this.day), this.ctx.weather), true);
@@ -324,6 +338,7 @@ export class HomeController {
     const result = await this.ctx.player.followDay.complete(step);
     this.day = result.day;
     this.ctx.showDay(this.day);
+    this.showBackpack();
     if (result.counted) this.ctx.sound('star');
     if (result.blockEnded) await this.ctx.stopPoint();
   }
@@ -628,8 +643,11 @@ export class HomeController {
         this.ctx.say(phrases.packed(name));
         await wait(1000);
       }
+      this.house.setBackpack(undefined);
+      avatar.setBackpackPlace('back');
+      avatar.playEmote('ThumbsUp');
       this.ctx.say(phrases.packDone);
-      await wait(1000);
+      await wait(1400);
       await this.complete('backpack');
       return phrases.packDone;
     });

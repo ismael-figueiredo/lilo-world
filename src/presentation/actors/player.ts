@@ -1,10 +1,14 @@
 import * as THREE from 'three';
 import type { WardrobeItem, WardrobeItemId, WardrobeSlot } from '@domain/avatar/wardrobe-item';
+import type { BackpackPlace } from '@domain/day/day-plan';
 import type { AvatarRig } from '@presentation/actors/avatar-rigs';
 import type { Clothes, Expression, HeldThing, Figure } from '@presentation/actors/child-figure';
-import { buildAccessory, type Anchor } from '@presentation/actors/wardrobe-meshes';
+import { buildAccessory, SCHOOL_BACKPACK, type Anchor } from '@presentation/actors/wardrobe-meshes';
 import { dampAngle } from '@presentation/engine/math';
 import { resolveCollisions, type Collider } from '@presentation/world/collision';
+
+/** Narrower than the shoulders, as a backpack on a child's back is. */
+const BACKPACK_FIT = 0.72;
 
 export type Emote =
   | 'Wave'
@@ -20,6 +24,7 @@ export type Emote =
   | 'Brush'
   | 'Wash'
   | 'Pick'
+  | 'Tap'
   | 'Carry'
   | 'Throw'
   | 'Kick'
@@ -35,6 +40,7 @@ const emoteClips: Record<Emote, readonly string[]> = {
   Sit: ['sit'],
   Stand: ['stand'],
   Lie: ['lie'],
+  Tap: ['tap', 'yes'],
   Eat: ['eat', 'yes'],
   SitEat: ['sit-eat', 'eat', 'yes'],
   Drink: ['drink', 'yes'],
@@ -81,6 +87,10 @@ export class Player {
   private readonly anchors: Record<Anchor, THREE.Object3D>;
   private readonly headWidth: number;
   private readonly worn = new Map<WardrobeSlot, THREE.Object3D>();
+  private backpack: THREE.Object3D | undefined;
+  private backpackAt: BackpackPlace = 'home';
+  /** Bought in the wardrobe: from then on it is the one the child takes to school. */
+  private ownBackpack: number | undefined;
   private readonly bodyMaterial: THREE.MeshStandardMaterial | undefined;
   private readonly trimMaterial: THREE.MeshStandardMaterial | undefined;
   private readonly defaultBody: number | undefined;
@@ -280,6 +290,9 @@ export class Player {
     }
     this.root.rotation.y = dampAngle(this.root.rotation.y, this.facing, 14, dt);
     this.moveVertically(dt, ground);
+    if (this.backpack !== undefined) {
+      this.backpack.visible = this.emote !== 'Lie' && this.emote !== 'Swim';
+    }
     this.animate();
     this.mixer.update(dt);
   }
@@ -301,12 +314,51 @@ export class Player {
       this.worn.get(slot)?.removeFromParent();
       this.worn.delete(slot);
       const item = itemIn(slot);
+      if (slot === 'accessory')
+        this.ownBackpack = item?.look === 'backpack' ? item.color : undefined;
+      if (item?.look === 'backpack') continue;
       const model = item === undefined ? undefined : buildAccessory(item.look, item.color);
       if (model === undefined) continue;
       model.object.scale.setScalar(this.headWidth);
       this.anchors[model.anchor].add(model.object);
       this.worn.set(slot, model.object);
     }
+    this.showBackpack();
+  }
+
+  get backpackColor(): number {
+    return this.ownBackpack ?? SCHOOL_BACKPACK;
+  }
+
+  /** At home a chosen backpack stays on the back; the plain one waits on the floor. */
+  get wearsBackpack(): boolean {
+    return (
+      this.backpackAt === 'back' || (this.backpackAt === 'home' && this.ownBackpack !== undefined)
+    );
+  }
+
+  setBackpackPlace(place: BackpackPlace): void {
+    this.backpackAt = place;
+    this.showBackpack();
+  }
+
+  private showBackpack(): void {
+    this.backpack?.removeFromParent();
+    this.backpack = undefined;
+    if (!this.wearsBackpack) return;
+    const model = buildAccessory('backpack', this.backpackColor);
+    if (model === undefined) return;
+    model.object.scale.setScalar(this.headWidth * BACKPACK_FIT);
+    // A figure's big head would throw the measured anchor up and back: it goes on the torso.
+    const torso = this.figure?.model.getObjectByName('Torso');
+    if (this.figure !== undefined && torso !== undefined) {
+      const { torsoHeight, torsoWidth } = this.figure.body;
+      model.object.position.set(0, torsoHeight * 0.5, -torsoWidth * 0.3);
+      torso.add(model.object);
+    } else {
+      this.anchors[model.anchor].add(model.object);
+    }
+    this.backpack = model.object;
   }
 
   dispose(): void {

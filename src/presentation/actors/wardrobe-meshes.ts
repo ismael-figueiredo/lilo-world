@@ -10,6 +10,9 @@ export interface AccessoryModel {
   readonly object: THREE.Object3D;
 }
 
+/** The color of the child's backpack until they choose another one. */
+export const SCHOOL_BACKPACK = 0xe8604c;
+
 /**
  * 3D models for wardrobe looks, built at "head width = 1" scale. The player
  * scales them to fit its own head.

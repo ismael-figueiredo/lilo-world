@@ -918,6 +918,11 @@ function dailyClips(hips: number): THREE.AnimationClip[] {
       ...toMouth([-112, 0, 30], [-68, 0, 0]),
       Head: toAndBack(rest, [-20, 0, 0]),
     }),
+    shared('tap', 0.9, {
+      ArmL: still(armDownL),
+      ArmR: toAndBack(armDownR, [-84, 0, -6]),
+      ForearmR: toAndBack(rest, [-12, 0, 0]),
+    }),
     shared('brush', 1.3, {
       ArmL: still(armDownL),
       ArmR: [armDownR, [-108, 0, 10], [-108, 0, 4], [-108, 0, 10], [-108, 0, 4], armDownR],

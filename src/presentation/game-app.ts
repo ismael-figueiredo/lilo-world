@@ -442,6 +442,7 @@ export class GameApp implements GameContext {
       progress.equipped,
       wardrobe.entries.map((entry) => entry.item),
     );
+    if (this.character !== undefined) this.home.showBackpack();
     this.goal = goal;
     this.showMarker();
   }
@@ -912,7 +913,7 @@ export class GameApp implements GameContext {
     this.mascot.update(this.elapsed, dt, player.position, cameraYaw);
     this.marker.update(this.elapsed);
     this.showGuide(player, world, exploring);
-    world.update(this.elapsed, dt, player.position, this.breathSpot(player));
+    world.update(this.elapsed, dt, player.position, this.breathSpot(player), this.camera.position);
     rig.update(dt, player.position);
 
     if (exploring) {

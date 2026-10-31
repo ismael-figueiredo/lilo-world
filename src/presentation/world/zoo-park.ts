@@ -37,6 +37,7 @@ export class ZooPark implements Zone, WalkableSpace {
   readonly colliders: readonly Collider[] = [];
   readonly places: readonly Interactable[] = [];
   readonly height = FLOOR;
+  readonly open = true;
   readonly walkColliders: Collider[] = [];
   readonly walkPlaces: Interactable[] = [];
   private readonly actors = new Map<AnimalId, ZooAnimal>();

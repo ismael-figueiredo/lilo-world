@@ -1,10 +1,12 @@
 import * as THREE from 'three';
+import type { Phase, Weather } from '@domain/day/weather';
 import type { Collider } from '@presentation/world/collision';
 import type { WalkableSpace } from '@presentation/world/game-world';
 import type { Interactable } from '@presentation/world/interactable';
 import { BUS_INTERIOR } from '@presentation/world/market-position';
 import { lowPoly, solid } from '@presentation/world/materials';
 import { mergeStatic } from '@presentation/world/merge-static';
+import { paintRain } from '@presentation/world/window-view';
 import type { Zone } from '@presentation/world/zones/zone';
 
 const FLOOR = -5;
@@ -15,6 +17,15 @@ const SEAT_ROWS = [-3.2, -1.6, 0, 1.6] as const;
 const SILL = 1.15;
 const PANE_TOP = 2.25;
 const PANES = 5;
+const BEEP_FADE = 0.7;
+
+/** The light outside falls on everything seen through the glass. */
+function lightOutside(phase: Phase, weather: Weather): number {
+  if (phase === 'night') return 0x3a4468;
+  if (weather === 'rain') return 0x8f9aae;
+  if (phase === 'dusk') return 0xe6bfae;
+  return weather === 'cloudy' || weather === 'cold' ? 0xc9d0da : 0xffffff;
+}
 
 /** Each layer is further away and slides slower, as a real landscape does. */
 const LAYERS = [
@@ -125,6 +136,15 @@ export class BusInterior implements Zone, WalkableSpace {
   readonly height = FLOOR;
   private readonly cabin = new THREE.Group();
   private readonly views: readonly THREE.CanvasTexture[] = [nearLayer(), streetLayer(), farLayer()];
+  private readonly outside: THREE.MeshBasicMaterial[] = [];
+  private readonly drops = paintRain();
+  private readonly rainPanes = new THREE.Group();
+  private readonly screen = new THREE.MeshStandardMaterial({
+    color: 0x8fe0b8,
+    emissive: 0x38e07a,
+    emissiveIntensity: 0,
+  });
+  private beep = 0;
   private moving = false;
 
   constructor() {
@@ -133,6 +153,7 @@ export class BusInterior implements Zone, WalkableSpace {
     this.addSeats();
     this.addRails();
     this.addOutside();
+    this.addGlass();
     this.group.add(this.cabin);
     mergeStatic(this.cabin);
   }
@@ -145,6 +166,21 @@ export class BusInterior implements Zone, WalkableSpace {
       solid(new THREE.BoxGeometry(LENGTH, 0.1, WIDTH), lowPoly(0x5b6478), [0, 0, 0]),
       solid(new THREE.BoxGeometry(0.1, HEIGHT, WIDTH), yellow, [-LENGTH / 2, HEIGHT / 2, 0]),
       solid(new THREE.BoxGeometry(0.1, 0.9, WIDTH), yellow, [LENGTH / 2, 0.45, 0]),
+      // Around the windshield, with the dashboard, the wheel and the driver's seat.
+      solid(new THREE.BoxGeometry(0.1, HEIGHT - PANE_TOP, WIDTH), yellow, [
+        LENGTH / 2,
+        (HEIGHT + PANE_TOP) / 2,
+        0,
+      ]),
+      solid(new THREE.BoxGeometry(0.1, PANE_TOP, 0.14), yellow, [LENGTH / 2, PANE_TOP / 2, 0]),
+      solid(new THREE.BoxGeometry(0.5, 0.12, WIDTH), lowPoly(0x2d3142), [4.2, 0.96, 0]),
+      solid(new THREE.BoxGeometry(0.6, 0.5, 0.8), lowPoly(0x3f7fd6), [4, 0.25, -0.7]),
+      solid(new THREE.BoxGeometry(0.12, 1, 0.8), lowPoly(0x3f7fd6), [3.66, 0.9, -0.7]),
+      solid(
+        new THREE.TorusGeometry(0.2, 0.03, 6, 16),
+        lowPoly(0x1b2333),
+        [4.28, 1.15, -0.7],
+      ).rotateY(Math.PI / 2),
       solid(new THREE.BoxGeometry(LENGTH, 0.1, WIDTH), trim, [0, HEIGHT, 0]),
     );
     for (const z of [-WIDTH / 2, WIDTH / 2]) {
@@ -211,33 +247,92 @@ export class BusInterior implements Zone, WalkableSpace {
       solid(new THREE.BoxGeometry(LENGTH - 1, 0.04, 0.04), rail, [0, 2.1, 0.32]),
       solid(new THREE.BoxGeometry(LENGTH - 1, 0.04, 0.04), rail, [0, 2.1, -0.32]),
       // The card reader and the stop button, by the door.
-      solid(new THREE.BoxGeometry(0.2, 1.1, 0.2), lowPoly(0x2d3142), [3.2, 0.55, 0.7]),
-      solid(new THREE.BoxGeometry(0.34, 0.26, 0.1), lowPoly(0x5fd38a), [3.2, 1.2, 0.7]),
+      solid(new THREE.BoxGeometry(0.2, 0.85, 0.2), lowPoly(0x2d3142), [3.2, 0.42, 0.7]),
+      solid(new THREE.BoxGeometry(0.34, 0.3, 0.2), lowPoly(0x1b2333), [3.2, 0.98, 0.7]),
       solid(new THREE.BoxGeometry(0.1, 0.1, 0.06), lowPoly(0xe8504c), [-0.8, 1.5, -0.32]),
     );
+    // The screen of the reader lights up when the card touches it.
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.22), this.screen);
+    screen.position.set(3.2, 1, 0.59);
+    screen.rotation.y = Math.PI;
+    this.group.add(screen);
   }
 
-  /** Three flat layers at real distances, seen through the panes. */
+  /** Three flat layers at real distances on each side, and the road ahead. */
   private addOutside(): void {
+    const picture = (
+      map: THREE.Texture | null,
+      transparent: boolean,
+      width: number,
+      height: number,
+    ) => {
+      const seen = new THREE.MeshBasicMaterial({ map, transparent });
+      this.outside.push(seen);
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(width, height), seen);
+      this.group.add(plane);
+      return plane;
+    };
     LAYERS.forEach(({ depth, height }, index) => {
-      const view = this.views[index];
+      const view = this.views[index] ?? null;
       const width = 60 + depth * 4;
       // The picture repeats along the street, at its true size.
-      if (view !== undefined) view.repeat.x = width / (height * 4);
-      const plane = new THREE.Mesh(
-        new THREE.PlaneGeometry(width, height),
-        new THREE.MeshBasicMaterial({ map: view ?? null, transparent: index < 2 }),
-      );
-      plane.position.set(0, 0.1 + height / 2, -WIDTH / 2 - depth);
-      this.group.add(plane);
+      if (view !== null) view.repeat.x = width / (height * 4);
+      for (const side of [-1, 1]) {
+        const plane = picture(view, index < 2, width, height);
+        plane.position.set(0, 0.1 + height / 2, side * (WIDTH / 2 + depth));
+        plane.rotation.y = side > 0 ? Math.PI : 0;
+      }
     });
-    const road = new THREE.Mesh(
-      new THREE.PlaneGeometry(90, 34),
-      new THREE.MeshBasicMaterial({ color: 0x6d7686 }),
-    );
+    const ahead = picture(this.views[2] ?? null, false, 120, 22);
+    ahead.position.set(40, 11, 0);
+    ahead.rotation.y = -Math.PI / 2;
+    const road = picture(null, false, 120, 90);
+    road.material.color.setHex(0x6d7686);
     road.rotation.x = -Math.PI / 2;
-    road.position.set(0, -0.02, -18);
-    this.group.add(road);
+    road.position.set(0, -0.02, 0);
+  }
+
+  /** Real panes: a little of the sky on them, and the drops when it rains. */
+  private addGlass(): void {
+    const height = PANE_TOP - SILL;
+    const middle = (PANE_TOP + SILL) / 2;
+    const clear = new THREE.MeshBasicMaterial({
+      color: 0xcfeaff,
+      transparent: true,
+      opacity: 0.12,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    this.drops.repeat.x = 5;
+    const wet = new THREE.MeshBasicMaterial({
+      map: this.drops,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const pane = (width: number, tall: number, material: THREE.Material) =>
+      new THREE.Mesh(new THREE.PlaneGeometry(width, tall), material);
+    for (const material of [clear, wet]) {
+      const holder = material === wet ? this.rainPanes : this.group;
+      for (const side of [-1, 1]) {
+        const window = pane(LENGTH, height, material);
+        window.position.set(0, middle, (side * WIDTH) / 2);
+        holder.add(window);
+      }
+      const windshield = pane(WIDTH, PANE_TOP - 1, material);
+      windshield.position.set(LENGTH / 2, (PANE_TOP + 1) / 2, 0);
+      windshield.rotation.y = -Math.PI / 2;
+      holder.add(windshield);
+    }
+    this.rainPanes.visible = false;
+    this.group.add(this.rainPanes);
+  }
+
+  showMoment(phase: Phase, weather: Weather): void {
+    const light = lightOutside(phase, weather);
+    for (const seen of this.outside) seen.color.setHex(light);
+    this.outside.at(-1)?.color.multiply(new THREE.Color(0x6d7686));
+    this.rainPanes.visible = weather === 'rain';
   }
 
   private spot(x: number, z: number): THREE.Vector3 {
@@ -249,7 +344,21 @@ export class BusInterior implements Zone, WalkableSpace {
   }
 
   get reader(): THREE.Vector3 {
-    return this.spot(2.8, 0.1);
+    return this.spot(3.2, 0.08);
+  }
+
+  /** Beside the reader, to see the card touch it. */
+  get payCamera(): { position: THREE.Vector3; lookAt: THREE.Vector3 } {
+    const position = this.spot(1, 0.1);
+    position.y += 2.05;
+    const lookAt = this.spot(3.2, 0.4);
+    lookAt.y += 0.6;
+    return { position, lookAt };
+  }
+
+  /** The reader answers the card with a green light. */
+  acceptCard(): void {
+    this.beep = 1;
   }
 
   /** Beside the window, where the view is best. */
@@ -285,6 +394,9 @@ export class BusInterior implements Zone, WalkableSpace {
   }
 
   update(time: number, dt: number): void {
+    this.beep = Math.max(0, this.beep - dt * BEEP_FADE);
+    this.screen.emissiveIntensity = this.beep * 2.2;
+    if (this.rainPanes.visible) this.drops.offset.y = (time * 0.6) % 1;
     if (!this.moving) return;
     LAYERS.forEach(({ speed }, index) => {
       const view = this.views[index];

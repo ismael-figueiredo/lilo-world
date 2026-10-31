@@ -10,7 +10,7 @@ import type { Interactable } from '@presentation/world/interactable';
 import { Sky } from '@presentation/world/sky';
 import { skyLook } from '@presentation/world/sky-looks';
 import { Town } from '@presentation/world/town';
-import { WeatherEffects } from '@presentation/world/weather-effects';
+import { WeatherEffects, type DryArea } from '@presentation/world/weather-effects';
 import type { WorldAssets } from '@presentation/world/world-assets';
 
 /** A place with its own floor, walls and things to use. */
@@ -21,7 +21,13 @@ export interface WalkableSpace {
   readonly entrance: THREE.Vector3;
   /** The desk of this place, when it has one. */
   readonly study?: StudyDesk;
+  /** Under the open sky: the weather happens here too. */
+  readonly open?: boolean;
+  /** The part of an open place with a roof over it. */
+  readonly roofed?: DryArea;
   contains(x: number, z: number): boolean;
+  /** Places with windows show the moment and the weather through them. */
+  showMoment?(phase: Phase, weather: Weather): void;
 }
 
 const shadowSizes: Readonly<Record<Quality, number>> = { high: 2048, medium: 1536, low: 1024 };
@@ -184,7 +190,7 @@ export class GameWorld {
     this.weather = weather;
     const look = skyLook(phase, weather);
     this.sky.setLook(look, now);
-    this.house.setWindow(phase, weather);
+    this.house.setWindow(weather);
     this.effects.setWeather(weather);
     this.showOutside();
   }
@@ -193,18 +199,26 @@ export class GameWorld {
     const look = skyLook(this.phase, this.weather);
     const shade = this.weather === 'rain' ? 1 : this.weather === 'cloudy' ? 0.6 : 0;
     this.town?.setSky(look.night, shade, this.weather === 'rain');
-    this.effects.group.visible = !this.indoors && this.space === undefined;
+    this.effects.group.visible = this.space === undefined || this.space.open === true;
+    this.effects.setDry(this.indoors ? this.house.roofed : this.space?.roofed);
+    this.space?.showMoment?.(this.phase, this.weather);
   }
 
-  update(time: number, dt: number, focus: THREE.Vector3, face: THREE.Vector3): void {
+  update(
+    time: number,
+    dt: number,
+    focus: THREE.Vector3,
+    face: THREE.Vector3,
+    eye: THREE.Vector3,
+  ): void {
     if (this.indoors) {
       this.house.update(time);
       this.house.study.update(dt);
     } else {
       this.town?.update(time, dt, focus);
       this.space?.study?.update(dt);
-      this.effects.update(time, dt, focus, face);
     }
+    this.effects.update(time, dt, focus, face, eye);
     this.sky.follow(focus, dt);
   }
 }
