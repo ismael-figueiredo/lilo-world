@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { armGestures } from '@presentation/actors/arm-poses';
 
 /** Thigh room between the seat and the hips, as a part of the thigh. */
 const ON_THE_SEAT = 0.5;
@@ -100,8 +101,8 @@ function lyingBody(whole: THREE.Object3D, legs: readonly Leg[]): THREE.KeyframeT
 }
 
 /**
- * Sitting and lying down, for models that came without them: built from their
- * own bones, so the upper body keeps the motion of the clip they are based on.
+ * Sitting, lying down and using the hand, for models that came without them:
+ * built from their own bones, over the motion of the clip they are based on.
  */
 export function restClips(
   model: THREE.Object3D,
@@ -119,6 +120,7 @@ export function restClips(
   model.updateMatrixWorld(true);
   const legTracks = seatedLegs(body, legs);
   const bedTracks = lyingBody(whole, legs);
+  const arm = armGestures(model);
   mixer.stopAllAction();
   mixer.uncacheRoot(model);
   model.updateMatrixWorld(true);
@@ -129,15 +131,20 @@ export function restClips(
     tracks: readonly THREE.KeyframeTrack[],
   ): THREE.AnimationClip => {
     const replaced = new Set(tracks.map((track) => track.name));
-    return new THREE.AnimationClip(name, base.duration, [
+    const moving = tracks.filter((track) => track.times.length > 1);
+    const seconds = Math.max(0, ...moving.flatMap((track) => [...track.times]));
+    return new THREE.AnimationClip(name, seconds || base.duration, [
       ...base.tracks.filter((track) => !replaced.has(track.name)),
       ...tracks,
     ]);
   };
-  const nod = clips.find((clip) => clip.name === 'yes');
+  const rest = [posed(idle, 'sit', legTracks), posed(idle, 'lie', bedTracks)];
+  if (arm === undefined) return rest;
+  const { reach, toMouth } = arm;
   return [
-    posed(idle, 'sit', legTracks),
-    posed(idle, 'lie', bedTracks),
-    ...(nod === undefined ? [] : [posed(nod, 'sit-eat', legTracks)]),
+    ...rest,
+    posed(idle, 'sit-eat', [...legTracks, ...toMouth]),
+    ...['tap', 'wash'].map((name) => posed(idle, name, reach)),
+    ...['eat', 'drink', 'brush'].map((name) => posed(idle, name, toMouth)),
   ];
 }

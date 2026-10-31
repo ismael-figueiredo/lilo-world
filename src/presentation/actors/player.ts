@@ -2,7 +2,14 @@ import * as THREE from 'three';
 import type { WardrobeItem, WardrobeItemId, WardrobeSlot } from '@domain/avatar/wardrobe-item';
 import type { BackpackPlace } from '@domain/day/day-plan';
 import type { AvatarRig } from '@presentation/actors/avatar-rigs';
-import type { Clothes, Expression, HeldThing, Figure } from '@presentation/actors/child-figure';
+import { fitToHand, handHolder, type Hand } from '@presentation/actors/arm-poses';
+import {
+  heldShape,
+  type Clothes,
+  type Expression,
+  type Figure,
+  type HeldThing,
+} from '@presentation/actors/child-figure';
 import { buildAccessory, SCHOOL_BACKPACK, type Anchor } from '@presentation/actors/wardrobe-meshes';
 import { dampAngle } from '@presentation/engine/math';
 import { resolveCollisions, type Collider } from '@presentation/world/collision';
@@ -98,6 +105,7 @@ export class Player {
   private readonly groundOffset: number;
   private foam: THREE.Group | undefined;
   private idle = 'idle';
+  private readonly hand: Hand | undefined;
 
   constructor(
     private readonly model: THREE.Object3D,
@@ -149,6 +157,9 @@ export class Player {
     this.anchors = anchors;
     this.headWidth = headWidth;
     this.play('idle', 0);
+    this.mixer.update(0);
+    model.updateMatrixWorld(true);
+    this.hand = figure === undefined ? handHolder(model) : undefined;
   }
 
   get position(): THREE.Vector3 {
@@ -205,7 +216,7 @@ export class Player {
     for (const part of this.root.children) part.visible = inView;
   }
 
-  /** Costumes can walk, greet and rest, but only the child has the other motions of daily life. */
+  /** Whether this model has the motion: a costume lacks a few, such as swimming. */
   canDo(emote: Emote): boolean {
     return this.actions.has(emoteClips[emote][0] ?? '');
   }
@@ -255,9 +266,12 @@ export class Player {
     this.figure?.wear(clothes);
   }
 
-  /** Something in the hand. Costumes have paws and fins: they do it without. */
+  /** Something in the hand. */
   hold(thing: HeldThing | undefined): void {
     this.figure?.hold(thing);
+    if (this.hand === undefined) return;
+    this.hand.holder.clear();
+    if (thing !== undefined) fitToHand(this.hand, thing, heldShape(thing));
   }
 
   feel(expression: Expression): void {

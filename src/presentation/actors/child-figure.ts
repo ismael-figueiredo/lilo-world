@@ -440,7 +440,7 @@ const TOWARD_MOUTH = 2.2;
 const INTO_THE_POT = 1.2;
 
 /** Things for the hand, one simple shape each, in hand coordinates. */
-function heldShape(thing: HeldThing): THREE.Object3D {
+export function heldShape(thing: HeldThing): THREE.Object3D {
   const group = new THREE.Group();
   const add = (geometry: THREE.BufferGeometry, color: number, x: number, y: number, z: number) => {
     const mesh = new THREE.Mesh(geometry, material(color));

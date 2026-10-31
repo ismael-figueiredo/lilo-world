@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
+import { fitToHand, handHolder } from '@presentation/actors/arm-poses';
 import { restClips } from '@presentation/actors/rest-poses';
 
 function named(name: string, parent: THREE.Object3D, y: number, x = 0): THREE.Bone {
@@ -24,11 +25,15 @@ function rig() {
     return { shin, foot };
   });
   const head = named('Head', body, 0.8);
+  const upper = named('UpperArmR', body, 0.6, -0.3);
+  upper.rotation.x = Math.PI;
+  const lower = named('LowerArmR', upper, 0.3);
+  const hand = named('Middle1R', lower, 0.3);
   const idle = new THREE.AnimationClip('idle', 2, [
     new THREE.VectorKeyframeTrack('Head.position', [0, 2], [0, 0.8, 0, 0, 0.8, 0]),
   ]);
   const nod = new THREE.AnimationClip('yes', 1, []);
-  return { model, body, head, legs, clips: [idle, nod] };
+  return { model, body, head, legs, hand, clips: [idle, nod] };
 }
 
 function posed(model: THREE.Object3D, clip: THREE.AnimationClip): void {
@@ -40,9 +45,37 @@ describe('resting, for models without it', () => {
   const y = (bone: THREE.Object3D) => bone.getWorldPosition(new THREE.Vector3()).y;
   const z = (bone: THREE.Object3D) => bone.getWorldPosition(new THREE.Vector3()).z;
 
-  it('adds sitting, lying down and eating while seated', () => {
+  it('adds what the day asks for', () => {
     const { model, clips } = rig();
-    expect(restClips(model, clips).map((clip) => clip.name)).toEqual(['sit', 'lie', 'sit-eat']);
+    const names = restClips(model, clips).map((clip) => clip.name);
+    expect(names).toEqual(['sit', 'lie', 'sit-eat', 'tap', 'wash', 'eat', 'drink', 'brush']);
+  });
+
+  it('stretches the arm to reach, and comes back to rest', () => {
+    const { model, hand, clips } = rig();
+    const tap = restClips(model, clips).find((clip) => clip.name === 'tap');
+    if (tap === undefined) throw new Error('no clip');
+    expect(tap.duration).toBeLessThan(1);
+    const action = new THREE.AnimationMixer(model).clipAction(tap).play();
+    action.getMixer().setTime(tap.duration / 2);
+    model.updateMatrixWorld(true);
+    expect(z(hand)).toBeGreaterThan(0.5);
+    action.getMixer().setTime(tap.duration - 0.001);
+    model.updateMatrixWorld(true);
+    expect(z(hand)).toBeCloseTo(0, 1);
+  });
+
+  it('brings the hand toward the face to eat', () => {
+    const { model, hand, head, clips } = rig();
+    const eat = restClips(model, clips).find((clip) => clip.name === 'eat');
+    if (eat === undefined) throw new Error('no clip');
+    const before = hand.getWorldPosition(new THREE.Vector3());
+    const action = new THREE.AnimationMixer(model).clipAction(eat).play();
+    action.getMixer().setTime(eat.duration / 2);
+    model.updateMatrixWorld(true);
+    const near = hand.getWorldPosition(new THREE.Vector3());
+    const face = head.getWorldPosition(new THREE.Vector3());
+    expect(near.distanceTo(face)).toBeLessThan(before.distanceTo(face) / 2);
   });
 
   it('lies on the back, with the head toward the pillow and the feet away', () => {
@@ -75,6 +108,19 @@ describe('resting, for models without it', () => {
     const { model, body, clips } = rig();
     restClips(model, clips);
     expect(y(body)).toBeCloseTo(1);
+  });
+
+  it('keeps what is held at the hand, at the size of the world', () => {
+    const { model, hand } = rig();
+    model.scale.setScalar(2);
+    model.updateMatrixWorld(true);
+    const held = handHolder(model);
+    if (held === undefined) throw new Error('no hand');
+    const card = new THREE.Group();
+    fitToHand(held, 'card', card);
+    expect(card.parent?.parent).toBe(hand);
+    model.updateMatrixWorld(true);
+    expect(card.getWorldScale(new THREE.Vector3()).x).toBeCloseTo(1.5);
   });
 
   it('does nothing for a model with other bones', () => {
