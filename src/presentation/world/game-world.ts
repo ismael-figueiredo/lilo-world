@@ -176,6 +176,7 @@ export class GameWorld {
     this.motion = scale;
     this.town?.setMotionScale(scale);
     this.effects.setMoving(scale >= 1);
+    this.house.setCalmWind(scale < 1);
   }
 
   setQuality(quality: Quality): void {
@@ -190,7 +191,7 @@ export class GameWorld {
     this.weather = weather;
     const look = skyLook(phase, weather);
     this.sky.setLook(look, now);
-    this.house.setWindow(weather);
+    this.house.setWindow(phase, weather);
     this.effects.setWeather(weather);
     this.showOutside();
   }

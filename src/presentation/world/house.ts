@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 import type { SchoolThing } from '@domain/day/day-plan';
-import type { Weather } from '@domain/day/weather';
+import type { Phase, Weather } from '@domain/day/weather';
 import { buildAccessory } from '@presentation/actors/wardrobe-meshes';
 import { box, type Collider } from '@presentation/world/collision';
-import { paintRain } from '@presentation/world/window-view';
+import { paintFrost, paintRain } from '@presentation/world/window-view';
 import { routeInside, type HouseSpot } from '@presentation/world/house-plan';
 import type { Interactable } from '@presentation/world/interactable';
 import { pictureOf, StudyDesk } from '@presentation/world/study-desk';
@@ -37,6 +37,15 @@ const WALL = 2.6;
 const LOW_WALL = 0.7;
 /** Every wall between two rooms, low enough for the camera to see over. */
 const ROOM_WALL = 1.2;
+const WIND_LEAN = 0.16;
+const WIND_SWAY = 0.05;
+const discColors: Readonly<Record<Phase, number>> = {
+  morning: 0xffe27a,
+  noon: 0xffe27a,
+  afternoon: 0xffd96a,
+  dusk: 0xffa766,
+  night: 0xf2f4ff,
+};
 /** A real opening in the back wall: what is outside is the world itself. */
 const WINDOW_GAP = { left: -7.2, right: -5.2, bottom: 1.25, top: 2.35 } as const;
 const THICK = 0.2;
@@ -130,6 +139,19 @@ export class House {
   private readonly sunbeam: THREE.Mesh;
   private windowPane!: THREE.Mesh;
   private rainPane!: THREE.Mesh;
+  private readonly drops = paintRain();
+  private readonly frost = paintFrost();
+  private rainy = false;
+  private windy = false;
+  private calmWind = false;
+  /** Seen from the window: the sun or the moon, the clouds, and the tree the wind bends. */
+  private readonly skyDisc = new THREE.Mesh(
+    new THREE.CircleGeometry(1.5, 24),
+    new THREE.MeshBasicMaterial({ color: discColors.morning }),
+  );
+  private readonly cloudSurface = new THREE.MeshBasicMaterial({ color: 0xe6ebf0 });
+  private readonly clouds = new THREE.Group();
+  private readonly bentTree = new THREE.Group();
   private mirror: Reflector | undefined;
   private readonly backpack = new THREE.Group();
   /** Faces the back rooms only, so a mirror shows a room and not the garden behind the low wall. */
@@ -188,6 +210,9 @@ export class House {
       this.cooking,
       this.decor,
       this.backpack,
+      this.bentTree,
+      this.skyDisc,
+      this.clouds,
       this.sinkWater,
       this.showerWater,
       this.curtain,
@@ -237,10 +262,9 @@ export class House {
 
   update(time: number): void {
     const shine = 0.35 + Math.sin(time * 3) * 0.25;
-    if (this.rainPane.visible) {
-      const rain = (this.rainPane.material as THREE.MeshBasicMaterial).map;
-      if (rain !== null) rain.offset.y = (time * 0.6) % 1;
-    }
+    if (this.rainy) this.drops.offset.y = (time * 0.6) % 1;
+    const sway = this.calmWind ? 0 : Math.sin(time * 2.4) * WIND_SWAY;
+    this.bentTree.rotation.z = this.windy ? WIND_LEAN + sway : 0;
     if (this.lit !== undefined) {
       const surface = this.surfaces.get(this.lit);
       if (surface !== undefined) surface.emissiveIntensity = shine;
@@ -252,8 +276,23 @@ export class House {
   }
 
   /** Through the glass the child sees the real weather, and on rainy days the drops too. */
-  setWindow(weather: Weather): void {
-    this.rainPane.visible = weather === 'rain';
+  setWindow(phase: Phase, weather: Weather): void {
+    const clear = weather === 'sunny' || weather === 'wind';
+    const lit = phase !== 'night';
+    this.skyDisc.visible = clear || (!lit && weather === 'cold');
+    this.skyDisc.position.y = phase === 'dusk' ? 4 : 7;
+    this.skyDisc.material.color.setHex(discColors[phase]);
+    this.clouds.visible = !clear && lit;
+    this.cloudSurface.color.setHex(weather === 'rain' ? 0x8c98a8 : 0xe6ebf0);
+    this.windy = weather === 'wind';
+    this.rainy = weather === 'rain';
+    this.rainPane.visible = this.rainy || weather === 'cold';
+    (this.rainPane.material as THREE.MeshBasicMaterial).map = this.rainy ? this.drops : this.frost;
+  }
+
+  /** In a calm setting the wind leans the tree and leaves it still. */
+  setCalmWind(calm: boolean): void {
+    this.calmWind = calm;
   }
 
   /** The backpack on the floor by the desk, or nothing when it is somewhere else. */
@@ -489,7 +528,6 @@ export class House {
     }
     const trees: readonly [number, number, number][] = [
       [-14, -11, 1.5],
-      [-5, -14, 1.9],
       [5, -11, 1.4],
       [13, -15, 1.8],
       [-19, -3, 1.7],
@@ -502,6 +540,33 @@ export class House {
       const crown = new THREE.IcosahedronGeometry(size, 1);
       this.group.add(solid(crown, lowPoly(0x4f9a56), [x, size * 2.2, z]));
     }
+    this.addWindowSky();
+  }
+
+  private addWindowSky(): void {
+    // The tree bends from its foot, so it stands alone.
+    this.bentTree.position.set(-5, 0, -14);
+    this.bentTree.add(
+      solid(new THREE.BoxGeometry(0.4, 3, 0.4), lowPoly(0x8a5a3b), [0, 1.5, 0]),
+      solid(new THREE.IcosahedronGeometry(1.9, 1), lowPoly(0x4f9a56), [0, 4.2, 0]),
+    );
+    this.skyDisc.position.set(-11, 7, -30);
+    const puffs: readonly [number, number, number][] = [
+      [-13, 7, 1.8],
+      [-10.8, 7.6, 2.3],
+      [-8.4, 7, 1.7],
+      [-2.5, 8.4, 1.9],
+      [0, 9, 2.4],
+      [2.6, 8.4, 1.8],
+      [-18, 9, 2.1],
+    ];
+    for (const [x, y, size] of puffs) {
+      const puff = new THREE.Mesh(new THREE.IcosahedronGeometry(size, 1), this.cloudSurface);
+      puff.position.set(x, y, -30);
+      puff.scale.y = 0.62;
+      this.clouds.add(puff);
+    }
+    this.group.add(this.bentTree, this.skyDisc, this.clouds);
   }
 
   private addGrounds(): void {
@@ -587,7 +652,7 @@ export class House {
     this.group.add(this.windowPane);
     this.rainPane = new THREE.Mesh(
       new THREE.PlaneGeometry(2, 1.1),
-      new THREE.MeshBasicMaterial({ map: paintRain(), transparent: true, depthWrite: false }),
+      new THREE.MeshBasicMaterial({ map: this.drops, transparent: true, depthWrite: false }),
     );
     this.rainPane.position.set(-6.2, 1.8, -5.85);
     this.group.add(this.rainPane);
