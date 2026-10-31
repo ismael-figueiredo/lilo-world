@@ -61,20 +61,26 @@ function starShape(): THREE.BufferGeometry {
 
 const starGeometry = starShape();
 
-const star = (): THREE.Object3D =>
-  solid(
-    starGeometry,
-    lowPoly(0xffc93c, { emissive: 0xffb300, emissiveIntensity: 0.2 }),
-    [0, 0.17, 0],
+/** In a group: what is put on the desk is placed by its feet, and a star stands on its points. */
+function star(): THREE.Object3D {
+  const group = new THREE.Group();
+  group.add(
+    solid(
+      starGeometry,
+      lowPoly(0xffc93c, { emissive: 0xffb300, emissiveIntensity: 0.2 }),
+      [0, 0.17, 0],
+    ),
   );
+  return group;
+}
 
 function fish(): THREE.Object3D {
   const group = new THREE.Group();
   const body = solid(sphere, lowPoly(0xf08a3c), [0, 0.13, 0]);
-  body.scale.set(0.17, 0.1, 0.07);
-  const tail = solid(fishTail, lowPoly(0xd86f27), [0.2, 0.13, 0]);
+  body.scale.set(0.11, 0.09, 0.06);
+  const tail = solid(fishTail, lowPoly(0xd86f27), [0.13, 0.13, 0]);
   tail.rotation.z = Math.PI / 2;
-  const eye = solid(sphere, lowPoly(0x241a16), [-0.1, 0.16, 0.06]);
+  const eye = solid(sphere, lowPoly(0x241a16), [-0.06, 0.16, 0.05]);
   eye.scale.setScalar(0.016);
   group.add(body, tail, eye);
   return group;

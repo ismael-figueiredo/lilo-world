@@ -251,9 +251,9 @@ export const phrases = {
   welcomeHome: 'Bem-vindo à Casa! Vamos cuidar das nossas rotinas.',
   worldNotReady: (world: string) => `${world} ainda está sendo construído!`,
 
-  goToMission: (place: string) => `Vamos para: ${place}? Siga a seta amarela!`,
+  goToMission: (place: string) => `Próximo lugar: ${place}. Siga a seta amarela!`,
   backToMission: (place: string) => `Que tal voltar em: ${place} e ganhar mais moedas?`,
-  goToPlace: (place: string) => `Vamos para: ${place}! Siga a seta amarela.`,
+  goToPlace: (place: string) => `Próximo lugar: ${place}. Siga a seta amarela.`,
 
   dayStart: 'Por onde vamos começar?',
   dayNext: 'O que vem agora?',

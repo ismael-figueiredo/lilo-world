@@ -9,7 +9,7 @@ import { orderInteraction } from '@presentation/ui/activity/interactions/order';
 import { sortInteraction } from '@presentation/ui/activity/interactions/sort';
 import { tapInteraction } from '@presentation/ui/activity/interactions/tap';
 import { renderStimulus } from '@presentation/ui/activity/stimulus';
-import { h, replayAnimation } from '@presentation/ui/dom';
+import { h, replayAnimation, setText } from '@presentation/ui/dom';
 import { repeatButton } from '@presentation/ui/repeat-button';
 import type { StudyLook } from '@presentation/ui/study-looks';
 
@@ -108,7 +108,7 @@ export class ActivityPanel {
   open(look: StudyLook, round: ActivityRound): void {
     this.title.dataset.icon = look.icon;
     this.element.style.setProperty('--station', look.color);
-    this.title.textContent = `${look.icon} ${look.name}`;
+    setText(this.title, `${look.icon} ${look.name}`);
     this.toast.classList.remove('is-visible');
     this.result.classList.add('is-hidden');
     this.board.classList.remove('is-hidden');

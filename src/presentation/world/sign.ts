@@ -6,6 +6,8 @@ export interface SignStyle {
   readonly color: string;
   readonly width?: number;
   readonly height?: number;
+  /** Written on the back too, for signs seen from both ways. */
+  readonly bothSides?: boolean;
 }
 
 const FONT = '"Nunito", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif';
@@ -144,6 +146,12 @@ export function createSign(lines: readonly string[], style: SignStyle): THREE.Gr
   }
   face.position.z = 0.045;
   group.add(face);
+  if (style.bothSides === true) {
+    const back = face.clone();
+    back.rotation.y = Math.PI;
+    back.position.z = -THICKNESS - 0.045;
+    group.add(back);
+  }
   return group;
 }
 

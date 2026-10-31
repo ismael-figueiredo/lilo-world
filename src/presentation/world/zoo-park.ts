@@ -7,7 +7,7 @@ import { ZOO_PARK } from '@presentation/world/market-position';
 import { lowPoly, solid } from '@presentation/world/materials';
 import { mergeStatic } from '@presentation/world/merge-static';
 import { roundTree, treeRing } from '@presentation/world/scenery';
-import { createPostSign } from '@presentation/world/sign';
+import { createPostSign, createSign } from '@presentation/world/sign';
 import { ZooAnimal } from '@presentation/world/zoo-animals';
 import type { Zone } from '@presentation/world/zones/zone';
 
@@ -117,7 +117,7 @@ export class ZooPark implements Zone, WalkableSpace {
     const signAt = (PEN_DISTANCE - PEN_RADIUS - 0.5) / PEN_DISTANCE;
     const sign = createPostSign(
       [`${icon} ${name}`],
-      { background: '#3fae5a', color: '#ffffff', width: 2.8, height: 0.8 },
+      { background: '#3fae5a', color: '#ffffff', width: 2.8, height: 0.8, bothSides: true },
       1.3,
     );
     sign.position.set(x * signAt + Math.sin(angle) * 2, 0, z * signAt - Math.cos(angle) * 2);
@@ -131,7 +131,19 @@ export class ZooPark implements Zone, WalkableSpace {
       solid(new THREE.BoxGeometry(5, 2.6, 2.4), lowPoly(0xffd6a5), [-3, 1.3, -2]),
       solid(new THREE.BoxGeometry(5.6, 0.25, 3), lowPoly(0xe8604c), [-3, 2.7, -2]),
       solid(new THREE.BoxGeometry(3, 2.4, 2.4), lowPoly(0xbde0fe), [4, 1.2, -2]),
+      // Doors and the counter of the snack bar, on the side everybody arrives from.
+      solid(new THREE.BoxGeometry(3.4, 0.9, 0.06), lowPoly(0x5a3e2b), [-3, 1.5, -0.78]),
+      solid(new THREE.BoxGeometry(3.8, 0.12, 0.3), lowPoly(0xffffff), [-3, 1, -0.68]),
+      solid(new THREE.BoxGeometry(0.9, 1.9, 0.06), lowPoly(0x3f7fd6), [4, 0.95, -0.78]),
     );
+    for (const [text, x, y, background] of [
+      ['🍦 Lanches', -3, 2.15, '#e8604c'],
+      ['🚻 Banheiro', 4, 2.05, '#3fa9b4'],
+    ] as const) {
+      const sign = createSign([text], { background, color: '#ffffff', width: 2, height: 0.42 });
+      sign.position.set(x, y, -0.68);
+      this.group.add(sign);
+    }
     this.walkColliders.push(
       box(ZOO_PARK.x - 3, ZOO_PARK.z - 2, 5, 2.4),
       box(ZOO_PARK.x + 4, ZOO_PARK.z - 2, 3, 2.4),
