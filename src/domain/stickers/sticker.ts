@@ -1,4 +1,3 @@
-import { animals } from '@domain/zoo/animals';
 import { MAX_LEVEL, stations, type Station } from '@domain/curriculum/skill';
 
 export type StickerId = string;
@@ -51,14 +50,27 @@ export const albumStickers: readonly Sticker[] = stations.flatMap((skill) =>
 /** The animal notebook: one sticker for each animal met at the zoo. */
 export const animalStickerId = (animal: string): StickerId => `animal-${animal}`;
 
+export const beachStickerId = (memory: string): StickerId => `beach-${memory}`;
+
+/** Only what the album shows of each animal: the rest loads with the zoo. */
+const animalPages: readonly (readonly [string, string, string])[] = [
+  ['lion', 'Leão', '🦁'],
+  ['elephant', 'Elefante', '🐘'],
+  ['giraffe', 'Girafa', '🦒'],
+  ['monkey', 'Macaco', '🐒'],
+  ['zebra', 'Zebra', '🦓'],
+  ['penguin', 'Pinguim', '🐧'],
+  ['bear', 'Urso', '🐻'],
+  ['hippo', 'Hipopótamo', '🦛'],
+  ['flamingo', 'Flamingo', '🦩'],
+  ['turtle', 'Tartaruga', '🐢'],
+];
+
 /** Every sticker the album shows, from what is learned to who was met. */
 export const allStickers: readonly Sticker[] = [
   ...albumStickers,
-  ...animals.map((animal) => ({
-    id: animalStickerId(animal.id),
-    name: animal.name,
-    picture: animal.icon,
-  })),
+  ...animalPages.map(([id, name, picture]) => ({ id: animalStickerId(id), name, picture })),
+  { id: beachStickerId('castle'), name: 'Castelo de areia', picture: '🏰' },
 ];
 
 /** Letters of the collectable alphabet. */

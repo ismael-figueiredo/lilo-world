@@ -300,13 +300,13 @@ Objetivo: passeio com descoberta.
 
 Objetivo: lazer livre com segurança.
 
-- [ ] **C13.1 Zona da praia.** Areia, mar, quiosque, guarda-vidas. Pronto: dentro da meta.
-- [ ] **C13.2 Preparar o passeio.** Roupa de banho, protetor, chapéu, toalha. Pronto: usa a mochila e o clima.
-- [ ] **C13.3 Castelo de areia.** Encher balde, virar, enfeitar. Pronto: construção livre com resultado salvo em foto.
-- [ ] **C13.4 Bola e frescobol.** Brincar com um adulto ou colega. Pronto: usa C10.1.
-- [ ] **C13.5 Conchas.** Procurar e contar, separar por forma e cor. Pronto: liga matemática ao passeio.
-- [ ] **C13.6 Água com segurança.** Ficar no raso, ouvir o adulto, bandeiras. Pronto: criança nunca entra no fundo e o conteúdo é revisado.
-- [ ] **C13.7 Quiosque.** Pedir e pagar por CAA. Pronto: usa C8.
+- [x] **C13.1 Zona da praia.** Areia, mar, quiosque, posto de guarda-vidas e guarda-sóis, feitos em código. O guarda-vidas é só o posto, sem personagem.
+- [x] **C13.2 Preparar o passeio.** Bolsa da praia no ponto de ônibus e passeio só com sol ou nublado. A roupa de banho entra na chegada, e a roupa da criança volta na saída.
+- [x] **C13.3 Castelo de areia.** Três torres com balde e um enfeite à escolha. O resultado vira figurinha no álbum: ainda não é uma foto real, e a construção é guiada, não livre.
+- [x] **C13.4 Bola e frescobol.** Quatro rebatidas com o adulto. Sem bola 3D e sem frescobol separado.
+- [x] **C13.5 Conchas.** Oito conchas de verdade na areia, contadas por cor. Separar por forma ficou de fora.
+- [ ] **C13.6 Água com segurança.** Feito no jogo: bandeira verde ou amarela, sempre com o adulto e nunca além das boias, o que um teste garante. **Falta a revisão de fono/TO do D12.**
+- [x] **C13.7 Quiosque.** Pedido com cartões e pagamento com troco, como no mercado.
 
 ### C14. Noite e fechamento
 

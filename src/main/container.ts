@@ -39,6 +39,7 @@ import { StartActivity } from '@application/use-cases/start-activity';
 import { StartMission } from '@application/use-cases/start-mission';
 import { SuggestNextGoal } from '@application/use-cases/suggest-next-goal';
 import { FollowDay } from '@application/use-cases/follow-day';
+import { KeepBeachMemory } from '@application/use-cases/keep-beach-memory';
 import { MeetAnimal } from '@application/use-cases/meet-animal';
 import { NoteMood } from '@application/use-cases/note-mood';
 import { ToggleWardrobeItem } from '@application/use-cases/toggle-wardrobe-item';
@@ -114,6 +115,7 @@ export function createServices(adapters: Adapters): GameServices {
       followDay: new FollowDay(day),
       noteMood: new NoteMood(moods, clock),
       meetAnimal: new MeetAnimal(progress),
+      keepBeachMemory: new KeepBeachMemory(progress),
     };
   };
 

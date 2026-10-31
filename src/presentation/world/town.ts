@@ -5,6 +5,7 @@ import type { Random } from '@presentation/engine/math';
 import { CITY, City, isInsideCity, PLAYGROUND, SOUTH_DISTRICT } from '@presentation/world/city';
 import { isInsideAny, type Area, type Collider } from '@presentation/world/collision';
 import type { Interactable } from '@presentation/world/interactable';
+import type { BeachPark } from '@presentation/world/beach-park';
 import type { BusInterior } from '@presentation/world/bus-interior';
 import type { MarketInterior } from '@presentation/world/market-interior';
 import type { SchoolBuilding } from '@presentation/world/school-building';
@@ -92,6 +93,10 @@ export class Town {
 
   prepareZoo(): Promise<ZooPark> {
     return this.zones.prepare(ZoneId.zoo) as Promise<ZooPark>;
+  }
+
+  prepareBeach(): Promise<BeachPark> {
+    return this.zones.prepare(ZoneId.beach) as Promise<BeachPark>;
   }
 
   get bus(): City {

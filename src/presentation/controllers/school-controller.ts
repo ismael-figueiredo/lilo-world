@@ -14,7 +14,6 @@ import {
 } from '@domain/school/school-day';
 import type { ActivityController } from '@presentation/controllers/activity-controller';
 import type { HomeController } from '@presentation/controllers/home-controller';
-import { FeelingsController } from '@presentation/controllers/feelings-controller';
 import { PlayController } from '@presentation/controllers/play-controller';
 import type { GameContext } from '@presentation/game-context';
 import type { Player } from '@presentation/actors/player';
@@ -52,7 +51,6 @@ const snacks = [
 export class SchoolController {
   private building: SchoolBuilding | undefined;
   private readonly play: PlayController;
-  private readonly feelings: FeelingsController;
   private teacher: Player | undefined;
   private classmates: Player[] = [];
   private driver: Player | undefined;
@@ -64,7 +62,6 @@ export class SchoolController {
     private readonly activities: ActivityController,
   ) {
     this.play = new PlayController(ctx, home);
-    this.feelings = new FeelingsController(ctx, home);
   }
 
   private get stage(): SchoolStage | undefined {
@@ -205,7 +202,14 @@ export class SchoolController {
   private async playAt(placeId: string): Promise<void> {
     if (placeId === 'play:back') {
       if (this.hereIs !== 'recess') return;
-      await this.feelings.playToday(this.classmates[0], this.classmates[1]);
+      if (this.ctx.settings.feelingScenes) {
+        const { FeelingsController } =
+          await import('@presentation/controllers/feelings-controller');
+        await new FeelingsController(this.ctx, this.home).playToday(
+          this.classmates[0],
+          this.classmates[1],
+        );
+      }
       this.ctx.say(phrases.bellRings);
       await this.play.goBack();
       await this.save(nextSchoolStage('recess'));

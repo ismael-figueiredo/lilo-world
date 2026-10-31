@@ -54,6 +54,15 @@ describe('the animals', () => {
   });
 });
 
+describe('the album', () => {
+  it('has a page for every animal of the zoo', () => {
+    for (const animal of animals) {
+      const page = allStickers.find((sticker) => sticker.id === animalStickerId(animal.id));
+      expect(page, animal.id).toMatchObject({ name: animal.name, picture: animal.icon });
+    }
+  });
+});
+
 describe('the ticket', () => {
   it('can always be paid with what the adult gives', () => {
     expect(total(OUTING_WALLET)).toBeGreaterThanOrEqual(TICKET_PRICE);

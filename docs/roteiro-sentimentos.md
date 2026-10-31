@@ -39,6 +39,12 @@ O texto das cenas está em [`src/domain/feelings/scenes.ts`](../src/domain/feeli
 | Lápis perdido     | Triste     | Surpreso    | Ajudar, adulto            |
 | Balão estourou    | Surpreso   | Triste      | Dar tempo, ajudar         |
 
+## Também para revisar: segurança na praia
+
+- A criança só entra na água com a bandeira verde e com o adulto, e nunca passa das boias. Com bandeira amarela fica na areia.
+- As frases estão em `src/application/phrases.ts`, com nomes que começam por `water`.
+- A pergunta para a revisão: essa regra simples passa uma ideia segura do mar, ou pode dar a entender que o mar é seguro só por ter boias?
+
 ## Quando for aprovado
 
 1. Ajustar o texto em `scenes.ts`.

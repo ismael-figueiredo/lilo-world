@@ -33,9 +33,9 @@ import { ActivityController } from '@presentation/controllers/activity-controlle
 import { MissionController, missionPlaces } from '@presentation/controllers/mission-controller';
 import { HomeController } from '@presentation/controllers/home-controller';
 import { ErrandController } from '@presentation/controllers/errand-controller';
+import type { Outings } from '@presentation/controllers/outings';
 import { SchoolController } from '@presentation/controllers/school-controller';
 import { SessionController } from '@presentation/controllers/session-controller';
-import { ZooController } from '@presentation/controllers/zoo-controller';
 import { WardrobeController } from '@presentation/controllers/wardrobe-controller';
 import { CameraRig } from '@presentation/engine/camera-rig';
 import { GamepadReader, padIsActive } from '@presentation/engine/gamepad';
@@ -156,7 +156,8 @@ export class GameApp implements GameContext {
   private readonly missions: MissionController;
   private readonly errands: ErrandController;
   private readonly schoolDay: SchoolController;
-  private readonly zoo: ZooController;
+  /** Loaded the first time the child goes on a day out. */
+  private outings: Outings | undefined;
   private readonly learning: ActivityController;
   private readonly day: SessionController;
   readonly wardrobe: WardrobeController;
@@ -250,7 +251,6 @@ export class GameApp implements GameContext {
     this.home = new HomeController(this);
     this.errands = new ErrandController(this, this.home);
     this.schoolDay = new SchoolController(this, this.home, this.learning);
-    this.zoo = new ZooController(this, this.home);
     this.menus = new MenuController(this, () => this.goalPlace()?.id);
   }
 
@@ -311,6 +311,13 @@ export class GameApp implements GameContext {
     this.avatar.placeAt(door.position, towardStreet);
     this.rig.yaw = towardStreet;
     this.rig.snapTo(door.position);
+  }
+
+  private async loadOutings(): Promise<Outings> {
+    if (this.outings !== undefined) return this.outings;
+    const { Outings } = await this.whileLoading(import('@presentation/controllers/outings'));
+    this.outings = new Outings(this, this.home);
+    return this.outings;
   }
 
   addClassmate(member: CastMember): Player {
@@ -885,7 +892,7 @@ export class GameApp implements GameContext {
     this.missions.tick(dt);
     this.errands.update(dt);
     this.schoolDay.update(dt);
-    this.zoo.update(dt);
+    this.outings?.update(dt);
     if (this.activeProfile !== undefined && this.currentMode !== 'profiles') {
       this.trackSession(dt);
     }
@@ -1155,8 +1162,11 @@ export class GameApp implements GameContext {
     }
     if (await this.errands.useInMarket(place.id)) return;
     if (await this.schoolDay.use(place.id)) return;
-    if (await this.zoo.use(place.id)) return;
-    if (place.id === CityPlace.busStop && (await this.zoo.offerTrip())) return;
+    if (await this.outings?.use(place.id)) return;
+    if (place.id === CityPlace.busStop && this.home.step === 'outside') {
+      const trips = await this.loadOutings();
+      if (await trips.offerTrip()) return;
+    }
     const missionId = Object.entries(missionPlaces).find(
       ([, placeId]) => placeId === place.id,
     )?.[0];
