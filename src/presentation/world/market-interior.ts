@@ -6,6 +6,7 @@ import { box, type Collider } from '@presentation/world/collision';
 import type { Interactable } from '@presentation/world/interactable';
 import { ITEM_PLACE, MARKET_INTERIOR, MarketPlace } from '@presentation/world/market-position';
 import { createSign } from '@presentation/world/sign';
+import type { WalkableSpace } from '@presentation/world/game-world';
 import type { Zone } from '@presentation/world/zones/zone';
 
 const ROOM = { width: 16, depth: 11, height: 6 } as const;
@@ -87,7 +88,7 @@ function pictureTexture(picture: string): THREE.CanvasTexture {
 }
 
 /** Shelves with today's groceries, a shopping cart and the cashier's counter. */
-export class MarketInterior implements Zone {
+export class MarketInterior implements Zone, WalkableSpace {
   readonly group = new THREE.Group();
   readonly colliders: readonly Collider[] = [];
   readonly places: readonly Interactable[] = [];

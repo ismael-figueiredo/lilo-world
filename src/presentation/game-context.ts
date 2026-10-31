@@ -13,7 +13,8 @@ import type { Player } from '@presentation/actors/player';
 import type { CameraRig } from '@presentation/engine/camera-rig';
 import type { Station } from '@domain/curriculum/skill';
 import type { ErrandController } from '@presentation/controllers/errand-controller';
-import type { MarketInterior } from '@presentation/world/market-interior';
+import type { SchoolController } from '@presentation/controllers/school-controller';
+import type { WalkableSpace } from '@presentation/world/game-world';
 import type { SessionController } from '@presentation/controllers/session-controller';
 import type { Dialog } from '@presentation/ui/dialog';
 import type { GameWorld } from '@presentation/world/game-world';
@@ -55,8 +56,13 @@ export interface GameContext {
   /** The adult at home, when there is one. */
   readonly guardian: Player | undefined;
   guardianStandsAt(where: 'kitchen' | 'fridge' | 'stove' | 'table'): void;
-  enterShop(market: MarketInterior): void;
-  leaveShop(): void;
+  readonly school: SchoolController;
+  /** Into a place of its own, at its entrance. */
+  enterSpace(space: WalkableSpace): void;
+  /** Back on the island, at the door of a place. */
+  leaveSpace(doorId: string): void;
+  /** Someone who stays where they are put, and answers a greeting. */
+  addClassmate(member: CastMember): Player;
   /** The goal changed: arrows and the map show the new one. */
   refreshGoal(): void;
   /** Free study of a subject, at the desk. */

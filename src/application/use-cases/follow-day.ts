@@ -7,6 +7,7 @@ import {
   type StepResult,
 } from '@domain/day/day-plan';
 
+import type { SchoolStage } from '@domain/school/school-day';
 import { planErrand, type Errand, type MoneyLevel } from '@domain/errand/errand';
 
 /** Keeps the day saved at every step, so it resumes exactly where it stopped. */
@@ -33,6 +34,10 @@ export class FollowDay {
 
   async saveErrand(errand: Errand): Promise<void> {
     await this.days.save({ ...(await this.days.load()), errand });
+  }
+
+  async saveSchool(school: SchoolStage): Promise<void> {
+    await this.days.save({ ...(await this.days.load()), school });
   }
 
   async skipBlock(): Promise<DayState> {

@@ -33,6 +33,7 @@ import { ActivityController } from '@presentation/controllers/activity-controlle
 import { MissionController, missionPlaces } from '@presentation/controllers/mission-controller';
 import { HomeController } from '@presentation/controllers/home-controller';
 import { ErrandController } from '@presentation/controllers/errand-controller';
+import { SchoolController } from '@presentation/controllers/school-controller';
 import { SessionController } from '@presentation/controllers/session-controller';
 import { WardrobeController } from '@presentation/controllers/wardrobe-controller';
 import { CameraRig } from '@presentation/engine/camera-rig';
@@ -69,7 +70,7 @@ import { firstObstruction, resolveCollisions } from '@presentation/world/collisi
 import { GameWorld } from '@presentation/world/game-world';
 import { skyLook } from '@presentation/world/sky-looks';
 import type { Town } from '@presentation/world/town';
-import type { MarketInterior } from '@presentation/world/market-interior';
+import type { WalkableSpace } from '@presentation/world/game-world';
 import { GoalMarker } from '@presentation/world/goal-marker';
 import { GuideArrow } from '@presentation/world/guide-arrow';
 import type { Interactable } from '@presentation/world/interactable';
@@ -153,6 +154,7 @@ export class GameApp implements GameContext {
   private readonly restScreen: RestScreen;
   private readonly missions: MissionController;
   private readonly errands: ErrandController;
+  private readonly schoolDay: SchoolController;
   private readonly learning: ActivityController;
   private readonly day: SessionController;
   readonly wardrobe: WardrobeController;
@@ -245,6 +247,7 @@ export class GameApp implements GameContext {
     this.wardrobe = new WardrobeController(this);
     this.home = new HomeController(this);
     this.errands = new ErrandController(this, this.home);
+    this.schoolDay = new SchoolController(this, this.home, this.learning);
     this.menus = new MenuController(this, () => this.goalPlace()?.id);
   }
 
@@ -278,26 +281,35 @@ export class GameApp implements GameContext {
     if (where === 'table' && character.canDo('Sit')) character.playEmote('Sit');
   }
 
-  enterShop(market: MarketInterior): void {
-    const world = this.world;
-    world.shopping = market;
-    this.minimap.setVisible(false);
-    this.rig.setIndoors(true);
-    this.avatar.placeAt(market.entrance, Math.PI);
-    market.followWithCart(this.avatar.position, Math.PI, 1);
-    this.rig.snapTo(market.entrance);
+  get school(): SchoolController {
+    return this.schoolDay;
   }
 
-  leaveShop(): void {
+  enterSpace(space: WalkableSpace): void {
     const world = this.world;
-    world.shopping = undefined;
+    world.inside = space;
+    this.minimap.setVisible(false);
+    this.rig.setIndoors(true);
+    this.avatar.placeAt(space.entrance, Math.PI);
+    this.rig.snapTo(space.entrance);
+  }
+
+  leaveSpace(doorId: string): void {
+    const world = this.world;
+    world.inside = undefined;
     this.rig.setIndoors(false);
-    const door = world.townPlaces.find((place) => place.id === CityPlace.market);
+    const door = world.townPlaces.find((place) => place.id === doorId);
     if (door === undefined) return;
     const towardStreet = door.position.z > CITY.z ? Math.PI : 0;
     this.avatar.placeAt(door.position, towardStreet);
     this.rig.yaw = towardStreet;
     this.rig.snapTo(door.position);
+  }
+
+  addClassmate(member: CastMember): Player {
+    const character = this.addPerson(member);
+    this.people = [...this.people, { character, reply: phrases.replyHello }];
+    return character;
   }
 
   refreshGoal(): void {
@@ -423,7 +435,7 @@ export class GameApp implements GameContext {
 
   private showMinimap(): void {
     const indoors = this.gameWorld?.indoors ?? true;
-    const shopping = this.gameWorld?.shopping !== undefined;
+    const shopping = this.gameWorld?.inside !== undefined;
     this.minimap.setVisible(this.currentSettings.showMinimap && !indoors && !shopping);
   }
 
@@ -513,6 +525,7 @@ export class GameApp implements GameContext {
     this.missions.close();
     this.learning.close();
     this.errands.close();
+    this.schoolDay.close();
     this.day.close();
     this.wardrobe.close();
     this.menus.closeAll();
@@ -762,7 +775,7 @@ export class GameApp implements GameContext {
     const session = await this.player.loadSession.execute();
     const world = this.world;
     this.rig.clearFocus();
-    world.shopping = undefined;
+    world.inside = undefined;
     this.setIndoors(true);
     this.addGuardian(profile, world);
     const resumeAt =
@@ -859,6 +872,7 @@ export class GameApp implements GameContext {
     }
     this.missions.tick(dt);
     this.errands.update(dt);
+    this.schoolDay.update(dt);
     if (this.activeProfile !== undefined && this.currentMode !== 'profiles') {
       this.trackSession(dt);
     }
@@ -1120,6 +1134,7 @@ export class GameApp implements GameContext {
       }
     }
     if (await this.errands.useInMarket(place.id)) return;
+    if (await this.schoolDay.use(place.id)) return;
     const missionId = Object.entries(missionPlaces).find(
       ([, placeId]) => placeId === place.id,
     )?.[0];
@@ -1187,7 +1202,10 @@ export class GameApp implements GameContext {
   private goalPlace(): Interactable | undefined {
     if (this.destination !== undefined) return this.destination;
     const world = this.gameWorld;
-    const task = world?.indoors === true ? undefined : this.errands.goalPlaceId;
+    const task =
+      world?.indoors === true
+        ? undefined
+        : (this.errands.goalPlaceId ?? this.schoolDay.goalPlaceId);
     if (task !== undefined) return world?.places.find((place) => place.id === task);
     if (world?.indoors === true) {
       return world.places.find((place) => place.id === this.home.goalPlaceId);

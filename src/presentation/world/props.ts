@@ -114,8 +114,8 @@ export function bus(): THREE.Group {
   const windshield = solid(roundedBox(2.1, 1.05, 0.06, 0.15), windowMaterial, [4.02, 1.85, 0]);
   windshield.rotation.y = Math.PI / 2;
   group.add(windshield);
-  // Door on the curb side (local -z).
-  group.add(solid(roundedBox(1, 1.9, 0.06, 0.1), windowMaterial, [2.9, 0.75, -1.31]));
+  // Door on the curb side, at the right of who drives (local +z).
+  group.add(solid(roundedBox(1, 1.9, 0.06, 0.1), windowMaterial, [2.9, 0.75, 1.31]));
 
   const tire = new THREE.CylinderGeometry(0.55, 0.55, 0.42, 16);
   tire.rotateX(Math.PI / 2);

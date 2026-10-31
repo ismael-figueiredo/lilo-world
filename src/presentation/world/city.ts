@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { busComing, stepBus, type Bus } from '@domain/city/bus';
 import type { Point } from '@domain/city/route';
 import { trafficPhase, type TrafficPhase } from '@domain/city/traffic-light';
 import { box, circle, type Collider, type CircleCollider } from '@presentation/world/collision';
@@ -99,6 +100,9 @@ export class City {
   private readonly trafficLights: TrafficLight[] = [];
   private fountainWater?: THREE.Mesh;
   private readonly traffic: StreetTraffic;
+  private readonly schoolBus = bus();
+  private busRun: Bus | undefined;
+  private busMayLeave = false;
   private readonly animals = new StreetAnimals(
     { x: SQUARE.x, z: SQUARE.z - SQUARE.radius + 1.6 },
     [
@@ -138,6 +142,7 @@ export class City {
     mergeStatic(this.group, [
       this.traffic.group,
       this.animals.group,
+      this.schoolBus,
       ...this.trafficLights.map((light) => light.group),
       ...(this.fountainWater === undefined ? [] : [this.fountainWater]),
     ]);
@@ -145,6 +150,36 @@ export class City {
 
   /** The shared traffic light cycle right now. */
   phase: TrafficPhase = trafficPhase(0);
+
+  /** The bus comes along the north lane, for the one who waits at the stop. */
+  callBus(): void {
+    this.busRun = busComing;
+    this.busMayLeave = false;
+    this.schoolBus.visible = true;
+  }
+
+  get busAtStop(): boolean {
+    return this.busRun?.state === 'stopped';
+  }
+
+  sendBusAway(): void {
+    this.busMayLeave = true;
+  }
+
+  /** Puts the bus at the sign at once, when nobody should wait any longer. */
+  bringBusNow(): void {
+    this.busRun = { state: 'stopped', x: BUS_STOP.x + 2.9, speed: 0 };
+  }
+
+  private moveBus(dt: number): void {
+    const run = this.busRun;
+    if (run === undefined) return;
+    // The door, near the front of the bus, opens right at the sign.
+    const next = stepBus(run, BUS_STOP.x + 2.9, this.busMayLeave, dt);
+    this.busRun = next;
+    this.schoolBus.position.set(next.x, 0.08, BUS_STOP.lane);
+    this.schoolBus.visible = next.state !== 'gone';
+  }
 
   /** The moving solid things: for what walks, not for the camera. */
   get movingColliders(): readonly CircleCollider[] {
@@ -169,6 +204,7 @@ export class City {
   update(time: number, dt: number, people: readonly Point[], child: Point): void {
     this.phase = trafficPhase(time);
     this.traffic.update(dt, this.phase, people);
+    this.moveBus(dt);
     this.animals.update(time, dt, child);
     for (const light of this.trafficLights) light.update(this.phase);
     if (this.fountainWater !== undefined)
@@ -476,9 +512,9 @@ export class City {
       name: 'Ônibus',
     });
 
-    const parkedBus = bus();
-    this.place(parkedBus, -20, -1.7);
-    this.colliders.push(box(-20, -1.7, 8.4, 3, CITY.height + 3.3));
+    this.schoolBus.visible = false;
+    this.schoolBus.rotation.y = Math.PI;
+    this.group.add(this.schoolBus);
 
     // Cars parked by the curb, along the street.
     const parked: readonly [WorldModelId, number, number, number][] = [

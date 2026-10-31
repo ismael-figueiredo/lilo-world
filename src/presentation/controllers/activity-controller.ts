@@ -108,7 +108,7 @@ export class ActivityController {
   }
 
   private get desk() {
-    return this.ctx.world.house.study;
+    return this.ctx.world.study;
   }
 
   /** The question, in the room and on the panel. */
@@ -120,14 +120,10 @@ export class ActivityController {
 
   /** The child's own view of the desk, where the answers do not cover it. */
   private lookAtDesk(): void {
-    const { house } = this.ctx.world;
     const [from, at] = this.desk.view(window.innerWidth > window.innerHeight);
     const [fx = 0, fy = 0, fz = 0] = from;
     const [ax = 0, ay = 0, az = 0] = at;
-    this.ctx.rig.setFocus(
-      house.world({ x: fx, z: fz }).setY(fy),
-      house.world({ x: ax, z: az }).setY(ay),
-    );
+    this.ctx.rig.setFocus(this.desk.toWorld(fx, fy, fz), this.desk.toWorld(ax, ay, az));
   }
 
   private written(spoken: Spoken): string {

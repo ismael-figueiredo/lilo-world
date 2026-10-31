@@ -5,13 +5,24 @@ import type { Quality } from '@presentation/engine/quality';
 import { CityPlace } from '@presentation/world/city';
 import type { Collider } from '@presentation/world/collision';
 import { House } from '@presentation/world/house';
+import type { StudyDesk } from '@presentation/world/study-desk';
 import type { Interactable } from '@presentation/world/interactable';
-import type { MarketInterior } from '@presentation/world/market-interior';
 import { Sky } from '@presentation/world/sky';
 import { skyLook } from '@presentation/world/sky-looks';
 import { Town } from '@presentation/world/town';
 import { WeatherEffects } from '@presentation/world/weather-effects';
 import type { WorldAssets } from '@presentation/world/world-assets';
+
+/** A place with its own floor, walls and things to use. */
+export interface WalkableSpace {
+  readonly walkColliders: readonly Collider[];
+  readonly walkPlaces: readonly Interactable[];
+  readonly height: number;
+  readonly entrance: THREE.Vector3;
+  /** The desk of this place, when it has one. */
+  readonly study?: StudyDesk;
+  contains(x: number, z: number): boolean;
+}
 
 const shadowSizes: Readonly<Record<Quality, number>> = { high: 2048, medium: 1536, low: 1024 };
 
@@ -27,8 +38,8 @@ export class GameWorld {
   private weather: Weather = 'sunny';
   /** Where the child stands: only what is around them is drawn. */
   indoors = true;
-  /** Walking inside the market. */
-  shopping: MarketInterior | undefined;
+  /** Walking inside a place far from the island: the market, the school. */
+  inside: WalkableSpace | undefined;
   private town: Town | undefined;
   private assets: Promise<WorldAssets> | undefined;
   private building: Promise<Town> | undefined;
@@ -82,18 +93,23 @@ export class GameWorld {
     return town;
   }
 
+  /** The desk in use: the child's own, or the one of the place they are in. */
+  get study(): StudyDesk {
+    return this.inside?.study ?? this.house.study;
+  }
+
   /** The town, once the child has opened the door. */
   get outside(): Town | undefined {
     return this.town;
   }
 
   get colliders(): readonly Collider[] {
-    if (this.shopping !== undefined) return this.shopping.walkColliders;
+    if (this.inside !== undefined) return this.inside.walkColliders;
     return this.indoors ? this.house.colliders : (this.town?.colliders ?? []);
   }
 
   get places(): readonly Interactable[] {
-    if (this.shopping !== undefined) return this.shopping.walkPlaces;
+    if (this.inside !== undefined) return this.inside.walkPlaces;
     return this.indoors ? this.house.places : (this.town?.places ?? []);
   }
 
@@ -108,13 +124,13 @@ export class GameWorld {
   }
 
   heightAt(x: number, z: number): number {
-    if (this.shopping?.contains(x, z) === true) return this.shopping.height;
+    if (this.inside?.contains(x, z) === true) return this.inside.height;
     if (this.house.contains(x, z)) return this.house.floor;
     return this.town?.shape.heightAt(x, z) ?? this.house.floor;
   }
 
   isWalkable(x: number, z: number): boolean {
-    if (this.shopping !== undefined) return this.shopping.contains(x, z);
+    if (this.inside !== undefined) return this.inside.contains(x, z);
     if (this.indoors) return this.house.contains(x, z);
     return this.town?.shape.isWalkable(x, z) ?? false;
   }
@@ -174,6 +190,7 @@ export class GameWorld {
       this.house.study.update(dt);
     } else {
       this.town?.update(time, dt, focus);
+      this.inside?.study?.update(dt);
       this.effects.update(time, dt, focus, face);
     }
     this.sky.follow(focus, dt);

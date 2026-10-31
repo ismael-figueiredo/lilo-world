@@ -8,6 +8,7 @@ export const stepLooks: Readonly<Record<StepId, { icon: string; name: string }>>
   teeth: { icon: '🪥', name: 'Escovar os dentes' },
   dress: { icon: '👕', name: 'Vestir a roupa' },
   backpack: { icon: '🎒', name: 'Arrumar a mochila' },
+  school: { icon: '🏫', name: 'Escola' },
   lunch: { icon: '🍲', name: 'Almoço' },
   study: { icon: '✏️', name: 'Estudar' },
   outside: { icon: '🌳', name: 'Sair na rua' },

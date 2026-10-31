@@ -12,6 +12,7 @@ import {
 } from '@domain/day/day-plan';
 import { fitsWeather, phaseOf } from '@domain/day/weather';
 import type { Errand } from '@domain/errand/errand';
+import type { SchoolStage } from '@domain/school/school-day';
 import type { Station } from '@domain/curriculum/skill';
 import type { GameContext } from '@presentation/game-context';
 import { AgendaPanel } from '@presentation/ui/agenda-panel';
@@ -29,6 +30,7 @@ const stepThings: Readonly<Record<StepId, HouseThing>> = {
   teeth: 'sink',
   dress: 'wardrobe',
   backpack: 'desk',
+  school: 'door',
   lunch: 'fridge',
   study: 'desk',
   outside: 'door',
@@ -145,7 +147,12 @@ export class HomeController {
   get tip(): string | undefined {
     const { step } = this;
     if (step === 'lunch') return this.ctx.errand.tip ?? stepTips.lunch;
+    if (step === 'school') return this.ctx.school.tip ?? stepTips.school;
     return step === undefined ? undefined : stepTips[step];
+  }
+
+  get schoolStage(): SchoolStage | undefined {
+    return this.day.school;
   }
 
   get errand(): Errand | undefined {
@@ -256,12 +263,21 @@ export class HomeController {
     await this.begin(false, this.ctx.avatar.position.clone());
   }
 
+  /** The child came home on the bus, and the day goes on from the door. */
+  async backFromSchool(): Promise<void> {
+    await this.ctx.goInside();
+    this.ctx.avatar.placeAt(this.house.world(standSpots.door), Math.PI);
+    await this.complete('school');
+    this.ctx.backToExploring(this.tip ?? phrases.backAtHome);
+    this.showGoal();
+  }
+
   /** The child came back through the door of the house. */
   async comeHome(): Promise<void> {
     await this.ctx.goInside();
     this.ctx.avatar.placeAt(this.house.world(standSpots.door), Math.PI);
     // Shopping is part of lunch: going out to play is still to come.
-    if (!this.isOpen('lunch')) await this.complete('outside');
+    if (!this.isOpen('lunch') && !this.isOpen('school')) await this.complete('outside');
     this.ctx.backToExploring(this.tip ?? phrases.backHome);
   }
 
@@ -682,7 +698,7 @@ export class HomeController {
       this.ctx.say(phrases.nightStays);
       return;
     }
-    if (!this.isOpen('outside') && !this.isOpen('lunch')) {
+    if (!this.isOpen('outside') && !this.isOpen('lunch') && !this.isOpen('school')) {
       this.ctx.say(phrases.firstThis(stepLooks[this.step].name));
       return;
     }
@@ -698,7 +714,7 @@ export class HomeController {
     try {
       await this.ctx.goOutside();
       this.house.show(undefined);
-      this.ctx.backToExploring(this.ctx.errand.tip ?? phrases.outsideNow);
+      this.ctx.backToExploring(this.ctx.errand.tip ?? this.ctx.school.tip ?? phrases.outsideNow);
     } catch {
       this.ctx.backToExploring(phrases.streetNotReady);
     } finally {

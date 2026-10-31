@@ -31,6 +31,7 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 | Vida real C6: estudo na escrivaninha, com mesa e quadro em 3D, três trilhas e novas respostas | ✅ feito   | —         |
 | Vida real C7: carros, pedestres e bichos na rua, calçadas livres, som e seta junto da criança | ✅ feito   | —         |
 | Vida real C8: almoço completo, da geladeira à mesa, com mercado caminhável, dinheiro e troco  | ✅ feito   | —         |
+| Vida real C9: ônibus de verdade, viagem animada e escola caminhável com aula e lanche         | ✅ feito   | —         |
 | Currículo 3: áudio gravado, rimas, vogais e sílabas (depende da gravação)                     | ⏭️ próximo | —         |
 | Vida real 2: casa e mercado para andar, agenda do dia, fim dos portais, receita completa      | ⏳ depois  | —         |
 | Vida real 3: ônibus de verdade, escola e fazenda caminháveis, histórias em figuras            | ⏳ depois  | —         |
