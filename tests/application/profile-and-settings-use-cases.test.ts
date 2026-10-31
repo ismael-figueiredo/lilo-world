@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ApplySettings } from '@application/use-cases/apply-settings';
 import { ChangeAvatar } from '@application/use-cases/change-avatar';
+import { ChangeChild } from '@application/use-cases/change-child';
 import { ListAvatars } from '@application/use-cases/list-avatars';
 import { CheckSessionTime } from '@application/use-cases/check-session-time';
 import { CreateProfile } from '@application/use-cases/create-profile';
@@ -144,7 +145,7 @@ describe('session use cases', () => {
 });
 
 describe('GetProgressSummary', () => {
-  it('summarizes coins, stars, items, worlds and missions', async () => {
+  it('summarizes coins, stars, items and missions', async () => {
     const bought = PlayerProgress.fromSnapshot({
       coins: 20,
       stars: 0,
@@ -165,8 +166,6 @@ describe('GetProgressSummary', () => {
       stars: 1,
       itemsOwned: 1,
       itemsTotal: 3,
-      worldsOpen: 1,
-      worldsTotal: 2,
     });
     expect(summary.missions).toEqual([
       {
@@ -193,6 +192,21 @@ describe('avatar use cases', () => {
     const changed = await new ChangeAvatar(profiles, catalog).execute('id-1', 'bunny');
     expect(changed.ok && changed.value.avatarId).toBe('bunny');
     expect((await profiles.list())[0]?.avatarId).toBe('bunny');
+  });
+
+  it('saves what the child changes about themself and keeps everything else', async () => {
+    const profiles = new InMemoryProfileRepository();
+    const created = await new CreateProfile(
+      profiles,
+      new SequentialIds(),
+      new FixedClock(1),
+    ).execute('Bia', 'child');
+    if (!created.ok) throw new Error('profile not created');
+    const change = new ChangeChild(profiles);
+
+    const changed = await change.execute(created.value.id, { outfit: 'raincoat' });
+    expect(changed.ok && changed.value).toEqual({ ...created.value, outfit: 'raincoat' });
+    expect((await change.execute('ghost', { outfit: 'swim' })).ok).toBe(false);
   });
 
   it('rejects unknown avatars and profiles', async () => {

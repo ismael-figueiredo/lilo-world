@@ -1,6 +1,8 @@
+import type { DayRepository } from '@application/ports/day-repository';
 import type { ProfileRepository } from '@application/ports/profile-repository';
 import type { SessionRepository } from '@application/ports/session-repository';
 import type { SettingsRepository } from '@application/ports/settings-repository';
+import { firstDay, type DayState } from '@domain/day/day-plan';
 import type { PlayerProfile, ProfileId } from '@domain/profile/player-profile';
 import type { SessionState } from '@domain/session/session';
 import { defaultSettings, type Settings } from '@domain/settings/settings';
@@ -46,6 +48,19 @@ export class InMemorySettingsRepository implements SettingsRepository {
 
   save(settings: Settings): Promise<void> {
     this.settings = settings;
+    return Promise.resolve();
+  }
+}
+
+export class InMemoryDayRepository implements DayRepository {
+  constructor(private day: DayState = firstDay) {}
+
+  load(): Promise<DayState> {
+    return Promise.resolve(this.day);
+  }
+
+  save(day: DayState): Promise<void> {
+    this.day = day;
     return Promise.resolve();
   }
 }

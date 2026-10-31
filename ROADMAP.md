@@ -2,26 +2,39 @@
 
 Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e princípios do jogo: [docs/plano-jogo-autismo.md](docs/plano-jogo-autismo.md). Arquitetura: [docs/architecture.md](docs/architecture.md).
 
+**Próximos passos:** [docs/plano-vida-real.md](docs/plano-vida-real.md), um dia de vida real em camadas e tarefas. Ele substitui as seções "Etapa 2", "Etapa 3" e "Mundo vivo" abaixo, que ficam só como referência.
+
 ## Onde estamos
 
-| Sprint                                                                                   | Status     | Commit    |
-| ---------------------------------------------------------------------------------------- | ---------- | --------- |
-| Protótipo 3D (ilha, cidade, missão do mercado, guarda-roupa)                             | ✅ feito   | `1fa268b` |
-| 1: perfis, salvamento, menu, ajustes, mapa, limite de tempo, som                         | ✅ feito   | `f5008d0` |
-| 2: 9 avatares (crianças, animais, robô), pipeline de assets                              | ✅ feito   | `6bc1982` |
-| 3: mundo bonito (modelos CC0), água bloqueada, controle (gamepad)                        | ✅ feito   | `1d61174` |
-| 4a: padaria (CAA), ônibus (sequência), semáforo (no mundo 3D)                            | ✅ feito   | `a8f4dfd` |
-| 4b: estações de aprendizado, figurinhas, alfabeto, caixa do mercado                      | ✅ feito   | `2780634` |
-| 4c: missões sorteadas, receitas no mercado, bairro sul com praça                         | ✅ feito   | `0d41a2d` |
-| 4d: mundo Natureza (acampamento, fazenda, horta, reciclagem)                             | ✅ feito   | `3139b1f` |
-| 4e: mundo Casa (banheiro, quarto, cozinha)                                               | ✅ feito   | `1ff1687` |
-| 4f: mundo Escola e Parque (mochila, falar na escola, esperar a vez)                      | ✅ feito   | `1c4509a` |
-| 4g: mundo Emoções (rostos, histórias, ficar calmo)                                       | ✅ feito   | `7d69f80` |
-| 4h: mercado 3D por dentro                                                                | ✅ feito   | `275d889` |
-| Vida real 1: controle, faixas, ensino sem adivinhação, CAA, ARASAAC                      | ✅ feito   | —         |
-| Vida real 2: casa e mercado para andar, agenda do dia, fim dos portais, receita completa | ⏭️ próximo | —         |
-| Vida real 3: ônibus de verdade, escola e fazenda caminháveis, histórias em figuras       | ⏳ depois  | —         |
-| Mundo vivo                                                                               | ⏳ depois  | —         |
+| Sprint                                                                                        | Status     | Commit    |
+| --------------------------------------------------------------------------------------------- | ---------- | --------- |
+| Protótipo 3D (ilha, cidade, missão do mercado, guarda-roupa)                                  | ✅ feito   | `1fa268b` |
+| 1: perfis, salvamento, menu, ajustes, mapa, limite de tempo, som                              | ✅ feito   | `f5008d0` |
+| 2: 9 avatares (crianças, animais, robô), pipeline de assets                                   | ✅ feito   | `6bc1982` |
+| 3: mundo bonito (modelos CC0), água bloqueada, controle (gamepad)                             | ✅ feito   | `1d61174` |
+| 4a: padaria (CAA), ônibus (sequência), semáforo (no mundo 3D)                                 | ✅ feito   | `a8f4dfd` |
+| 4b: estações de aprendizado, figurinhas, alfabeto, caixa do mercado                           | ✅ feito   | `2780634` |
+| 4c: missões sorteadas, receitas no mercado, bairro sul com praça                              | ✅ feito   | `0d41a2d` |
+| 4d: mundo Natureza (acampamento, fazenda, horta, reciclagem)                                  | ✅ feito   | `3139b1f` |
+| 4e: mundo Casa (banheiro, quarto, cozinha)                                                    | ✅ feito   | `1ff1687` |
+| 4f: mundo Escola e Parque (mochila, falar na escola, esperar a vez)                           | ✅ feito   | `1c4509a` |
+| 4g: mundo Emoções (rostos, histórias, ficar calmo)                                            | ✅ feito   | `7d69f80` |
+| 4h: mercado 3D por dentro                                                                     | ✅ feito   | `275d889` |
+| Vida real 1: controle, faixas, ensino sem adivinhação, CAA, ARASAAC                           | ✅ feito   | —         |
+| Currículo 0 a 2: voz, sensorial, motor único, arrastar, sessão de 10 minutos                  | ✅ feito   | —         |
+| Vida real C0: nada entrega a resposta, frases por id, ajuda gentil, degraus                   | ✅ feito   | —         |
+| Vida real C1: botões de console, cumprimentar, pulo por lugar, pausa calma                    | ✅ feito   | —         |
+| Vida real C2: zonas sob demanda, mundo mais leve, qualidade automática, jogo offline          | ✅ feito   | —         |
+| Vida real C3: criança feita por código, criador, roupas, ações, rostos e pessoas da cidade    | ✅ feito   | —         |
+| Vida real C4: o jogo começa em casa, com agenda do dia; portais e travas por estrelas saíram  | ✅ feito   | —         |
+| Vida real C5: fases do dia, clima com semente, céu, chuva, janela, roupa e sons do tempo      | ✅ feito   | —         |
+| Vida real C6: estudo na escrivaninha, com mesa e quadro em 3D, três trilhas e novas respostas | ✅ feito   | —         |
+| Vida real C7: carros, pedestres e bichos na rua, calçadas livres, som e seta junto da criança | ✅ feito   | —         |
+| Vida real C8: almoço completo, da geladeira à mesa, com mercado caminhável, dinheiro e troco  | ✅ feito   | —         |
+| Currículo 3: áudio gravado, rimas, vogais e sílabas (depende da gravação)                     | ⏭️ próximo | —         |
+| Vida real 2: casa e mercado para andar, agenda do dia, fim dos portais, receita completa      | ⏳ depois  | —         |
+| Vida real 3: ônibus de verdade, escola e fazenda caminháveis, histórias em figuras            | ⏳ depois  | —         |
+| Mundo vivo                                                                                    | ⏳ depois  | —         |
 
 ## Sprint 3: mundo bonito, água e controle (feito)
 
@@ -36,7 +49,7 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 - **Controle** (`src/presentation/engine/gamepad.ts`, testado): analógico esquerdo/direcional anda (borda ou RB/RT corre), analógico direito gira a câmera, A pula, B/X usa, Start abre o menu. Nos painéis o direcional move o foco (`ui/pad-focus.ts`), A confirma e B volta. Aviso "🎮 Controle conectado!".
 - Atalhos de dev novos: `window.lilo.teleport(x, z, yaw?)`, `window.lilo.where()`, `window.lilo.scene`.
 
-Pendências pequenas: testar com controle físico (só a lógica tem teste); a Área dos pais (segurar 3 s) não abre pelo controle, de propósito.
+Pendências pequenas: testar com controle físico (só a lógica tem teste). Botões de adulto valem no controle e no teclado só com o botão pressionado os 3 s inteiros, a mesma trava do toque.
 
 ## Sprint 4a: missões novas (feito)
 
@@ -125,13 +138,30 @@ Pendências pequenas: testar com controle físico (só a lógica tem teste); a �
 - A saída volta à porta do mercado, com a câmera do lado da rua. O mascote agora diz o nome do lugar da próxima missão (antes dizia sempre "mercado").
 - Limite: a criança não anda dentro da loja; escolhe pelos cartões. Para andar seria preciso ensinar a `GameWorld.heightAt`/`isWalkable` sobre o piso interno.
 
+## Currículo: fases 0 a 2 (feito)
+
+Plano completo aprovado: sessão de 10 minutos, 8 trilhas de português, 8 de matemática e 8 mecânicas. As fases 3 a 6 serão revistas depois do primeiro teste com crianças.
+
+- **Motor único:** `domain/activity` (`ActivityItem`, `ActivityRound`, geradores) substitui `Challenge` e `ChallengeSession`. Habilidades são dados em `infrastructure/catalog/curriculum/`. Hoje são 13 habilidades e 23 palavras com sílabas e sons.
+- **Saves:** nada foi convertido. `skillLevels` continua igual e `skillRecords` só se soma ao que existe.
+- **Mecânicas:** `tap` e `drag`. Arrastar também funciona pressionando a peça, que é como o controle e o teclado jogam. "Pronto" responde, então dá para corrigir a conta.
+- **Domínio:** 80% de acerto de primeira nos últimos 8 itens, em pelo menos 2 dias. Revisão em 1, 3, 7 e 21 dias. Demonstrações e perguntas que voltam não contam.
+- **Ajuda:** habilidade nova começa com demonstração, a segunda pergunta ajuda em 3 s, e depois a voz repete em 8 s e o jogo mostra em 15 s. Três erros encerram a atividade com gentileza, sem placar.
+- **Sessão:** `planSession` (pura) escolhe aquecer, aprender e brincar, sempre com português e matemática. `SessionController` cuida do quadro, da caminhada até a estação, da pausa e do fim.
+- **Limite de 10 minutos** é o novo padrão. As estações e o "De novo" respeitam o limite, sem interromper o que está aberto.
+- **Adultos:** em Ajustes, depois de segurar "Mudar": situação de cada habilidade, priorizar ou esconder.
+
+Ficou de fora, por ordem de valor: modo calmo em um botão e redução de movimento nos objetos 3D restantes (moedas, fonte, fogueira, nuvens); moeda só de primeira nas missões; mini-jogos com cenário próprio (`games` já é dado, mas ainda não muda a tela); temas por interesse; fonte hospedada; pictogramas revisados para as 23 palavras (`withWordPicture` já usa quando o nome coincide); configuração sensorial no primeiro uso.
+
+Atenção: no quadro do dia a ordem é da criança, então a regra de não repetir a mecânica vale para a ordem sugerida. Falta testar com controle físico.
+
 ## Novo rumo: um dia de vida real
 
 Depois do teste com controle e do uso real do jogo, a direção mudou: menos telas de seleção e mais simulação. Sem portais e sem estrelas travando lugares; a casa tem a agenda do dia em figuras, e a criança vai a pé ou de ônibus. Rua: nunca tirar moedas; a criança volta à calçada com calma e ganha bônus por trajeto seguro.
 
 ### Etapa 1 (feita)
 
-- **Controle:** um botão, uma função: ▢ usa e escolhe, ✕ pula, ◯ volta, △ ou Options abre o menu, com os símbolos nas cores do PlayStation (`padGlyphs`). Funciona também na tela de perfis. `PadFocus` (`ui/pad-focus.ts`) mantém o foco perto da última escolha. Dicas de botões na tela (`ui/pad-hints.ts`) e joystick escondido.
+- **Controle (trocado na C1, ver README):** um botão, uma função: ▢ usava e escolhia, ✕ pulava, ◯ volta, △ ou Options abria o menu, com os símbolos nas cores do PlayStation (`padGlyphs`). Funciona também na tela de perfis. `PadFocus` (`ui/pad-focus.ts`) mantém o foco perto da última escolha. Dicas de botões na tela (`ui/pad-hints.ts`) e joystick escondido.
 - **Rua:** listras paralelas à rua e 7 faixas (`CROSSINGS`, `zebraBars`). `RoadSafety` (`world/road-safety.ts`, testado) leva a criança de volta ao último ponto seguro; atravessar direito e usar um lugar dá +2 moedas (`RewardSafeTrip`).
 - **Ensino:** `ChallengeSession` agora tem rodadas de 5 perguntas; subir de nível exige 4 de 5 de primeira. Depois de um erro só a certa fica ativa, vem pergunta nova e a errada volta depois sem valer ponto. `MissionAttempt` segue a mesma regra (`model`), e no quiz a pergunta errada volta no fim.
 - **Sem entregar a resposta:** cartões de lista, CAA e estações sem palavra embaixo; contagem em grupos de 5; o caixa pede para contar o carrinho.
@@ -203,7 +233,7 @@ Páginas: `https://poly.pizza/m/<id>`. Confirmar "Quaternius" e "CC0 1.0" antes 
 - **Testar no navegador:**
   - O usuário costuma deixar o próprio servidor na porta **5173**: não mexer nele e usar `pnpm exec vite --port 5180 --strictPort`.
   - Screenshots com puppeteer-core e o Chrome do sistema, com `--use-angle=metal --enable-gpu` (cerca de 30 FPS; o SwiftShader fica em 1 FPS).
-  - Atalhos só de dev no console: `window.lilo.goTo('market' | 'home' | 'bakery' | 'bus-stop')`, `window.lilo.use(id)`, `window.lilo.addPlayTime(min)`.
+  - Atalhos só de dev no console: `window.lilo.goTo('market' | 'home' | 'bakery' | 'bus-stop')`, `window.lilo.use(id)`, `window.lilo.addPlayTime(min)`, `window.lilo.stats()` (chamadas de desenho, memória, FPS e qualidade), `window.lilo.people([['pajamas'], ['teacher', 'Wave', 0.5, 'happy']])` (mostra roupas ou pessoas, com ação e rosto congelados). `window.lilo.step()`, `window.lilo.skipBlock()` (agenda do dia) e `window.lilo.moment('night', 'rain')` (hora e clima). `pnpm size` mostra o peso do build.
   - Subir servidor HTTP local é bloqueado; para páginas de teste fora do projeto, abrir via `file://` com `--allow-file-access-from-files`.
 - **Visual:** o padrão é alto, porque o público joga Minecraft e Goat Simulator. Toda mudança visual precisa ser conferida por screenshot.
 - **Princípios** (checklist em [CONTRIBUTING.md](CONTRIBUTING.md)):

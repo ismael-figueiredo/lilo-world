@@ -1,9 +1,10 @@
+import { completeChildChoices, defaultChildChoices, type ChildChoices } from '@domain/avatar/child';
 import { domainError, err, ok, type Result } from '@domain/shared/result';
 
 export type ProfileId = string;
 
 /** One child playing on this device. Several children can share a tablet. */
-export interface PlayerProfile {
+export interface PlayerProfile extends ChildChoices {
   readonly id: ProfileId;
   readonly name: string;
   readonly avatarId: string;
@@ -28,11 +29,20 @@ export function createProfile(
   rawName: string,
   avatarId: string,
   now: number,
+  choices: ChildChoices = defaultChildChoices,
 ): Result<PlayerProfile> {
   const name = normalizeName(rawName);
   if (!name.ok) return name;
-  return ok({ id, name: name.value, avatarId, createdAt: now, lastPlayedAt: now });
+  return ok({ id, name: name.value, avatarId, createdAt: now, lastPlayedAt: now, ...choices });
 }
+
+type StoredProfile = Omit<PlayerProfile, keyof ChildChoices> & Partial<ChildChoices>;
+
+/** A profile as saved by any version opens with everything it had, plus the new choices. */
+export const completeProfile = (stored: StoredProfile): PlayerProfile => ({
+  ...stored,
+  ...completeChildChoices(stored),
+});
 
 export function renameProfile(profile: PlayerProfile, rawName: string): Result<PlayerProfile> {
   const name = normalizeName(rawName);

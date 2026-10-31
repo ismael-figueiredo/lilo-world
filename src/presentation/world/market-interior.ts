@@ -1,13 +1,12 @@
 import * as THREE from 'three';
 import type { MissionChoice } from '@domain/mission/mission';
 import { lowPoly, solid } from '@presentation/world/materials';
+import { written } from '@domain/money/money';
+import { box, type Collider } from '@presentation/world/collision';
+import type { Interactable } from '@presentation/world/interactable';
+import { ITEM_PLACE, MARKET_INTERIOR, MarketPlace } from '@presentation/world/market-position';
 import { createSign } from '@presentation/world/sign';
-
-/**
- * Inside the market. It stands far beyond the sea, where nothing else can be
- * seen, and the game moves the child here behind a fade.
- */
-export const MARKET_INTERIOR = { x: 0, z: 460 } as const;
+import type { Zone } from '@presentation/world/zones/zone';
 
 const ROOM = { width: 16, depth: 11, height: 6 } as const;
 const SHELF_Z = -ROOM.depth / 2 + 0.9;
@@ -16,6 +15,41 @@ const SHELF_XS = [-4.6, 0, 4.6] as const;
 const COUNTER = { x: 5.6, z: 2.4 } as const;
 const CART = { x: 1.4, z: -1.6 } as const;
 const FLIGHT_SECONDS = 0.8;
+/** The low shelf in the middle of the room: walking around it is the aisle. */
+const ISLAND = { x: -1.6, z: 0.6, width: 7.4, depth: 0.9, height: 1.15 } as const;
+const REACH = 1.25;
+const CART_FOLLOW = 7;
+const CART_BEHIND = 1.5;
+
+/** What goes on the shelves for a task: it can be walked to and picked. */
+export interface ShelfItem {
+  readonly id: string;
+  readonly name: string;
+  readonly short: string;
+  readonly icon: string;
+  readonly price: number;
+}
+
+/** Where things are, along the back wall and on the low shelf. */
+const SHELF_SPOTS: readonly {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly standZ: number;
+}[] = [
+  ...[-5.6, -3.2, -0.8, 1.6, 4].map((x) => ({
+    x,
+    y: SHELF_LEVELS[1] + 0.45,
+    z: SHELF_Z + 0.25,
+    standZ: SHELF_Z + 1.4,
+  })),
+  ...[-4.2, -1.6, 1].map((x) => ({
+    x,
+    y: ISLAND.height + 0.35,
+    z: ISLAND.z,
+    standZ: ISLAND.z + 1.3,
+  })),
+];
 
 interface Item {
   readonly sprite: THREE.Sprite;
@@ -53,12 +87,20 @@ function pictureTexture(picture: string): THREE.CanvasTexture {
 }
 
 /** Shelves with today's groceries, a shopping cart and the cashier's counter. */
-export class MarketInterior {
+export class MarketInterior implements Zone {
   readonly group = new THREE.Group();
+  readonly colliders: readonly Collider[] = [];
+  readonly places: readonly Interactable[] = [];
   private readonly items = new Map<string, Item>();
   private readonly flights: Flight[] = [];
   private inCart = 0;
   private hinted: string | undefined;
+  private readonly cart = new THREE.Group();
+  private readonly tags = new THREE.Group();
+  private readonly doorSpot: THREE.Vector3;
+  /** Walking inside: what is solid and what can be used. */
+  readonly walkColliders: readonly Collider[];
+  walkPlaces: readonly Interactable[] = [];
 
   constructor(private readonly floor: number) {
     this.group.position.set(MARKET_INTERIOR.x, floor, MARKET_INTERIOR.z);
@@ -66,6 +108,35 @@ export class MarketInterior {
     this.addShelves();
     this.addCart();
     this.addCounter();
+    this.addIsland();
+    this.group.add(this.tags);
+    this.doorSpot = this.world(0, 0, ROOM.depth / 2 - 0.9);
+    const { width, depth } = ROOM;
+    const wall = (x: number, z: number, w: number, d: number): Collider =>
+      box(MARKET_INTERIOR.x + x, MARKET_INTERIOR.z + z, w, d);
+    this.walkColliders = [
+      wall(0, SHELF_Z, width, 1.2),
+      wall(-width / 2, 0, 0.4, depth),
+      wall(width / 2, 0, 0.4, depth),
+      wall(ISLAND.x, ISLAND.z, ISLAND.width, ISLAND.depth),
+      wall(COUNTER.x, COUNTER.z, 1.3, 3.1),
+    ];
+  }
+
+  /** Where the room ends: there is no front wall, only the door the child uses. */
+  contains(x: number, z: number): boolean {
+    return (
+      Math.abs(x - MARKET_INTERIOR.x) < ROOM.width / 2 &&
+      Math.abs(z - MARKET_INTERIOR.z) < ROOM.depth / 2
+    );
+  }
+
+  get entrance(): THREE.Vector3 {
+    return this.doorSpot;
+  }
+
+  get height(): number {
+    return this.floor;
   }
 
   /** Local position to the world. */
@@ -96,7 +167,7 @@ export class MarketInterior {
   get checkoutCamera(): { position: THREE.Vector3; lookAt: THREE.Vector3 } {
     return {
       position: this.world(COUNTER.x - 4.4, 3.6, COUNTER.z + 4.2),
-      lookAt: this.world(COUNTER.x + 0.6, -0.2, COUNTER.z - 0.4),
+      lookAt: this.world(COUNTER.x + 0.6, 0.2, COUNTER.z + 2),
     };
   }
 
@@ -105,7 +176,11 @@ export class MarketInterior {
     for (const item of this.items.values()) this.group.remove(item.sprite);
     this.items.clear();
     this.flights.length = 0;
-    this.inCart = 0;
+    this.tags.clear();
+    this.emptyCart();
+    this.cart.position.set(CART.x, 0, CART.z);
+    this.cart.rotation.y = 0;
+    this.walkPlaces = [];
     this.hinted = undefined;
     const slots = SHELF_LEVELS.flatMap((y) => SHELF_XS.map((x) => [x, y] as const));
     choices.forEach((choice, index) => {
@@ -127,6 +202,110 @@ export class MarketInterior {
       }
       this.items.set(choice.id, { sprite, home });
     });
+  }
+
+  /** The shelves of a task: each thing has its place and its price. */
+  stockForErrand(items: readonly ShelfItem[], picked: readonly string[]): void {
+    for (const item of this.items.values()) this.group.remove(item.sprite);
+    this.items.clear();
+    this.flights.length = 0;
+    this.tags.clear();
+    this.emptyCart();
+    const places: Interactable[] = [
+      {
+        id: MarketPlace.checkout,
+        position: this.checkoutSpot,
+        markerPosition: this.world(COUNTER.x - 1.7, 3, COUNTER.z),
+        radius: 1.6,
+        icon: '🧾',
+        label: 'Ir ao caixa',
+        name: 'Caixa',
+      },
+      {
+        id: MarketPlace.door,
+        position: this.doorSpot,
+        markerPosition: this.doorSpot.clone().setY(this.floor + 2.6),
+        radius: 1.5,
+        icon: '🚪',
+        label: 'Sair do mercado',
+        name: 'Saída',
+      },
+    ];
+    items.forEach((item, index) => {
+      const spot = SHELF_SPOTS[index];
+      if (spot === undefined) return;
+      if (picked.includes(item.id)) {
+        this.addToCart(pictureTexture(item.icon));
+        return;
+      }
+      const material = new THREE.SpriteMaterial({ map: pictureTexture(item.icon) });
+      const sprite = new THREE.Sprite(material);
+      sprite.scale.setScalar(0.8);
+      const home = new THREE.Vector3(spot.x, spot.y, spot.z);
+      sprite.position.copy(home);
+      this.group.add(sprite);
+      this.items.set(item.id, { sprite, home });
+      const tag = createSign([written(item.price)], {
+        background: '#fff8e6',
+        color: '#2d3142',
+        width: 1.3,
+        height: 0.5,
+      });
+      tag.name = item.id;
+      tag.position.set(spot.x, spot.y - 0.6, spot.z + 0.46);
+      this.tags.add(tag);
+      places.push({
+        id: `${ITEM_PLACE}${item.id}`,
+        position: this.world(spot.x, 0, spot.standZ),
+        markerPosition: this.world(spot.x, spot.y + 1, spot.z),
+        radius: REACH,
+        icon: item.icon,
+        label: `Pegar ${item.short}`,
+        name: item.short,
+      });
+    });
+    this.walkPlaces = places;
+  }
+
+  /** Off the shelf and into the cart that came along. */
+  takeFromShelf(id: string): void {
+    const item = this.items.get(id);
+    if (item === undefined) return;
+    this.items.delete(id);
+    this.group.remove(item.sprite);
+    this.tags.getObjectByName(id)?.removeFromParent();
+    this.walkPlaces = this.walkPlaces.filter((place) => place.id !== `${ITEM_PLACE}${id}`);
+    const material = item.sprite.material;
+    if (material.map !== null) this.addToCart(material.map);
+  }
+
+  private addToCart(texture: THREE.Texture): void {
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }));
+    sprite.scale.setScalar(0.6);
+    const slot = this.cart.children.filter((child) => child instanceof THREE.Sprite).length;
+    sprite.position.set(-0.35 + (slot % 2) * 0.7, 1.45 + Math.floor(slot / 2) * 0.3, 0);
+    this.cart.add(sprite);
+  }
+
+  private emptyCart(): void {
+    for (const child of [...this.cart.children]) {
+      if (child instanceof THREE.Sprite) child.removeFromParent();
+    }
+    this.inCart = 0;
+  }
+
+  /** The cart stays just ahead of the child, as if pushed. */
+  followWithCart(position: THREE.Vector3, facing: number, dt: number): void {
+    const x = position.x + Math.sin(facing) * CART_BEHIND - MARKET_INTERIOR.x;
+    const z = position.z + Math.cos(facing) * CART_BEHIND - MARKET_INTERIOR.z;
+    const blend = Math.min(1, dt * CART_FOLLOW);
+    this.cart.position.x += (x - this.cart.position.x) * blend;
+    this.cart.position.z += (z - this.cart.position.z) * blend;
+    const turn = Math.atan2(
+      Math.sin(facing - Math.PI / 2 - this.cart.rotation.y),
+      Math.cos(facing - Math.PI / 2 - this.cart.rotation.y),
+    );
+    this.cart.rotation.y += turn * blend;
   }
 
   /** The item flies from the shelf into the cart. */
@@ -205,6 +384,14 @@ export class MarketInterior {
       mesh.receiveShadow = true;
       this.group.add(mesh);
     }
+    // The floor goes on past the door, so the room never ends in the sky.
+    this.group.add(
+      solid(new THREE.BoxGeometry(width + 20, 0.08, 16), lowPoly(0xd9d2c2), [
+        0,
+        0.02,
+        depth / 2 + 8,
+      ]),
+    );
     // A stripe along the walls, like the facade outside.
     this.group.add(
       solid(new THREE.BoxGeometry(width, 0.35, 0.32), lowPoly(0xe8504c), [
@@ -248,7 +435,7 @@ export class MarketInterior {
   private addCart(): void {
     const metal = lowPoly(0x9aa0b4, { roughness: 0.4 });
     const red = lowPoly(0xe8504c);
-    const cart = new THREE.Group();
+    const { cart } = this;
     cart.add(solid(new THREE.BoxGeometry(1.5, 0.08, 1), metal, [0, 0.95, 0]));
     for (const [w, d, x, z] of [
       [1.5, 0.06, 0, -0.5],
@@ -281,6 +468,22 @@ export class MarketInterior {
     }
     cart.position.set(CART.x, 0, CART.z);
     this.group.add(cart);
+  }
+
+  private addIsland(): void {
+    const { x, z, width, depth, height } = ISLAND;
+    this.group.add(
+      solid(new THREE.BoxGeometry(width, height - 0.1, depth), lowPoly(0xf6e3c4), [
+        x,
+        (height - 0.1) / 2,
+        z,
+      ]),
+      solid(new THREE.BoxGeometry(width + 0.2, 0.1, depth + 0.2), lowPoly(0xc98a4b), [
+        x,
+        height,
+        z,
+      ]),
+    );
   }
 
   private addCounter(): void {

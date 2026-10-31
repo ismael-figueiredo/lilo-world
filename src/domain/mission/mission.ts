@@ -30,7 +30,7 @@ export interface MissionStep {
 
 /**
  * How the mission is shown. The rules are the same for all (one target per
- * step, hints that get clearer); only the presentation changes.
+ * step, the answer shown after a mistake); only the presentation changes.
  * - pick-items: a shopping list and a shelf (the list shows what to pick).
  * - build-sentence: AAC cards that form a sentence, e.g. [eu quero] + [pão].
  * - sequence: put the steps of a routine in order.

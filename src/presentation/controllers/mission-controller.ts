@@ -1,15 +1,13 @@
 import * as THREE from 'three';
-import { modelSentence, phrases, stepSentence } from '@application/use-cases/choose-mission-answer';
+import { phrases } from '@application/phrases';
+import { modelSentence, stepSentence } from '@application/use-cases/choose-mission-answer';
 import type { MissionAttempt } from '@domain/mission/mission-attempt';
 import type { GameContext } from '@presentation/game-context';
 import { MissionPanel } from '@presentation/ui/mission-panel';
 import type { Player } from '@presentation/actors/player';
 import { CITY, CityPlace, CROSSWALK } from '@presentation/world/city';
 import { CrossingTracker, type CrossingEvent } from '@presentation/world/crosswalk';
-import { EmotionsPlace } from '@presentation/world/emotions-garden';
-import { HomePlace } from '@presentation/world/home-area';
-import { NaturePlace } from '@presentation/world/nature-camp';
-import { SchoolPlace } from '@presentation/world/school-area';
+import { EmotionsPlace, NaturePlace, SchoolPlace } from '@presentation/world/zones/anchors';
 
 /** Where each mission happens in the open world. */
 export const missionPlaces: Readonly<Record<string, string>> = {
@@ -20,9 +18,6 @@ export const missionPlaces: Readonly<Record<string, string>> = {
   'nature-animals': NaturePlace.farm,
   'nature-garden': NaturePlace.garden,
   'nature-recycling': NaturePlace.recycling,
-  'home-hygiene': HomePlace.bathroom,
-  'home-dressing': HomePlace.bedroom,
-  'home-table': HomePlace.kitchen,
   'school-backpack': SchoolPlace.classroom,
   'school-talk': SchoolPlace.teacher,
   'school-turn': SchoolPlace.park,
@@ -31,9 +26,8 @@ export const missionPlaces: Readonly<Record<string, string>> = {
   'emotions-calm': EmotionsPlace.calm,
 };
 
-/** The mission played inside the market, and who works at the cashier. */
+/** The mission played inside the market. */
 const MARKET_MISSION = 'city-market';
-const CASHIER_AVATAR = 'lis';
 
 /** What the crosswalk task reports, as the mission's choice ids. */
 const crossingChoices: Readonly<Record<CrossingEvent, string>> = {
@@ -43,9 +37,11 @@ const crossingChoices: Readonly<Record<CrossingEvent, string>> = {
   rushed: 'stepped-on-red',
 };
 
-/** Runs a mission: request → action → celebration, with gentle hints. */
+/** Runs a mission: request → action → celebration, showing the answer after a mistake. */
 export class MissionController {
   readonly panel: MissionPanel;
+  /** The sentence that shows the answer, while the child is pressing the shown card. */
+  private modeling: string | undefined;
   private attempt: MissionAttempt | undefined;
   private busy = false;
   private crossing: CrossingTracker | undefined;
@@ -60,6 +56,10 @@ export class MissionController {
       onReplay: () => {
         if (this.attempt !== undefined) void this.open(this.attempt.mission.id);
       },
+      onRepeat: () => {
+        const instruction = this.modeling ?? this.attempt?.currentStep?.prompt;
+        if (instruction !== undefined) this.ctx.say(instruction);
+      },
     });
   }
 
@@ -70,10 +70,11 @@ export class MissionController {
   async open(missionId: string): Promise<void> {
     const result = await this.ctx.player.startMission.execute(missionId);
     if (!result.ok) {
-      this.ctx.say('Essa missão ainda não está pronta.');
+      this.ctx.say(phrases.missionNotReady);
       return;
     }
     this.attempt = result.value;
+    this.modeling = undefined;
     const { mission } = this.attempt;
 
     if (mission.kind === 'world-task') {
@@ -82,7 +83,9 @@ export class MissionController {
       // Face the other sidewalk, where the walking figure can be seen.
       this.ctx.rig.yaw = this.ctx.avatar.position.z - CITY.z >= 0 ? 0 : Math.PI;
       this.panel.open(this.attempt);
-      this.ctx.dialog.say(`${mission.introduction} ${this.attempt.currentStep?.prompt ?? ''}`);
+      this.ctx.dialog.say(
+        phrases.missionStart(mission.introduction, this.attempt.currentStep?.prompt ?? ''),
+      );
       return;
     }
 
@@ -90,7 +93,9 @@ export class MissionController {
     if (mission.id === MARKET_MISSION) {
       await this.goInside(this.attempt);
       this.panel.open(this.attempt);
-      this.ctx.dialog.say(`${mission.introduction} ${this.attempt.currentStep?.prompt ?? ''}`);
+      this.ctx.dialog.say(
+        phrases.missionStart(mission.introduction, this.attempt.currentStep?.prompt ?? ''),
+      );
       return;
     }
     const place = this.ctx.world.places.find((p) => p.id === missionPlaces[missionId]);
@@ -110,7 +115,9 @@ export class MissionController {
       );
     }
     this.panel.open(this.attempt);
-    this.ctx.dialog.say(`${mission.introduction} ${this.attempt.currentStep?.prompt ?? ''}`);
+    this.ctx.dialog.say(
+      phrases.missionStart(mission.introduction, this.attempt.currentStep?.prompt ?? ''),
+    );
   }
 
   /** Closes the mission (leaving early is recorded as practice, never as failure). */
@@ -143,15 +150,13 @@ export class MissionController {
 
   /** Every frame: keeps the cashier breathing and waving. */
   tick(dt: number): void {
-    this.cashier?.update(dt, { x: 0, z: 0 }, false, this.ctx.world);
+    if (this.cashier !== undefined) this.cashier.update(dt, { x: 0, z: 0 }, false, this.ctx.world);
   }
 
   /** Into the market: today's groceries on the shelves, the cart, the cashier. */
   private async goInside(attempt: MissionAttempt): Promise<void> {
-    const market = this.ctx.world.market;
-    this.cashier ??= await this.ctx.createCharacter(
-      this.ctx.avatar.avatarId === CASHIER_AVATAR ? 'sam' : CASHIER_AVATAR,
-    );
+    const market = await this.ctx.whileLoading(this.ctx.town.prepareMarket());
+    this.cashier ??= this.ctx.addPerson('cashier');
     const cashier = this.cashier;
     await this.ctx.transition(() => {
       market.stock(attempt.mission.choices.filter((choice) => choice.group === undefined));
@@ -179,8 +184,8 @@ export class MissionController {
 
   /** Inside the market the 3D shelf follows the panel: picks fly to the cart. */
   private showIndoors(choiceId: string, nextTargetId: string | undefined): void {
-    if (!this.indoors || this.attempt === undefined) return;
-    const market = this.ctx.world.market;
+    const market = this.ctx.town.market;
+    if (!this.indoors || this.attempt === undefined || market === undefined) return;
     market.collect(choiceId);
     market.hint(nextTargetId);
     const next = this.attempt.mission.choices.find((choice) => choice.id === nextTargetId);
@@ -199,7 +204,7 @@ export class MissionController {
     const event = this.crossing.update(
       position.x - CITY.x,
       position.z - CITY.z,
-      this.ctx.world.trafficPhase.walk,
+      this.ctx.town.trafficPhase.walk,
       waiting,
     );
     if (event !== undefined) void this.choose(crossingChoices[event]);
@@ -218,10 +223,12 @@ export class MissionController {
         case 'model':
           this.ctx.sound('hint');
           this.panel.showModel(outcome.step.targetId);
-          if (this.indoors) this.ctx.world.market.hint(outcome.step.targetId);
-          this.ctx.dialog.say(modelSentence(this.attempt, outcome.step));
+          if (this.indoors) this.ctx.town.market?.hint(outcome.step.targetId);
+          this.modeling = modelSentence(this.attempt, outcome.step);
+          this.ctx.dialog.say(this.modeling);
           break;
         case 'correct':
+          this.modeling = undefined;
           this.ctx.sound('correct');
           this.panel.next(this.attempt, choiceId);
           this.showIndoors(choiceId, outcome.nextStep.targetId);
@@ -229,6 +236,7 @@ export class MissionController {
           this.ctx.avatar.playEmote('Yes');
           break;
         case 'completed': {
+          this.modeling = undefined;
           const reward = result.value.reward ?? { coins: 0, stars: 0 };
           const { mission } = this.attempt;
           if (mission.kind === 'world-task') {
@@ -240,22 +248,18 @@ export class MissionController {
             // The child says it: the game speaks only when the button is pressed,
             // as a communication device would.
             const sentence = this.panel.sentence(this.attempt);
-            this.ctx.dialog.say('Pronto! Agora é só falar.');
+            this.ctx.dialog.say(phrases.sentenceReady);
             if (!(await this.panel.waitForSpeak(sentence))) return;
-            const answer = mission.farewell === undefined ? '' : ` ${mission.farewell}`;
-            this.ctx.say(`${sentence}.${answer}`);
+            this.ctx.say(phrases.sentenceSaid(sentence, mission.farewell));
           }
           this.ctx.sound(reward.stars > 0 ? 'star' : 'coin');
-          this.panel.celebrate(reward, mission.result);
+          this.panel.celebrate(reward, mission.result, this.ctx.restIsDue);
           if (this.indoors) {
             this.showIndoors(choiceId, undefined);
             this.cashier?.playEmote('Wave');
           }
           if (mission.kind !== 'build-sentence') {
-            const { farewell } = mission;
-            this.ctx.dialog.say(
-              farewell === undefined ? phrases.completed : `${farewell} ${phrases.completed}`,
-            );
+            this.ctx.dialog.say(phrases.missionDone(mission.farewell));
           }
           this.ctx.avatar.playEmote('Dance');
           await this.ctx.refresh();

@@ -1,3 +1,4 @@
+import { word } from '@domain/language/word';
 import type { AudioPlayer, AudioVolumes, SoundEffect } from '@application/ports/audio';
 import type { Clock } from '@application/ports/clock';
 import type { IdGenerator } from '@application/ports/id-generator';
@@ -51,8 +52,8 @@ export const expensiveShirt: WardrobeItem = {
 };
 
 export const worlds: readonly World[] = [
-  { id: 'city', name: 'Cidade', requiredStars: 0, missionIds: [mission.id], color: 0 },
-  { id: 'nature', name: 'Natureza', requiredStars: 3, missionIds: [], color: 0 },
+  { id: 'city', name: 'Cidade', missionIds: [mission.id], color: 0 },
+  { id: 'nature', name: 'Natureza', missionIds: [], color: 0 },
 ];
 
 export const content: GameContent = {
@@ -64,10 +65,10 @@ export const content: GameContent = {
     { id: 'bunny', name: 'Coelho', kind: 'animal', recolorable: false },
   ],
   words: [
-    { text: 'BOLA', pictogram: '⚽' },
-    { text: 'GATO', pictogram: '🐱' },
-    { text: 'PATO', pictogram: '🦆' },
-    { text: 'UVA', pictogram: '🍇' },
+    word('BO-LA', 'b-o-l-a', '⚽'),
+    word('GA-TO', 'g-a-t-o', '🐱'),
+    word('PA-TO', 'p-a-t-o', '🦆'),
+    word('U-VA', 'u-v-a', '🍇'),
   ],
 };
 
@@ -107,6 +108,14 @@ export class FakeAudio implements AudioPlayer {
 
   stopMusic(): void {
     this.musicOn = false;
+  }
+
+  setStreet(): void {
+    // Nothing to play.
+  }
+
+  setAmbience(): void {
+    // Nothing to record.
   }
 
   setVolumes(volumes: AudioVolumes): void {

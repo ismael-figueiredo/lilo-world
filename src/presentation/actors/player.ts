@@ -1,11 +1,29 @@
 import * as THREE from 'three';
 import type { WardrobeItem, WardrobeItemId, WardrobeSlot } from '@domain/avatar/wardrobe-item';
 import type { AvatarRig } from '@presentation/actors/avatar-rigs';
+import type { Clothes, Expression, Figure } from '@presentation/actors/child-figure';
 import { buildAccessory, type Anchor } from '@presentation/actors/wardrobe-meshes';
 import { dampAngle } from '@presentation/engine/math';
 import { resolveCollisions, type Collider } from '@presentation/world/collision';
 
-export type Emote = 'Wave' | 'Dance' | 'ThumbsUp' | 'Yes';
+export type Emote =
+  | 'Wave'
+  | 'Dance'
+  | 'ThumbsUp'
+  | 'Yes'
+  | 'Sit'
+  | 'Stand'
+  | 'Lie'
+  | 'Eat'
+  | 'SitEat'
+  | 'Drink'
+  | 'Brush'
+  | 'Wash'
+  | 'Pick'
+  | 'Carry'
+  | 'Throw'
+  | 'Kick'
+  | 'Swim';
 type Motion = 'idle' | 'walk' | 'run' | 'jump';
 
 /** Standard clip for each emote, with fallbacks for models that lack it. */
@@ -14,7 +32,23 @@ const emoteClips: Record<Emote, readonly string[]> = {
   Yes: ['yes', 'wave'],
   ThumbsUp: ['thumbs', 'yes'],
   Dance: ['dance', 'wave'],
+  Sit: ['sit'],
+  Stand: ['stand'],
+  Lie: ['lie'],
+  Eat: ['eat', 'yes'],
+  SitEat: ['sit-eat', 'eat', 'yes'],
+  Drink: ['drink', 'yes'],
+  Brush: ['brush', 'yes'],
+  Wash: ['wash', 'yes'],
+  Pick: ['pick', 'yes'],
+  Carry: ['carry'],
+  Throw: ['throw', 'wave'],
+  Kick: ['kick', 'yes'],
+  Swim: ['swim'],
 };
+
+/** These stay until the character moves again: sitting does not end by itself. */
+const heldEmotes: ReadonlySet<Emote> = new Set(['Sit', 'Lie', 'Carry', 'Swim']);
 
 export interface Ground {
   heightAt(x: number, z: number): number;
@@ -51,17 +85,21 @@ export class Player {
   private readonly trimMaterial: THREE.MeshStandardMaterial | undefined;
   private readonly defaultBody: number | undefined;
   private readonly defaultTrim: number | undefined;
+  private readonly groundOffset: number;
+  private foam: THREE.Group | undefined;
+  private idle = 'idle';
 
   constructor(
-    model: THREE.Object3D,
+    private readonly model: THREE.Object3D,
     animations: readonly THREE.AnimationClip[],
     readonly avatarId: string,
     rig: AvatarRig,
+    private readonly figure?: Figure,
   ) {
     // Bones must have up-to-date matrices before skinned meshes can be measured.
     model.updateMatrixWorld(true);
     const size = new THREE.Box3().setFromObject(model, true).getSize(new THREE.Vector3());
-    model.scale.setScalar(rig.height / Math.max(0.001, size.y));
+    model.scale.setScalar(rig.height / Math.max(0.001, figure?.body.height ?? size.y));
     model.updateMatrixWorld(true);
     model.position.y -= new THREE.Box3().setFromObject(model, true).min.y;
 
@@ -89,11 +127,12 @@ export class Player {
     this.defaultBody = rig.defaultBody ?? this.bodyMaterial?.color.getHex();
     this.defaultTrim = rig.defaultTrim ?? this.trimMaterial?.color.getHex();
 
+    this.groundOffset = model.position.y;
     this.root.add(model);
     this.mixer = new THREE.AnimationMixer(model);
     for (const clip of animations) this.actions.set(clip.name, this.mixer.clipAction(clip));
     this.mixer.addEventListener('finished', () => {
-      this.emote = null;
+      if (this.emote !== null && !heldEmotes.has(this.emote)) this.emote = null;
     });
 
     const { anchors, headWidth } = createAnchors(this.root, model, rig);
@@ -127,7 +166,69 @@ export class Player {
     const clip = emoteClips[emote].find((name) => this.actions.has(name));
     if (clip === undefined) return;
     this.emote = emote;
-    this.play(clip, 0.2, true);
+    this.play(clip, 0.2, emote !== 'Swim');
+  }
+
+  /** Costumes can walk and greet, but only the child has the motions of daily life. */
+  canDo(emote: Emote): boolean {
+    return this.actions.has(emoteClips[emote][0] ?? '');
+  }
+
+  /** How the character stands still: hugging itself in the cold, or hiding from the rain. */
+  setPosture(posture: 'fine' | 'cold' | 'wet'): void {
+    const name = { fine: 'idle', cold: 'shiver', wet: 'cover' }[posture];
+    this.idle = this.actions.has(name) ? name : 'idle';
+  }
+
+  /** Ends a motion that holds, such as sitting. */
+  release(): void {
+    this.emote = null;
+  }
+
+  /** Raises the body over the floor: on a chair or in bed. */
+  setPerch(height: number): void {
+    this.model.position.y = this.groundOffset + height;
+  }
+
+  /** Toothpaste foam, while brushing. */
+  showFoam(on: boolean): void {
+    if (!on) {
+      this.foam?.removeFromParent();
+      this.foam = undefined;
+      return;
+    }
+    if (this.foam === undefined) {
+      const size = this.headWidth;
+      const bubbles = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(size * 0.16, 1),
+        new THREE.MeshStandardMaterial({ color: 0xffffff }),
+      );
+      const brush = new THREE.Mesh(
+        new THREE.BoxGeometry(size * 0.5, size * 0.05, size * 0.05),
+        new THREE.MeshStandardMaterial({ color: 0x3fa9f5 }),
+      );
+      brush.position.set(-size * 0.3, 0, size * 0.08);
+      this.foam = new THREE.Group().add(bubbles, brush);
+      this.foam.position.y = -size * 0.3;
+    }
+    this.anchors.face.add(this.foam);
+  }
+
+  /** Changes clothes on the same body. Only the customizable child has them. */
+  wear(clothes: Clothes): void {
+    this.figure?.wear(clothes);
+  }
+
+  feel(expression: Expression): void {
+    this.figure?.feel(expression);
+  }
+
+  /** Dev only: holds the current motion at one moment, to look at it closely. */
+  freezeAt(seconds: number): void {
+    if (this.current !== undefined) {
+      this.current.time = seconds;
+      this.current.paused = true;
+    }
   }
 
   faceTowards(target: THREE.Vector3): void {
@@ -143,6 +244,7 @@ export class Player {
     if (amount > 0.05) {
       this.facing = dampAngle(this.facing, Math.atan2(direction.x, direction.z), 12, dt);
       this.emote = null;
+      this.setPerch(0);
       this.moveHorizontally(dt, direction, amount, ground);
     }
     this.root.rotation.y = dampAngle(this.root.rotation.y, this.facing, 14, dt);
@@ -162,6 +264,7 @@ export class Player {
     if (body !== undefined) this.bodyMaterial?.color.setHex(body);
     const trim = itemIn('trim')?.color ?? this.defaultTrim;
     if (trim !== undefined) this.trimMaterial?.color.setHex(trim);
+    this.figure?.tint(itemIn('body')?.color, itemIn('trim')?.color);
 
     for (const slot of ['hat', 'accessory'] as const) {
       this.worn.get(slot)?.removeFromParent();
@@ -225,7 +328,7 @@ export class Player {
     }
     if (this.emote !== null) return;
     const motion: Motion = this.speed > 5.2 ? 'run' : this.speed > 0.3 ? 'walk' : 'idle';
-    this.play(motion, 0.25);
+    this.play(motion === 'idle' ? this.idle : motion, 0.25);
     if (this.current !== undefined && motion !== 'idle') {
       this.current.timeScale =
         motion === 'run' ? this.speed / RUN_SPEED + 0.2 : this.speed / WALK_SPEED;

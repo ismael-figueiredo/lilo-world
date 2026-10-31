@@ -4,15 +4,17 @@ import type { Clock } from '@application/ports/clock';
 import type { ContentCatalog } from '@application/ports/content-catalog';
 import type { RandomSource } from '@application/ports/random';
 import type { IdGenerator } from '@application/ports/id-generator';
+import type { DayRepository } from '@application/ports/day-repository';
 import type { ProfileRepository } from '@application/ports/profile-repository';
 import type { ProgressRepository } from '@application/ports/progress-repository';
 import type { SessionRepository } from '@application/ports/session-repository';
 import type { SettingsRepository } from '@application/ports/settings-repository';
 import type { Speech } from '@application/ports/speech';
-import { AnswerChallenge } from '@application/use-cases/answer-challenge';
+import { AnswerActivity } from '@application/use-cases/answer-activity';
 import { ApplySettings } from '@application/use-cases/apply-settings';
 import { BuyWardrobeItem } from '@application/use-cases/buy-wardrobe-item';
 import { ChangeAvatar } from '@application/use-cases/change-avatar';
+import { ChangeChild } from '@application/use-cases/change-child';
 import { CheckSessionTime } from '@application/use-cases/check-session-time';
 import { ChooseMissionAnswer } from '@application/use-cases/choose-mission-answer';
 import { CreateProfile } from '@application/use-cases/create-profile';
@@ -23,7 +25,6 @@ import { GetPlayerProgress } from '@application/use-cases/get-player-progress';
 import { GetProgressSummary } from '@application/use-cases/get-progress-summary';
 import { GetSettings } from '@application/use-cases/get-settings';
 import { GetWardrobe } from '@application/use-cases/get-wardrobe';
-import { GetWorldMap } from '@application/use-cases/get-world-map';
 import { LeaveMission } from '@application/use-cases/leave-mission';
 import { ListAvatars } from '@application/use-cases/list-avatars';
 import { ListProfiles } from '@application/use-cases/list-profiles';
@@ -32,15 +33,18 @@ import { RenameProfile } from '@application/use-cases/rename-profile';
 import { RewardSafeTrip } from '@application/use-cases/reward-safe-trip';
 import { SaveSession } from '@application/use-cases/save-session';
 import { SelectProfile } from '@application/use-cases/select-profile';
-import { StartChallenge } from '@application/use-cases/start-challenge';
+import { PlanSession } from '@application/use-cases/plan-session';
+import { StartActivity } from '@application/use-cases/start-activity';
 import { StartMission } from '@application/use-cases/start-mission';
 import { SuggestNextGoal } from '@application/use-cases/suggest-next-goal';
+import { FollowDay } from '@application/use-cases/follow-day';
 import { ToggleWardrobeItem } from '@application/use-cases/toggle-wardrobe-item';
 import { UpdateSettings } from '@application/use-cases/update-settings';
 import type { ProfileId } from '@domain/profile/player-profile';
 import { SilentAudio } from '@infrastructure/audio/silent-audio';
 import { WebAudioPlayer } from '@infrastructure/audio/web-audio-player';
 import { StaticContentCatalog } from '@infrastructure/catalog/static-content-catalog';
+import { LocalStorageDayRepository } from '@infrastructure/persistence/local-storage-day-repository';
 import { LocalStorageProfileRepository } from '@infrastructure/persistence/local-storage-profile-repository';
 import { LocalStorageProgressRepository } from '@infrastructure/persistence/local-storage-progress-repository';
 import { LocalStorageSessionRepository } from '@infrastructure/persistence/local-storage-session-repository';
@@ -57,6 +61,7 @@ export interface PlayerStores {
   readonly progress: ProgressRepository;
   readonly settings: SettingsRepository;
   readonly session: SessionRepository;
+  readonly day: DayRepository;
 }
 
 export interface Adapters {
@@ -78,19 +83,19 @@ export function createServices(adapters: Adapters): GameServices {
   const players = new Map<ProfileId, PlayerServices>();
 
   const buildPlayer = (profileId: ProfileId): PlayerServices => {
-    const { progress, settings, session } = adapters.storesFor(profileId);
+    const { progress, settings, session, day } = adapters.storesFor(profileId);
     const applySettings = new ApplySettings(settings, audio, speech);
     return {
       getPlayerProgress: new GetPlayerProgress(progress),
       getProgressSummary: new GetProgressSummary(catalog, progress),
-      getWorldMap: new GetWorldMap(catalog, progress),
       suggestNextGoal: new SuggestNextGoal(catalog, progress),
       startMission: new StartMission(catalog, speech, random),
       chooseMissionAnswer: new ChooseMissionAnswer(progress, speech, clock),
       leaveMission: new LeaveMission(progress, clock),
       rewardSafeTrip: new RewardSafeTrip(progress),
-      startChallenge: new StartChallenge(catalog, progress, speech, random),
-      answerChallenge: new AnswerChallenge(catalog, progress, speech, random),
+      startActivity: new StartActivity(catalog, progress, speech, random),
+      answerActivity: new AnswerActivity(catalog, progress, speech, random, clock),
+      planSession: new PlanSession(catalog, progress, settings, clock),
       getAlbum: new GetAlbum(progress),
       getWardrobe: new GetWardrobe(catalog, progress),
       buyWardrobeItem: new BuyWardrobeItem(catalog, progress),
@@ -101,6 +106,7 @@ export function createServices(adapters: Adapters): GameServices {
       saveSession: new SaveSession(session, clock),
       loadSession: new LoadSession(session),
       checkSessionTime: new CheckSessionTime(settings),
+      followDay: new FollowDay(day),
     };
   };
 
@@ -113,6 +119,7 @@ export function createServices(adapters: Adapters): GameServices {
     getActiveProfile: new GetActiveProfile(profiles),
     listAvatars: new ListAvatars(catalog),
     changeAvatar: new ChangeAvatar(profiles, catalog),
+    changeChild: new ChangeChild(profiles),
     speech,
     audio,
     forPlayer(profileId) {
@@ -140,6 +147,7 @@ export function createBrowserAdapters(win: Window = window): Adapters {
       progress: new LocalStorageProgressRepository(storage, profileKey(profileId, 'progress')),
       settings: new LocalStorageSettingsRepository(storage, profileKey(profileId, 'settings')),
       session: new LocalStorageSessionRepository(storage, profileKey(profileId, 'session')),
+      day: new LocalStorageDayRepository(storage, profileKey(profileId, 'day')),
     }),
     speech:
       'speechSynthesis' in win

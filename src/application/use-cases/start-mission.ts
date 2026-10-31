@@ -22,10 +22,10 @@ export class StartMission {
     // A new variant and shelf every time, so the child does not just repeat taps.
     const attempt = MissionAttempt.start(prepareMission(mission, this.random));
     const firstStep = attempt.currentStep;
+    // The prepared mission, not the catalog's: each variant has its own introduction.
+    const { introduction } = attempt.mission;
     void this.speech.speak(
-      firstStep === undefined
-        ? mission.introduction
-        : `${mission.introduction} ${firstStep.prompt}`,
+      firstStep === undefined ? introduction : `${introduction} ${firstStep.prompt}`,
     );
     return ok(attempt);
   }

@@ -1,3 +1,4 @@
+import { phrases } from '@application/phrases';
 import type { Settings } from '@domain/settings/settings';
 import type { GameContext } from '@presentation/game-context';
 import { MapPanel } from '@presentation/ui/map-panel';
@@ -26,6 +27,10 @@ export class MenuController {
     this.settingsPanel = new SettingsPanel({
       onChange: (patch, preview) => void this.changeSettings(patch, preview),
       onClose: back,
+      onSkipBlock: () => {
+        void this.skipBlock();
+      },
+      loadSkills: () => this.ctx.player.planSession.overview(),
     });
     this.map = new MapPanel({
       onSelect: (place) => {
@@ -66,6 +71,9 @@ export class MenuController {
         this.ctx.sound('close');
         this.ctx.backToExploring();
         return;
+      case 'today':
+        this.ctx.home.openAgenda();
+        return;
       case 'map':
         this.showMap();
         return;
@@ -85,20 +93,30 @@ export class MenuController {
     }
   }
 
+  private async skipBlock(): Promise<void> {
+    this.closeAll();
+    this.ctx.backToExploring();
+    await this.ctx.home.skipBlock();
+  }
+
   private showMap(): void {
+    if (this.ctx.world.indoors) {
+      this.ctx.backToExploring(phrases.mapOutside);
+      return;
+    }
     const { position, facing } = this.ctx.avatar;
-    this.map.open(this.ctx.world.places, { x: position.x, z: position.z, facing }, this.goalId());
+    this.map.open(
+      this.ctx.world.townPlaces,
+      { x: position.x, z: position.z, facing },
+      this.goalId(),
+    );
   }
 
   private goTo(place: Interactable): void {
     this.closeAll();
     this.ctx.setDestination(place);
     this.ctx.backToExploring();
-    this.ctx.say(
-      place.mapGroup === 'portals'
-        ? 'Vamos aos portais! Siga a seta amarela.'
-        : `Vamos para: ${place.name}! Siga a seta amarela.`,
-    );
+    this.ctx.say(phrases.goToPlace(place.name));
   }
 
   private async changeSettings(
@@ -109,6 +127,6 @@ export class MenuController {
     this.ctx.applySettings(settings);
     this.settingsPanel.render(settings);
     if (preview === 'effects') this.ctx.sound('coin');
-    if (preview === 'voice') this.ctx.say('Oi! Assim está bom?');
+    if (preview === 'voice') this.ctx.say(phrases.voicePreview);
   }
 }

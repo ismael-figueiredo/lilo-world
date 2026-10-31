@@ -1,45 +1,35 @@
 import type { AvatarDefinition } from '@domain/avatar/avatar';
+import { CHILD_AVATAR_ID } from '@domain/avatar/child';
 import type { WardrobeItem } from '@domain/avatar/wardrobe-item';
 import type { Mission, MissionVariant } from '@domain/mission/mission';
 import type { World } from '@domain/world/world';
 
 /**
- * Initial game content (Phase 1). Pictograms are emoji placeholders; they will be
- * replaced by ARASAAC pictograms so children see the same images used in therapy.
+ * Game content. Cards show reviewed ARASAAC pictograms (pictograms.json), the same
+ * images used in therapy; a card without one still shows its emoji.
  */
 export const worlds: readonly World[] = [
   {
     id: 'city',
     name: 'Cidade',
-    requiredStars: 0,
     missionIds: ['city-market', 'city-bakery', 'city-bus', 'city-crosswalk'],
     color: 0x4fa3e0,
   },
   {
     id: 'nature',
     name: 'Natureza',
-    requiredStars: 3,
     missionIds: ['nature-animals', 'nature-garden', 'nature-recycling'],
     color: 0x6cc070,
   },
   {
-    id: 'home',
-    name: 'Casa',
-    requiredStars: 6,
-    missionIds: ['home-hygiene', 'home-dressing', 'home-table'],
-    color: 0xf2a65a,
-  },
-  {
     id: 'school',
     name: 'Escola e Parque',
-    requiredStars: 9,
     missionIds: ['school-backpack', 'school-talk', 'school-turn'],
     color: 0xb08ee6,
   },
   {
     id: 'emotions',
     name: 'Emoções',
-    requiredStars: 12,
     missionIds: ['emotions-faces', 'emotions-stories', 'emotions-calm'],
     color: 0xf07a9a,
   },
@@ -140,8 +130,8 @@ type Bin = keyof typeof bins;
 const trash: readonly (readonly [string, string, Bin])[] = [
   ['a caixa', '📦', 'paper'],
   ['o jornal', '📰', 'paper'],
-  ['a garrafa de plástico', '🧴', 'plastic'],
-  ['o pote de vidro', '🫙', 'glass'],
+  ['a garrafa', '🧴', 'plastic'],
+  ['o pote', '🫙', 'glass'],
   ['a lata', '🥫', 'metal'],
   ['a casca de banana', '🍌', 'food'],
   ['o miolo da maçã', '🍎', 'food'],
@@ -159,73 +149,6 @@ function sorting(id: string, items: readonly number[]): MissionVariant {
         show: picture,
       };
     }),
-  };
-}
-
-/** Clothes for the weather, as the child would pick them before going out. */
-const clothes = {
-  coat: ['casaco', '🧥'],
-  shorts: ['bermuda', '🩳'],
-  umbrella: ['guarda-chuva', '☂️'],
-  scarf: ['cachecol', '🧣'],
-  cap: ['boné', '🧢'],
-  boots: ['botas', '🥾'],
-  sandals: ['chinelo', '🩴'],
-  sunglasses: ['óculos de sol', '🕶️'],
-} as const;
-
-type Clothing = keyof typeof clothes;
-
-/** The first clothing is the one shown after a mistake; all of them are right. */
-const weather: Readonly<Record<string, readonly [string, string, readonly Clothing[]]>> = {
-  cold: ['Está frio', '🥶 ❄️', ['coat', 'scarf', 'boots']],
-  rain: ['Está chovendo', '🌧️', ['umbrella', 'boots', 'coat']],
-  hot: ['Está calor', '🥵 ☀️', ['shorts', 'sandals', 'cap', 'sunglasses']],
-  sunny: ['O sol está forte', '😎 ☀️', ['cap', 'sunglasses', 'shorts', 'sandals']],
-  windy: ['Está ventando e frio', '🌬️', ['scarf', 'coat']],
-  beach: ['Vamos à praia', '🏖️', ['sandals', 'shorts', 'cap', 'sunglasses']],
-  puddle: ['Tem muita lama lá fora', '🌧️ 🟫', ['boots']],
-};
-
-function dressing(id: string, days: readonly string[]): MissionVariant {
-  return {
-    id,
-    introduction: 'Vamos nos vestir! Olhe o tempo lá fora.',
-    steps: days.map((day, index) => {
-      const [sentence, picture, fits] = weather[day] ?? ['Está frio', '❄️', ['coat']];
-      return {
-        targetId: fits[0] ?? 'coat',
-        accepts: fits.slice(1),
-        prompt: `${index === 0 ? '' : 'E agora: '}${sentence}. O que serve?`,
-        show: picture,
-      };
-    }),
-  };
-}
-
-/** Things to set the table with. */
-const tableware = {
-  plate: ['prato', '🍽️', 'o prato'],
-  fork: ['garfo', '🍴', 'o garfo'],
-  spoon: ['colher', '🥄', 'a colher'],
-  glass: ['copo', '🥛', 'o copo'],
-  cup: ['xícara', '☕', 'a xícara'],
-  napkin: ['guardanapo', '🧻', 'o guardanapo'],
-  bowl: ['tigela', '🥣', 'a tigela'],
-} as const;
-
-type Tableware = keyof typeof tableware;
-
-function settingTable(id: string, meal: string, items: readonly Tableware[]): MissionVariant {
-  return {
-    id,
-    title: `Pôr a mesa do ${meal}`,
-    introduction: `Hora do ${meal}! Vamos pôr a mesa. Olhe a lista.`,
-    steps: items.map((item, index) => ({
-      targetId: item,
-      prompt: `${index === 0 ? 'Pegue' : 'Agora, pegue'} ${tableware[item][2]}.`,
-    })),
-    farewell: 'A mesa está pronta! Bom apetite!',
   };
 }
 
@@ -311,7 +234,7 @@ const stories: readonly (readonly [string, string, Feeling, ...Feeling[]])[] = [
   ['Derrubaram minha torre de blocos', '🧱 💥', 'angry', 'sad'],
   ['Fez um trovão muito forte', '⛈️', 'scared', 'surprised'],
   ['O quarto ficou escuro', '🌑', 'scared'],
-  ['Tinha uma festa surpresa para mim', '🎉', 'surprised', 'happy'],
+  ['Abri a porta e todo mundo gritou parabéns', '🎉', 'surprised', 'happy'],
   ['Saiu um coelho do chapéu do mágico', '🎩 🐰', 'surprised', 'happy'],
 ];
 
@@ -411,7 +334,7 @@ export const missions: readonly Mission[] = [
       { id: 'stop-button', label: 'apertar o botão', pictogram: '🔔' },
     ],
     steps: [
-      { targetId: 'wait', prompt: 'Primeiro, esperamos no ponto.' },
+      { targetId: 'wait', prompt: 'O que vem primeiro?' },
       { targetId: 'board', prompt: 'O ônibus chegou. Agora?' },
       { targetId: 'sit', prompt: 'Entramos. E depois?' },
       { targetId: 'stop-button', prompt: 'Chegando. O que fazemos?' },
@@ -433,7 +356,7 @@ export const missions: readonly Mission[] = [
         steps: [
           { targetId: 'wait', prompt: 'O que vem primeiro?' },
           { targetId: 'board', prompt: 'O ônibus chegou. Agora?' },
-          { targetId: 'card', prompt: 'Entramos. O que fazemos com o cartão?' },
+          { targetId: 'card', prompt: 'Entramos. E agora?' },
           { targetId: 'sit', prompt: 'Pronto! E agora?' },
           { targetId: 'stop-button', prompt: 'Chegando. O que fazemos?' },
         ],
@@ -523,101 +446,6 @@ export const missions: readonly Mission[] = [
     result: '♻️',
   },
   {
-    id: 'home-hygiene',
-    kind: 'sequence',
-    worldId: 'home',
-    title: 'Cuidar de mim',
-    introduction: 'Vamos escovar os dentes!',
-    choices: [
-      { id: 'brush', label: 'pegar a escova', pictogram: '🪥' },
-      { id: 'paste', label: 'pôr a pasta', pictogram: '🧴' },
-      { id: 'scrub', label: 'escovar os dentes', pictogram: '🦷' },
-      { id: 'rinse', label: 'enxaguar a boca', pictogram: '🚰' },
-      { id: 'wet', label: 'molhar as mãos', pictogram: '💧' },
-      { id: 'soap', label: 'pôr sabonete', pictogram: '🧼' },
-      { id: 'rub', label: 'esfregar as mãos', pictogram: '👐' },
-      { id: 'dry', label: 'secar na toalha', pictogram: '🧻' },
-    ],
-    steps: [
-      { targetId: 'brush', prompt: 'O que vem primeiro?' },
-      { targetId: 'paste', prompt: 'Com a escova na mão. E agora?' },
-      { targetId: 'scrub', prompt: 'A pasta está na escova. E agora?' },
-      { targetId: 'rinse', prompt: 'Dentes limpinhos! Para terminar?' },
-    ],
-    variants: [
-      {
-        id: 'teeth',
-        title: 'Escovar os dentes',
-        introduction: 'Vamos escovar os dentes!',
-        steps: [
-          { targetId: 'brush', prompt: 'O que vem primeiro?' },
-          { targetId: 'paste', prompt: 'Com a escova na mão. E agora?' },
-          { targetId: 'scrub', prompt: 'A pasta está na escova. E agora?' },
-          { targetId: 'rinse', prompt: 'Dentes limpinhos! Para terminar?' },
-        ],
-        farewell: 'Que sorriso bonito!',
-        result: '😁',
-      },
-      {
-        id: 'hands',
-        title: 'Lavar as mãos',
-        introduction: 'Vamos lavar as mãos!',
-        steps: [
-          { targetId: 'wet', prompt: 'O que vem primeiro?' },
-          { targetId: 'soap', prompt: 'As mãos estão molhadas. E agora?' },
-          { targetId: 'rub', prompt: 'Tem sabonete. E agora?' },
-          { targetId: 'rinse', prompt: 'Muita espuma! E agora?' },
-          { targetId: 'dry', prompt: 'Sem sabão. Para terminar?' },
-        ],
-        farewell: 'Mãos limpinhas!',
-        result: '🙌',
-      },
-    ],
-    distractors: 0,
-    reward: { coins: 10, stars: 1 },
-  },
-  {
-    id: 'home-dressing',
-    kind: 'quiz',
-    worldId: 'home',
-    title: 'Roupa para o tempo',
-    introduction: 'Vamos nos vestir! Olhe o tempo lá fora.',
-    choices: Object.entries(clothes).map(([id, [label, pictogram]]) => ({ id, label, pictogram })),
-    steps: dressing('first', ['cold', 'rain', 'hot']).steps,
-    variants: [
-      dressing('a', ['cold', 'rain', 'hot']),
-      dressing('b', ['sunny', 'windy', 'rain']),
-      dressing('c', ['beach', 'cold', 'puddle']),
-      dressing('d', ['hot', 'puddle', 'windy']),
-      dressing('e', ['rain', 'beach', 'windy']),
-    ],
-    distractors: 2,
-    reward: { coins: 10, stars: 1 },
-    farewell: 'Pronto para sair!',
-    result: '👕',
-  },
-  {
-    id: 'home-table',
-    kind: 'pick-items',
-    worldId: 'home',
-    title: 'Pôr a mesa',
-    introduction: 'Vamos pôr a mesa! Olhe a lista.',
-    choices: Object.entries(tableware).map(([id, [label, pictogram]]) => ({
-      id,
-      label,
-      pictogram,
-    })),
-    steps: settingTable('first', 'almoço', ['plate', 'fork', 'glass']).steps,
-    variants: [
-      settingTable('lunch', 'almoço', ['plate', 'fork', 'glass', 'napkin']),
-      settingTable('breakfast', 'café da manhã', ['cup', 'spoon', 'napkin']),
-      settingTable('soup', 'jantar', ['bowl', 'spoon', 'glass']),
-    ],
-    distractors: 2,
-    reward: { coins: 10, stars: 1 },
-    result: '🍽️',
-  },
-  {
     id: 'school-backpack',
     kind: 'pick-items',
     worldId: 'school',
@@ -665,7 +493,7 @@ export const missions: readonly Mission[] = [
     variants: [
       saying(
         'greet-teacher',
-        'Você chegou na escola! Vamos dar bom dia para a professora.',
+        'Você chegou na escola e viu a professora. Monte a frase.',
         [
           ['hello', 'O que a gente diz ao chegar?'],
           ['teacher', 'Para quem você está falando?'],
@@ -683,7 +511,7 @@ export const missions: readonly Mission[] = [
       ),
       saying(
         'help',
-        'A tarefa está difícil. Vamos pedir ajuda.',
+        'A tarefa está difícil. Monte a frase.',
         [
           ['i-need', 'Como você começa a pedir?'],
           ['help', 'Do que você precisa?'],
@@ -693,7 +521,7 @@ export const missions: readonly Mission[] = [
       ),
       saying(
         'bathroom',
-        'Você quer ir ao banheiro. Vamos pedir.',
+        'Você está apertado. Vamos pedir.',
         [
           ['can-i', 'Como você começa a pedir?'],
           ['bathroom', 'O que você quer fazer?'],
@@ -713,7 +541,7 @@ export const missions: readonly Mission[] = [
       ),
       saying(
         'play',
-        'Você quer brincar com um amigo. Vamos convidar.',
+        'Seu amigo está sozinho com a bola. Vamos convidar.',
         [
           ['can-i', 'Como você começa a pedir?'],
           ['play', 'O que você quer fazer?'],
@@ -966,8 +794,9 @@ export const wardrobeItems: readonly WardrobeItem[] = [
   },
 ];
 
-/** Characters to play as (3D models by Quaternius, CC0). The first one is the default. */
+/** The child itself, then the costumes (3D models by Quaternius, CC0). */
 export const avatars: readonly AvatarDefinition[] = [
+  { id: CHILD_AVATAR_ID, name: 'Eu', kind: 'kid', recolorable: true },
   { id: 'robot', name: 'Robô', kind: 'robot', recolorable: true },
   { id: 'anne', name: 'Ana', kind: 'kid', recolorable: false },
   { id: 'lis', name: 'Lis', kind: 'kid', recolorable: false },

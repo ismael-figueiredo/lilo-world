@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { prepareMission } from '@domain/mission/prepare-mission';
 import { DEFAULT_AVATAR_ID } from '@domain/profile/player-profile';
 import { seededRandom } from '@domain/shared/random';
+import { CHILD_AVATAR_ID } from '@domain/avatar/child';
 import { avatars, missions, wardrobeItems, worlds } from '@infrastructure/catalog/content';
 import pictograms from '@infrastructure/catalog/pictograms.json';
 import { withPictograms } from '@infrastructure/catalog/static-content-catalog';
@@ -39,7 +40,7 @@ describe('bundled content', () => {
   });
 
   it('accepts everything that fits and always leaves cards that clearly do not', () => {
-    const quizzes = ['home-dressing', 'emotions-stories'];
+    const quizzes = ['emotions-stories'];
     for (const mission of missions.filter((m) => quizzes.includes(m.id))) {
       const random = seededRandom(17);
       for (let play = 0; play < 60; play += 1) {
@@ -52,16 +53,6 @@ describe('bundled content', () => {
         }
       }
     }
-  });
-
-  it('takes any summer clothes when the sun is strong', () => {
-    const dressing = missions.find((m) => m.id === 'home-dressing');
-    const sunny = dressing?.variants
-      ?.flatMap((v) => v.steps)
-      .find((step) => step.prompt.includes('sol está forte'));
-    expect([sunny?.targetId, ...(sunny?.accepts ?? [])].sort()).toEqual(
-      ['cap', 'sandals', 'shorts', 'sunglasses'].sort(),
-    );
   });
 
   it('keeps missions short (1 to 3 minutes), in every variant', () => {
@@ -95,6 +86,28 @@ describe('bundled content', () => {
     }
   });
 
+  it('never names the answer in a quiz question', () => {
+    const plain = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+    const stems = (text: string) =>
+      plain(text)
+        .split(/[^a-z]+/)
+        .filter((word) => word.length > 3)
+        .map((word) => word.slice(0, 5));
+    for (const mission of missions.filter((m) => m.kind === 'quiz')) {
+      const variants = [mission, ...(mission.variants ?? [])];
+      for (const step of variants.flatMap((v) => v.steps)) {
+        const asked = stems(step.prompt);
+        for (const id of [step.targetId, ...(step.accepts ?? [])]) {
+          const label = mission.choices.find((c) => c.id === id)?.label ?? '';
+          expect(
+            asked.filter((s) => stems(label).includes(s)),
+            step.prompt,
+          ).toEqual([]);
+        }
+      }
+    }
+  });
+
   it('charges one coin per thing bought at the market', () => {
     const market = missions.find((m) => m.id === 'city-market');
     expect(market?.variants?.length).toBeGreaterThanOrEqual(5);
@@ -111,28 +124,13 @@ describe('bundled content', () => {
       if (choice.group === undefined) expect(used.has(choice.id), choice.id).toBe(true);
     }
   });
-
-  it('lets every world be opened with the stars of the worlds before it', () => {
-    // Worlds after one that has no missions yet are still being built.
-    let stars = 0;
-    for (const world of worlds) {
-      expect(world.requiredStars, world.id).toBeLessThanOrEqual(stars);
-      if (world.missionIds.length === 0) break;
-      for (const id of world.missionIds) {
-        stars += missions.find((m) => m.id === id)?.reward.stars ?? 0;
-      }
-    }
-  });
-
-  it('opens the first world from the start', () => {
-    expect(worlds[0]?.requiredStars).toBe(0);
-  });
 });
 
 describe('bundled avatars', () => {
-  it('has unique ids, starting with the default avatar', () => {
+  it('has unique ids, starting with the child itself, and keeps the old default costume', () => {
     expect(new Set(avatars.map((a) => a.id)).size).toBe(avatars.length);
-    expect(avatars[0]?.id).toBe(DEFAULT_AVATAR_ID);
+    expect(avatars[0]?.id).toBe(CHILD_AVATAR_ID);
+    expect(avatars.map((a) => a.id)).toContain(DEFAULT_AVATAR_ID);
   });
 });
 

@@ -9,6 +9,7 @@ import {
   stickToMove,
   type PadState,
 } from '@presentation/engine/gamepad';
+import { gameKey } from '@presentation/engine/input';
 import { idleInput } from '@presentation/engine/movement';
 import { pickInDirection, pickNearest } from '@presentation/ui/pad-focus';
 
@@ -41,24 +42,35 @@ describe('gamepad mapping', () => {
   });
 
   it('counts buttons only on the frame they are pressed', () => {
-    expect(readPad(pad(), pad([], [PadButton.x])).select).toBe(true);
-    expect(readPad(pad([], [PadButton.x]), pad([], [PadButton.x])).select).toBe(false);
+    expect(readPad(pad(), pad([], [PadButton.a])).select).toBe(true);
+    expect(readPad(pad([], [PadButton.a]), pad([], [PadButton.a])).select).toBe(false);
   });
 
-  it('gives each button one job: square chooses, cross jumps, circle goes back', () => {
-    const square = readPad(pad(), pad([], [PadButton.x]));
-    expect(square.select && !square.jump).toBe(true);
-    const cross = readPad(pad(), pad([], [PadButton.a]));
-    expect(cross.jump && !cross.select).toBe(true);
-    expect(readPad(pad(), pad([], [PadButton.b])).back).toBe(true);
-    expect(readPad(pad(), pad([], [PadButton.y])).menu).toBe(true);
-    expect(readPad(pad(), pad([], [PadButton.start])).menu).toBe(true);
+  it('knows when the choosing button stays down, for buttons that must be held', () => {
+    const held = readPad(pad([], [PadButton.a]), pad([], [PadButton.a]));
+    expect(held.selectHeld).toBe(true);
+    expect(readPad(pad([], [PadButton.a]), pad()).selectHeld).toBe(false);
+  });
+
+  it('uses the buttons of any console, each with one job', () => {
+    const press = (button: number) => readPad(pad(), pad([], [button]));
+    const cross = press(PadButton.a);
+    expect(cross.select && !cross.gesture).toBe(true);
+    const square = press(PadButton.x);
+    expect(square.gesture && !square.select).toBe(true);
+    expect(press(PadButton.b).back).toBe(true);
+    const triangle = press(PadButton.y);
+    expect(triangle.agenda && !triangle.menu).toBe(true);
+    const options = press(PadButton.start);
+    expect(options.menu && !options.agenda).toBe(true);
+    expect(press(PadButton.lb).pause).toBe(true);
   });
 
   it('shows PlayStation symbols in their own colors', () => {
-    const { select, jump, back, menu } = padGlyphs.playstation;
-    expect([select.symbol, jump.symbol, back.symbol, menu.symbol]).toEqual(['▢', '✕', '◯', '△']);
-    expect(new Set([select.color, jump.color, back.color, menu.color]).size).toBe(4);
+    const { select, gesture, back, agenda, menu, pause } = padGlyphs.playstation;
+    const glyphs = [select, gesture, back, agenda, menu, pause];
+    expect(glyphs.map((g) => g.symbol)).toEqual(['✕', '▢', '◯', '△', '☰', 'L1']);
+    expect(new Set(glyphs.map((g) => g.color)).size).toBe(6);
   });
 
   it('knows when the child is using the controller', () => {
@@ -104,5 +116,14 @@ describe('panel focus with the D-pad', () => {
   it('stays put when nothing is in that direction', () => {
     expect(pickInDirection(box(0, 0), grid, 'up')).toBeUndefined();
     expect(pickInDirection(box(0, 0), grid, 'left')).toBeUndefined();
+  });
+});
+
+describe('keyboard', () => {
+  it('has the same jobs as the controller', () => {
+    expect(gameKey('Tab')).toBe('agenda');
+    expect(gameKey('KeyP')).toBe('menu');
+    expect(gameKey('KeyC')).toBe('pause');
+    expect(gameKey('KeyW')).toBeUndefined();
   });
 });

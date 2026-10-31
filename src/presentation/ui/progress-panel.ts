@@ -47,7 +47,6 @@ export class ProgressPanel {
         stat('⭐', String(summary.stars), 'estrelas'),
         stat('🪙', String(summary.coins), 'moedas'),
         stat('👕', `${summary.itemsOwned}/${summary.itemsTotal}`, 'roupas'),
-        stat('🌍', `${summary.worldsOpen}/${summary.worldsTotal}`, 'mundos'),
       ]),
       h('h3', { className: 'settings__heading', text: '🎯 Missões' }),
       h(

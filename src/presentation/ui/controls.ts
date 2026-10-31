@@ -3,19 +3,31 @@ import { h } from '@presentation/ui/dom';
 
 export interface ControlsCallbacks {
   onMove(input: MoveInput): void;
-  onJump(): void;
+  onGesture(): void;
+  onAgenda(): void;
   onAction(): void;
 }
 
+/** What the gesture button does here. */
+export type Gesture = 'greet' | 'jump';
+
+const gestureLooks: Readonly<Record<Gesture, { icon: string; label: string }>> = {
+  greet: { icon: '👋', label: 'Cumprimentar' },
+  jump: { icon: '⤒', label: 'Pular' },
+};
+
 const JOYSTICK_RADIUS = 56;
 
-/** On-screen joystick (always in the same place), jump button and context action button. */
+/** On-screen joystick and buttons, always in the same places: the same jobs as a controller. */
 export class Controls {
   readonly element: HTMLElement;
   private readonly knob = h('div', { className: 'joystick__knob' });
   private readonly action: HTMLButtonElement;
   private readonly actionIcon = h('span', { className: 'action__icon' });
   private readonly actionLabel = h('span', { className: 'action__label' });
+  private readonly gestureIcon = h('span');
+  private readonly gesture: HTMLButtonElement;
+  private currentGesture: Gesture | undefined;
   private pointer: number | null = null;
   private center = { x: 0, y: 0 };
 
@@ -26,16 +38,28 @@ export class Controls {
     window.addEventListener('pointerup', this.onUp);
     window.addEventListener('pointercancel', this.onUp);
 
-    const jump = h(
+    this.gesture = h(
       'button',
       {
-        className: 'round-button round-button--jump',
-        attrs: { 'aria-label': 'Pular', type: 'button' },
+        className: 'round-button round-button--touch',
+        attrs: { type: 'button' },
         onTap: () => {
-          callbacks.onJump();
+          callbacks.onGesture();
         },
       },
-      [h('span', { text: '⤒' })],
+      [this.gestureIcon],
+    );
+    this.setGesture('greet');
+    const agenda = h(
+      'button',
+      {
+        className: 'round-button round-button--touch',
+        attrs: { type: 'button', 'aria-label': 'Plano de hoje' },
+        onTap: () => {
+          callbacks.onAgenda();
+        },
+      },
+      [h('span', { text: '📅' })],
     );
 
     this.action = h(
@@ -52,8 +76,16 @@ export class Controls {
 
     this.element = h('div', { className: 'controls' }, [
       base,
-      h('div', { className: 'controls__right' }, [this.action, jump]),
+      h('div', { className: 'controls__right' }, [this.action, this.gesture, agenda]),
     ]);
+  }
+
+  setGesture(gesture: Gesture): void {
+    if (gesture === this.currentGesture) return;
+    this.currentGesture = gesture;
+    const { icon, label } = gestureLooks[gesture];
+    this.gestureIcon.textContent = icon;
+    this.gesture.setAttribute('aria-label', label);
   }
 
   showAction(icon: string, label: string): void {

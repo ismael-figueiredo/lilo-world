@@ -1,4 +1,11 @@
 import * as THREE from 'three';
+import type { Quality } from '@presentation/engine/quality';
+
+const maxPixelRatio: Readonly<Record<Quality, number>> = { high: 2, medium: 1.5, low: 1 };
+
+/** Fewer pixels are the cheapest way to go faster on a tablet. */
+export const pixelRatioFor = (quality: Quality): number =>
+  Math.min(window.devicePixelRatio, maxPixelRatio[quality]);
 
 /** Renderer tuned for tablets: capped pixel ratio, soft shadows, vivid (neutral) tone mapping. */
 export function createRenderer(container: HTMLElement): THREE.WebGLRenderer {
@@ -6,7 +13,7 @@ export function createRenderer(container: HTMLElement): THREE.WebGLRenderer {
     antialias: true,
     powerPreference: 'high-performance',
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(pixelRatioFor('high'));
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;

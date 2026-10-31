@@ -5,30 +5,15 @@ import { lowPoly, solid } from '@presentation/world/materials';
 import { slide, swings } from '@presentation/world/props';
 import { createPostSign, createSign } from '@presentation/world/sign';
 import { fitHeight, type WorldAssets } from '@presentation/world/world-assets';
-
-/** The school and its park, on a hill in the island's north-east. */
-export const SCHOOL_AREA = { x: 45, z: -58, radius: 16, height: 5.5 } as const;
-
-export const SchoolPlace = {
-  classroom: 'school:classroom',
-  teacher: 'school:teacher',
-  park: 'school:park',
-  back: 'school:back',
-} as const;
-
-/** Where the child appears when coming through the portal (looking at the school). */
-export const schoolArrival = new THREE.Vector3(
-  SCHOOL_AREA.x - 2,
-  SCHOOL_AREA.height,
-  SCHOOL_AREA.z + 9,
-);
+import { SCHOOL_AREA, SchoolPlace } from '@presentation/world/zones/anchors';
+import type { Zone } from '@presentation/world/zones/zone';
 
 /** The classroom, open to the south like a dollhouse (local coordinates). */
 const CLASS = { x: -5, z: -6, width: 13, depth: 7, height: 3.2 } as const;
 const PARK = { x: 8.5, z: -4 } as const;
 
 /** Classroom with desks and a blackboard, the teacher's desk, a park and the way back. */
-export class SchoolArea {
+export class SchoolArea implements Zone {
   readonly group = new THREE.Group();
   readonly colliders: Collider[] = [];
   readonly places: Interactable[] = [];
@@ -239,26 +224,5 @@ export class SchoolArea {
       const spot = this.at(x, z);
       this.colliders.push(circle(spot.x, spot.z, 0.45));
     }
-    const arch = new THREE.Group();
-    const frame = lowPoly(0xb08ee6, { emissive: 0xb08ee6, emissiveIntensity: 0.3 });
-    for (const dx of [-1.4, 1.4])
-      arch.add(solid(new THREE.BoxGeometry(0.5, 2.4, 0.5), frame, [dx, 1.2, 0]));
-    arch.add(solid(new THREE.TorusGeometry(1.4, 0.28, 8, 16, Math.PI), frame, [0, 2.4, 0]));
-    arch.position.set(4, 0, 9);
-    this.group.add(arch);
-    for (const dx of [-1.4, 1.4]) {
-      const spot = this.at(4 + dx, 9);
-      this.colliders.push(circle(spot.x, spot.z, 0.4));
-    }
-    const spot = this.at(4, 7.6);
-    this.places.push({
-      id: SchoolPlace.back,
-      position: new THREE.Vector3(spot.x, SCHOOL_AREA.height, spot.z),
-      markerPosition: new THREE.Vector3(spot.x, SCHOOL_AREA.height + 4, spot.z),
-      radius: 2.4,
-      icon: '🌀',
-      label: 'Voltar aos portais',
-      name: 'Portal de volta',
-    });
   }
 }

@@ -1,175 +1,181 @@
-import * as THREE from 'three';
-import type { TrafficPhase } from '@domain/city/traffic-light';
-import type { WorldMapEntry } from '@application/use-cases/get-world-map';
+import type { Phase, Weather } from '@domain/day/weather';
+import type * as THREE from 'three';
 import type { Random } from '@presentation/engine/math';
-import { CITY, City, isInsideCity, SOUTH_DISTRICT } from '@presentation/world/city';
+import type { Quality } from '@presentation/engine/quality';
+import { CityPlace } from '@presentation/world/city';
 import type { Collider } from '@presentation/world/collision';
+import { House } from '@presentation/world/house';
 import type { Interactable } from '@presentation/world/interactable';
-import { lowPoly } from '@presentation/world/materials';
-import { Nature } from '@presentation/world/nature';
-import { EMOTIONS_GARDEN, EmotionsGarden } from '@presentation/world/emotions-garden';
-import { HOME_AREA, HomeArea } from '@presentation/world/home-area';
-import { MARKET_INTERIOR, MarketInterior } from '@presentation/world/market-interior';
-import { NATURE_CAMP, NatureCamp } from '@presentation/world/nature-camp';
-import { SCHOOL_AREA, SchoolArea } from '@presentation/world/school-area';
-import { PORTAL_PLAZA, Portals } from '@presentation/world/portals';
-import type { RoadSafety } from '@presentation/world/road-safety';
+import type { MarketInterior } from '@presentation/world/market-interior';
 import { Sky } from '@presentation/world/sky';
-import { createTerrainMesh } from '@presentation/world/terrain-mesh';
-import { defaultTerrainOptions, TerrainShape } from '@presentation/world/terrain-shape';
-import { Water } from '@presentation/world/water';
+import { skyLook } from '@presentation/world/sky-looks';
+import { Town } from '@presentation/world/town';
+import { WeatherEffects } from '@presentation/world/weather-effects';
 import type { WorldAssets } from '@presentation/world/world-assets';
 
-/** Path of stones from the side street up to the portal hill. */
-const PATH = { fromZ: -CITY.radius + 2, toZ: PORTAL_PLAZA.z + PORTAL_PLAZA.radius - 2 } as const;
+const shadowSizes: Readonly<Record<Quality, number>> = { high: 2048, medium: 1536, low: 1024 };
 
-/** The whole open world: island, sea, sky, nature, city and portals. */
+/**
+ * The child's house, ready at once, and the town outside: its models start
+ * downloading in the background and it is built when the child opens the door.
+ */
 export class GameWorld {
-  readonly shape: TerrainShape;
   readonly sky: Sky;
-  readonly spawn = new THREE.Vector3(-14, CITY.height, 4.6);
-  /** Camera starts behind the player, looking straight down the street to the market. */
-  readonly spawnYaw = -Math.PI / 2;
-  colliders: readonly Collider[] = [];
-  places: readonly Interactable[] = [];
+  readonly house = new House();
+  private readonly effects = new WeatherEffects();
+  private phase: Phase = 'morning';
+  private weather: Weather = 'sunny';
+  /** Where the child stands: only what is around them is drawn. */
+  indoors = true;
+  /** Walking inside the market. */
+  shopping: MarketInterior | undefined;
+  private town: Town | undefined;
+  private assets: Promise<WorldAssets> | undefined;
+  private building: Promise<Town> | undefined;
+  private calm = false;
+  private motion = 1;
+  private quality: Quality = 'high';
 
-  private readonly water = new Water();
-  private readonly city: City;
-  private readonly camp: NatureCamp;
-  private readonly home: HomeArea;
-  private readonly school: SchoolArea;
-  private readonly emotions: EmotionsGarden;
-  /** Inside the market, far beyond the sea. */
-  readonly market: MarketInterior;
-  private readonly portals = new Portals();
-  private readonly nature: Nature;
-  private readonly staticColliders: Collider[];
-
-  constructor(scene: THREE.Scene, random: Random, assets: WorldAssets) {
-    this.city = new City(assets);
-    this.camp = new NatureCamp(assets);
-    this.home = new HomeArea(assets);
-    this.school = new SchoolArea(assets);
-    this.emotions = new EmotionsGarden(assets);
-    this.shape = new TerrainShape(random, {
-      ...defaultTerrainOptions,
-      flatAreas: [
-        { x: CITY.x, z: CITY.z, radius: CITY.radius, height: CITY.height, blend: 14 },
-        { ...SOUTH_DISTRICT, height: CITY.height, blend: 12 },
-        { ...NATURE_CAMP, blend: 10 },
-        { ...HOME_AREA, blend: 10 },
-        { ...SCHOOL_AREA, blend: 10 },
-        { ...EMOTIONS_GARDEN, blend: 10 },
-        { ...PORTAL_PLAZA, blend: 10 },
-      ],
-    });
+  constructor(
+    private readonly scene: THREE.Scene,
+    private readonly random: Random,
+    private readonly loadAssets: () => Promise<WorldAssets>,
+  ) {
     this.sky = new Sky(scene);
-    this.market = new MarketInterior(this.shape.heightAt(MARKET_INTERIOR.x, MARKET_INTERIOR.z));
+    scene.add(this.house.group, this.effects.group);
+  }
 
-    scene.add(createTerrainMesh(this.shape, random));
-    scene.add(
-      this.water.mesh,
-      this.city.group,
-      this.portals.group,
-      this.camp.group,
-      this.home.group,
-      this.school.group,
-      this.emotions.group,
-      this.market.group,
-    );
-    this.addPath(scene);
+  /** Starts the download without building anything: nobody waits for it. */
+  downloadTown(): void {
+    void this.townAssets().catch(() => undefined);
+  }
 
-    this.nature = new Nature(this.shape, random, assets, {
-      keepClear: (x, z) =>
-        isInsideCity(x, z, 3) ||
-        Math.hypot(x - NATURE_CAMP.x, z - NATURE_CAMP.z) < NATURE_CAMP.radius + 2 ||
-        Math.hypot(x - HOME_AREA.x, z - HOME_AREA.z) < HOME_AREA.radius + 2 ||
-        Math.hypot(x - SCHOOL_AREA.x, z - SCHOOL_AREA.z) < SCHOOL_AREA.radius + 2 ||
-        Math.hypot(x - EMOTIONS_GARDEN.x, z - EMOTIONS_GARDEN.z) < EMOTIONS_GARDEN.radius + 2 ||
-        Math.hypot(x - PORTAL_PLAZA.x, z - PORTAL_PLAZA.z) < PORTAL_PLAZA.radius + 3 ||
-        (Math.abs(x) < 5 && z < PATH.fromZ + 4 && z > PATH.toZ - 4),
+  /** Downloads and builds the town, once. A failed download can be tried again. */
+  openTown(): Promise<Town> {
+    this.building ??= this.build();
+    this.building.catch(() => {
+      this.building = undefined;
     });
-    scene.add(this.nature.group);
-    this.staticColliders = [
-      ...this.city.colliders,
-      ...this.camp.colliders,
-      ...this.home.colliders,
-      ...this.school.colliders,
-      ...this.emotions.colliders,
-      ...this.nature.colliders,
-    ];
-    this.colliders = this.staticColliders;
-    this.places = [
-      ...this.city.places,
-      ...this.camp.places,
-      ...this.home.places,
-      ...this.school.places,
-      ...this.emotions.places,
-    ];
+    return this.building;
   }
 
-  get roadSafety(): RoadSafety {
-    return this.city.roadSafety;
+  private townAssets(): Promise<WorldAssets> {
+    this.assets ??= this.loadAssets();
+    this.assets.catch(() => {
+      this.assets = undefined;
+    });
+    return this.assets;
   }
 
-  /** The traffic light cycle shared by the whole town. */
-  get trafficPhase(): TrafficPhase {
-    return this.city.phase;
+  private async build(): Promise<Town> {
+    const assets = await this.townAssets();
+    const town = new Town(this.random, assets);
+    town.group.visible = !this.indoors;
+    this.scene.add(town.group);
+    town.setMotionScale(this.motion);
+    town.setCalm(this.calm);
+    town.setDetailed(this.quality !== 'low');
+    this.showOutside();
+    await town.prepareIsland();
+    this.town = town;
+    this.showOutside();
+    return town;
+  }
+
+  /** The town, once the child has opened the door. */
+  get outside(): Town | undefined {
+    return this.town;
+  }
+
+  get colliders(): readonly Collider[] {
+    if (this.shopping !== undefined) return this.shopping.walkColliders;
+    return this.indoors ? this.house.colliders : (this.town?.colliders ?? []);
+  }
+
+  get places(): readonly Interactable[] {
+    if (this.shopping !== undefined) return this.shopping.walkPlaces;
+    return this.indoors ? this.house.places : (this.town?.places ?? []);
+  }
+
+  /** Places of the town, known by the map. */
+  get townPlaces(): readonly Interactable[] {
+    return this.town?.places ?? [];
+  }
+
+  /** The front door of the house, seen from the street. */
+  get street(): Interactable | undefined {
+    return this.townPlaces.find((place) => place.id === CityPlace.home);
   }
 
   heightAt(x: number, z: number): number {
-    return this.shape.heightAt(x, z);
+    if (this.shopping?.contains(x, z) === true) return this.shopping.height;
+    if (this.house.contains(x, z)) return this.house.floor;
+    return this.town?.shape.heightAt(x, z) ?? this.house.floor;
   }
 
   isWalkable(x: number, z: number): boolean {
-    return this.shape.isWalkable(x, z);
+    if (this.shopping !== undefined) return this.shopping.contains(x, z);
+    if (this.indoors) return this.house.contains(x, z);
+    return this.town?.shape.isWalkable(x, z) ?? false;
+  }
+
+  canJumpAt(x: number, z: number): boolean {
+    return !this.indoors && this.town?.canJumpAt(x, z) === true;
+  }
+
+  /** Crossing the door: drawing the other side only. */
+  setIndoors(indoors: boolean): void {
+    this.indoors = indoors;
+    this.house.group.visible = indoors;
+    if (this.town !== undefined) this.town.group.visible = !indoors;
+    this.sky.setIndoors(indoors);
+    this.showOutside();
+  }
+
+  /** The calm town: fewer cars and birds. */
+  setCalm(calm: boolean): void {
+    this.calm = calm;
+    this.town?.setCalm(calm);
   }
 
   setMotionScale(scale: number): void {
-    this.water.motionScale = scale;
+    this.motion = scale;
+    this.town?.setMotionScale(scale);
+    this.effects.setMoving(scale >= 1);
   }
 
-  setCloudsVisible(visible: boolean): void {
-    this.nature.setCloudsVisible(visible);
+  setQuality(quality: Quality): void {
+    this.quality = quality;
+    this.town?.setDetailed(quality !== 'low');
+    this.sky.setShadowSize(shadowSizes[quality]);
   }
 
-  showWorlds(entries: readonly WorldMapEntry[]): void {
-    this.portals.show(entries);
-    this.colliders = [...this.staticColliders, ...this.portals.colliders];
-    this.places = [
-      ...this.city.places,
-      ...this.camp.places,
-      ...this.home.places,
-      ...this.school.places,
-      ...this.emotions.places,
-      ...this.portals.places,
-    ];
+  /** The moment of the day and its weather. `now` skips the glide, behind a fade. */
+  setMoment(phase: Phase, weather: Weather, now = false): void {
+    this.phase = phase;
+    this.weather = weather;
+    const look = skyLook(phase, weather);
+    this.sky.setLook(look, now);
+    this.house.setWindow(phase, weather);
+    this.effects.setWeather(weather);
+    this.showOutside();
   }
 
-  update(time: number, dt: number, focus: THREE.Vector3): void {
-    this.water.update(time);
-    this.city.update(time);
-    this.camp.update(time);
-    this.emotions.update(time);
-    this.market.update(time, dt);
-    this.portals.update(time);
-    this.nature.update(dt);
-    this.sky.follow(focus);
+  private showOutside(): void {
+    const look = skyLook(this.phase, this.weather);
+    const shade = this.weather === 'rain' ? 1 : this.weather === 'cloudy' ? 0.6 : 0;
+    this.town?.setSky(look.night, shade, this.weather === 'rain');
+    this.effects.group.visible = !this.indoors;
   }
 
-  private addPath(scene: THREE.Scene): void {
-    const stone = lowPoly(0xe3d5b0);
-    const geometry = new THREE.CylinderGeometry(1.1, 1.2, 0.25, 7);
-    const steps = Math.floor((PATH.fromZ - PATH.toZ) / 2.2);
-    const mesh = new THREE.InstancedMesh(geometry, stone, steps);
-    const matrix = new THREE.Matrix4();
-    for (let i = 0; i < steps; i += 1) {
-      const z = PATH.fromZ - i * 2.2;
-      const x = Math.sin(i * 0.5) * 1.2;
-      matrix.makeRotationY(i * 0.7).setPosition(x, this.shape.heightAt(x, z) + 0.05, z);
-      mesh.setMatrixAt(i, matrix);
+  update(time: number, dt: number, focus: THREE.Vector3, face: THREE.Vector3): void {
+    if (this.indoors) {
+      this.house.update(time);
+      this.house.study.update(dt);
+    } else {
+      this.town?.update(time, dt, focus);
+      this.effects.update(time, dt, focus, face);
     }
-    mesh.receiveShadow = true;
-    scene.add(mesh);
+    this.sky.follow(focus, dt);
   }
 }

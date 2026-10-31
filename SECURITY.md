@@ -10,6 +10,15 @@ O Lilo World é usado por crianças, então privacidade e segurança são requis
 - A voz usa a síntese de fala do próprio aparelho (Web Speech API). Nenhum áudio é gravado ou enviado.
 - Para apagar todo o progresso, limpe os dados do site nas configurações do navegador.
 
+## Proteção do código
+
+- A `main` só muda por pull request com o CI aprovado. Force-push e exclusão são bloqueados.
+- O GitHub Actions só roda ações fixadas por commit, com permissão de leitura.
+- O CodeQL e os alertas do Dependabot analisam o código e as dependências.
+- Versões novas de pacotes esperam uma semana antes de entrar no projeto.
+- Dependências não rodam scripts ao instalar, exceto as autorizadas em `pnpm-workspace.yaml`.
+- O build publica uma política de conteúdo (CSP) que só deixa rodar o que vem do próprio jogo.
+
 ## Versões suportadas
 
 Só a versão mais recente do branch `main` recebe correções.

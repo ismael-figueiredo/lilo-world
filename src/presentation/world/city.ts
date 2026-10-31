@@ -1,6 +1,7 @@
 import * as THREE from 'three';
+import type { Point } from '@domain/city/route';
 import { trafficPhase, type TrafficPhase } from '@domain/city/traffic-light';
-import { box, circle, type Collider } from '@presentation/world/collision';
+import { box, circle, type Collider, type CircleCollider } from '@presentation/world/collision';
 import type { Interactable } from '@presentation/world/interactable';
 import { lowPoly, solid } from '@presentation/world/materials';
 import {
@@ -16,16 +17,28 @@ import {
   type TrafficLight,
 } from '@presentation/world/props';
 import { RoadSafety } from '@presentation/world/road-safety';
+import { StreetAnimals } from '@presentation/world/street-animals';
 import {
-  crossingRect,
-  planStreets,
-  zebraBars,
-  type Crossing,
-  type Road,
-} from '@presentation/world/street-plan';
+  AVENUE_LOT_START,
+  avenueTrees,
+  BUS_STOP,
+  CROSSINGS,
+  CROSSWALK_WIDTH,
+  CROSSWALK_X,
+  furnitureColliders,
+  lamps,
+  ROAD_WIDTH,
+  ROADS,
+  SIDEWALK,
+  streetTrees,
+  trafficLights,
+  WAY_SIGN,
+} from '@presentation/world/street-layout';
+import { crossingRect, planStreets, zebraBars } from '@presentation/world/street-plan';
+import { StreetTraffic } from '@presentation/world/street-traffic';
 import type { CrosswalkZone } from '@presentation/world/crosswalk';
+import { mergeStatic } from '@presentation/world/merge-static';
 import { createPostSign, createSign } from '@presentation/world/sign';
-import { LearningStations } from '@presentation/world/stations';
 import {
   fitFootprint,
   fitHeight,
@@ -48,50 +61,12 @@ export const CityPlace = {
   crosswalk: 'crosswalk',
 } as const;
 
-const ROAD_WIDTH = 7;
-const SIDEWALK = 3;
 /** Buildings start this far from the middle of the main road. */
 const LOT_START = ROAD_WIDTH / 2 + SIDEWALK + 0.5;
-/** Middle of the crossing with a traffic light, by the market. */
-const CROSSWALK_X = 8.5;
-const CROSSWALK_WIDTH = 4.4;
-
-/** Streets running down from the main street to the avenue (x of their middle). */
-const WEST_STREET_X = -31.5;
-const EAST_STREET_X = 28.5;
-const AVENUE_Z = 36;
-const AVENUE = { width: 6, sidewalk: 2 } as const;
-/** Front line of the houses on the avenue's south side. */
-const AVENUE_LOT_START = AVENUE_Z + AVENUE.width / 2 + AVENUE.sidewalk + 0.5;
 /** The town square, between the main street's lots and the avenue. */
 export const SQUARE = { x: 2, z: 24, radius: 6.8 } as const;
-
-const ROADS: readonly Road[] = [
-  { axis: 'x', at: 0, from: -CITY.radius, to: CITY.radius, width: ROAD_WIDTH, sidewalk: SIDEWALK },
-  { axis: 'z', at: 0, from: -CITY.radius, to: 0, width: ROAD_WIDTH, sidewalk: SIDEWALK },
-  { axis: 'x', at: AVENUE_Z, from: -36, to: 36, ...AVENUE },
-  { axis: 'z', at: WEST_STREET_X, from: 0, to: AVENUE_Z, width: 5, sidewalk: 1.5 },
-  { axis: 'z', at: EAST_STREET_X, from: 0, to: AVENUE_Z, width: 5, sidewalk: 1.5 },
-];
-
-const [MAIN_STREET, NORTH_STREET, AVENUE_ROAD, WEST_STREET, EAST_STREET] = ROADS as readonly [
-  Road,
-  Road,
-  Road,
-  Road,
-  Road,
-];
-
-/** Every painted crossing in town. Only the one by the market has a traffic light. */
-const CROSSINGS: readonly Crossing[] = [
-  { road: MAIN_STREET, at: CROSSWALK_X, width: CROSSWALK_WIDTH, signal: true },
-  { road: MAIN_STREET, at: -8, width: CROSSWALK_WIDTH },
-  { road: NORTH_STREET, at: -9, width: 4 },
-  { road: AVENUE_ROAD, at: -13, width: 3.6 },
-  { road: AVENUE_ROAD, at: 13, width: 3.6 },
-  { road: WEST_STREET, at: 15, width: 3.2 },
-  { road: EAST_STREET, at: 15, width: 3.2 },
-];
+/** Soft rubber floor beside the square. */
+export const PLAYGROUND = { x: 17.5, z: 22, radius: 6.5 } as const;
 
 /** The crossing with a traffic light, used by the "cross the street" mission. */
 export const CROSSWALK: CrosswalkZone = {
@@ -123,7 +98,21 @@ export class City {
   readonly places: Interactable[] = [];
   private readonly trafficLights: TrafficLight[] = [];
   private fountainWater?: THREE.Mesh;
-  private readonly stations = new LearningStations(CITY.height);
+  private readonly traffic: StreetTraffic;
+  private readonly animals = new StreetAnimals(
+    { x: SQUARE.x, z: SQUARE.z - SQUARE.radius + 1.6 },
+    [
+      { x: 12, z: 16 },
+      { x: 23.5, z: 16 },
+      { x: 23.5, z: 29 },
+      { x: 12, z: 29 },
+    ],
+    { x: -9, z: 18.4 },
+  );
+  private readonly lampSpots: Point[] = [];
+  private lightPools!: THREE.InstancedMesh;
+  private puddles!: THREE.InstancedMesh;
+  private glass: readonly THREE.MeshStandardMaterial[] | undefined;
   private readonly plan = planStreets(ROADS, CROSSINGS.map(crossingRect));
   /** Follows the child near the streets. */
   readonly roadSafety = new RoadSafety(
@@ -137,24 +126,114 @@ export class City {
 
   constructor(private readonly assets: WorldAssets) {
     this.group.position.y = CITY.height;
+    this.traffic = new StreetTraffic(assets);
+    this.group.add(this.traffic.group, this.animals.group);
+    this.colliders.push(...furnitureColliders);
     this.addStreets();
     this.addBuildings();
     this.addStreetLife();
     this.addSouthDistrict();
-    this.group.add(this.stations.group);
-    this.colliders.push(...this.stations.colliders);
-    this.places.push(...this.stations.places);
+    this.lightPools = this.spots(3.4, 0xffe2a0, 0.28, 0.9);
+    this.puddles = this.spots(1.1, 0x5a7a9a, 0.45, -1.6);
+    mergeStatic(this.group, [
+      this.traffic.group,
+      this.animals.group,
+      ...this.trafficLights.map((light) => light.group),
+      ...(this.fountainWater === undefined ? [] : [this.fountainWater]),
+    ]);
   }
 
   /** The shared traffic light cycle right now. */
   phase: TrafficPhase = trafficPhase(0);
 
-  update(time: number): void {
+  /** The moving solid things: for what walks, not for the camera. */
+  get movingColliders(): readonly CircleCollider[] {
+    return this.traffic.colliders;
+  }
+
+  /** The calm town: fewer cars and birds. */
+  setCalm(calm: boolean): void {
+    this.traffic.setCalm(calm);
+    this.animals.setCalm(calm);
+  }
+
+  mayCross(spot: Point): boolean {
+    return this.traffic.mayCross(spot, this.phase);
+  }
+
+  /** From 0, far from any car, to 1, right beside one. */
+  streetNoise(point: Point): number {
+    return this.traffic.closeness(point);
+  }
+
+  update(time: number, dt: number, people: readonly Point[], child: Point): void {
     this.phase = trafficPhase(time);
+    this.traffic.update(dt, this.phase, people);
+    this.animals.update(time, dt, child);
     for (const light of this.trafficLights) light.update(this.phase);
-    this.stations.update(time);
     if (this.fountainWater !== undefined)
       this.fountainWater.position.y = 0.62 + Math.sin(time * 2) * 0.03;
+  }
+
+  private addLamp(x: number, z: number): void {
+    this.place(streetLamp(), x, z);
+    this.lampSpots.push({ x, z });
+  }
+
+  /** Soft circles on the ground, one per lamp: they stand for light without costing lights. */
+  private spots(
+    radius: number,
+    color: number,
+    opacity: number,
+    shift: number,
+  ): THREE.InstancedMesh {
+    const spots = new THREE.InstancedMesh(
+      new THREE.CircleGeometry(radius, 20).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false }),
+      this.lampSpots.length,
+    );
+    const matrix = new THREE.Matrix4();
+    this.lampSpots.forEach(({ x, z }, index) => {
+      spots.setMatrixAt(index, matrix.makeTranslation(x + shift, 0.19, z - shift / 2));
+    });
+    spots.visible = false;
+    this.group.add(spots);
+    return spots;
+  }
+
+  /** Lamps pour light on the sidewalks after dark. */
+  setLightsOn(on: boolean): void {
+    this.lightPools.visible = on;
+    for (const glass of this.windowGlass()) {
+      glass.emissive.setHex(0xffcf7a);
+      glass.emissiveIntensity = on ? 0.9 : 0;
+    }
+  }
+
+  /** The glass of houses and shops, as the models name it. */
+  private windowGlass(): readonly THREE.MeshStandardMaterial[] {
+    if (this.glass === undefined) {
+      const found = new Set<THREE.MeshStandardMaterial>();
+      this.group.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return;
+        const materials = [object.material].flat() as THREE.Material[];
+        for (const material of materials) {
+          if (material.name === 'window' && material instanceof THREE.MeshStandardMaterial) {
+            found.add(material);
+          }
+        }
+      });
+      this.glass = [...found];
+    }
+    return this.glass;
+  }
+
+  setNight(night: boolean): void {
+    this.animals.setNight(night);
+  }
+
+  setPuddles(on: boolean): void {
+    this.puddles.visible = on;
   }
 
   private place(object: THREE.Object3D, x: number, z: number, facingSouth = true): THREE.Object3D {
@@ -313,7 +392,7 @@ export class City {
       home.doorZ,
       home.height + 0.8,
       '🏠',
-      'Guarda-roupa',
+      'Entrar em casa',
       'Minha casa',
     );
 
@@ -380,19 +459,17 @@ export class City {
   private addStreetLife(): void {
     const stop = busStop();
     // North side of the street: the shelter's back wall faces away from the road.
-    this.place(stop, -12, -(ROAD_WIDTH / 2 + 1.6));
-    this.colliders.push(box(-12, -(ROAD_WIDTH / 2 + 2.2), 4.4, 0.4));
+    this.place(stop, BUS_STOP.x, BUS_STOP.shelterZ);
     const stopSign = createPostSign(
       ['🚌 ÔNIBUS'],
       { background: '#2e86de', color: '#ffffff', width: 2.6, height: 1 },
       2.2,
     );
-    this.place(stopSign, -12 + 2.9, -(ROAD_WIDTH / 2 + 0.9));
-    this.colliders.push(circle(-12 + 2.9, -(ROAD_WIDTH / 2 + 0.9), 0.4));
+    this.place(stopSign, BUS_STOP.x + 2.9, BUS_STOP.signZ);
     this.places.push({
       id: CityPlace.busStop,
-      position: new THREE.Vector3(-12, CITY.height, -(ROAD_WIDTH / 2 + 0.5)),
-      markerPosition: new THREE.Vector3(-12, CITY.height + 4.6, -(ROAD_WIDTH / 2 + 0.5)),
+      position: new THREE.Vector3(BUS_STOP.x, CITY.height, BUS_STOP.waitZ),
+      markerPosition: new THREE.Vector3(BUS_STOP.x, CITY.height + 4.6, BUS_STOP.waitZ),
       radius: 3.4,
       icon: '🚌',
       label: 'Ponto de ônibus',
@@ -430,14 +507,10 @@ export class City {
       this.colliders.push(box(x, z, 2.3, 0.8));
     }
 
-    for (const [x, z] of [
-      [CROSSWALK_X - CROSSWALK_WIDTH / 2 - 0.9, -4.2],
-      [CROSSWALK_X - CROSSWALK_WIDTH / 2 - 0.9, 4.2],
-    ] as const) {
+    for (const { x, z } of trafficLights) {
       const light = trafficLight();
       this.place(light.group, x, z, z < 0);
       this.trafficLights.push(light);
-      this.colliders.push(circle(x, z, 0.3));
     }
     const crossingX = (CROSSWALK.minX + CROSSWALK.maxX) / 2;
     const curbZ = ROAD_WIDTH / 2 + 1.4;
@@ -451,30 +524,22 @@ export class City {
       name: 'Faixa',
     });
 
-    const lampZ = ROAD_WIDTH / 2 + SIDEWALK - 0.4;
-    for (const x of [-44, -24, -14, 4, 22, 44]) {
-      for (const side of [-1, 1]) {
-        if (side === -1 && Math.abs(x + 12) < 4) continue;
-        this.place(streetLamp(), x, side * lampZ);
-        this.colliders.push(circle(x, side * lampZ, 0.25));
-      }
-    }
+    for (const { x, z } of lamps) this.addLamp(x, z);
+
+    const waySign = createPostSign(
+      ['🛒 Mercado ➡️', '🚌 Ônibus ➡️'],
+      { background: '#2f6fb5', color: '#ffffff', width: 2.8, height: 1.3 },
+      1.9,
+    );
+    this.place(waySign, WAY_SIGN.x, WAY_SIGN.z, false);
 
     const treeModels: readonly WorldModelId[] = ['tree-round', 'tree-twin', 'tree-tall'];
     // None by the crosswalk: the child must see the walking figure across the street.
-    const streetTrees: readonly (readonly [number, number])[] = [
-      [-14, 9],
-      [30, -9],
-      [-6, -20],
-      [6, -30],
-      [-6, -40],
-    ];
-    streetTrees.forEach(([x, z], index) => {
+    streetTrees.forEach(({ x, z }, index) => {
       const tree = this.assets.clone(treeModels[index % treeModels.length] ?? 'tree-round');
       fitHeight(tree, 5.2 + (index % 3) * 0.5);
       this.place(tree, x, z);
       tree.rotation.y = index * 1.7;
-      this.colliders.push(circle(x, z, 0.45));
     });
   }
 
@@ -501,25 +566,11 @@ export class City {
       this.place(flowers, x + 3, lot.front - 0.5);
     });
 
-    // Lamps and trees on the avenue, between the houses.
-    const walkZ = AVENUE_Z + AVENUE.width / 2 + AVENUE.sidewalk / 2;
-    for (const x of [-32.5, -19.5, -6.5, 6.5, 19.5, 32.5]) {
-      this.place(streetLamp(), x, walkZ);
-      this.colliders.push(circle(x, walkZ, 0.25));
-    }
-    const avenueTrees: readonly (readonly [number, number])[] = [
-      [-19.5, AVENUE_Z - 4.2],
-      [19.5, AVENUE_Z - 4.2],
-      [-23, 21],
-      [-14, 28],
-      [20, 30],
-    ];
-    avenueTrees.forEach(([x, z], index) => {
+    avenueTrees.forEach(({ x, z }, index) => {
       const tree = this.assets.clone(index % 2 === 0 ? 'tree-twin' : 'tree-round');
       fitHeight(tree, 5.4);
       this.place(tree, x, z);
       tree.rotation.y = index * 2.1;
-      this.colliders.push(circle(x, z, 0.45));
     });
 
     // The square: a round paved plaza, the bandstand, benches facing it and flower beds.
@@ -561,7 +612,7 @@ export class City {
       [-radius - 1.5, 0],
       [radius + 1.5, 0],
     ] as const) {
-      this.place(streetLamp(), sx + dx, sz + dz);
+      this.addLamp(sx + dx, sz + dz);
       this.colliders.push(circle(sx + dx, sz + dz, 0.25));
     }
     const squareSign = createPostSign(
@@ -573,7 +624,7 @@ export class City {
     this.colliders.push(circle(sx + 4, sz - radius - 1, 0.5));
 
     // Playground beside the square, on soft rubber floor.
-    const play = { x: 17.5, z: 22 };
+    const play = PLAYGROUND;
     this.group.add(
       solid(new THREE.BoxGeometry(9, 0.08, 9), lowPoly(0x7ec8a3), [play.x, 0.04, play.z]),
     );

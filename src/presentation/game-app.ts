@@ -1,47 +1,81 @@
 import * as THREE from 'three';
+import { phrases } from '@application/phrases';
 import type { GameServices, PlayerServices } from '@application/game-services';
-import type { SoundEffect } from '@application/ports/audio';
-import type { WorldMap } from '@application/use-cases/get-world-map';
+import type { Ambience, SoundEffect } from '@application/ports/audio';
 import type { Goal } from '@application/use-cases/suggest-next-goal';
-import { DEFAULT_AVATAR_ID, type PlayerProfile } from '@domain/profile/player-profile';
+import {
+  CHILD_AVATAR_ID,
+  defaultChildChoices,
+  type ChildChoices,
+  type OutfitId,
+} from '@domain/avatar/child';
+import { firstDay, type DayState } from '@domain/day/day-plan';
+import { comfortIn, phaseOf, weatherOf, type Phase, type Weather } from '@domain/day/weather';
+import { startRoutine, stepRoutine, type Spot } from '@domain/people/routine';
+import type { PlayerProfile } from '@domain/profile/player-profile';
+import type { Station } from '@domain/curriculum/skill';
+import { isBakeryRun } from '@domain/errand/errand';
+import { sessionTimeStatus } from '@domain/session/session';
 import { defaultSettings, type Settings } from '@domain/settings/settings';
 import { Mascot } from '@presentation/actors/mascot';
 import { AvatarLibrary } from '@presentation/actors/avatar-library';
 import { avatarPictureUrl } from '@presentation/actors/avatar-rigs';
-import type { Player } from '@presentation/actors/player';
+import {
+  cast,
+  childPerson,
+  guardianPerson as personOfGuardian,
+  type CastMember,
+} from '@presentation/actors/cast';
+import { outfitClothes, type Expression } from '@presentation/actors/child-figure';
+import type { Emote, Ground, Player } from '@presentation/actors/player';
 import { MenuController } from '@presentation/controllers/menu-controller';
-import { LearningController } from '@presentation/controllers/learning-controller';
+import { ActivityController } from '@presentation/controllers/activity-controller';
 import { MissionController, missionPlaces } from '@presentation/controllers/mission-controller';
+import { HomeController } from '@presentation/controllers/home-controller';
+import { ErrandController } from '@presentation/controllers/errand-controller';
+import { SessionController } from '@presentation/controllers/session-controller';
 import { WardrobeController } from '@presentation/controllers/wardrobe-controller';
 import { CameraRig } from '@presentation/engine/camera-rig';
 import { GamepadReader, padIsActive } from '@presentation/engine/gamepad';
-import { Input } from '@presentation/engine/input';
+import { gameKey, Input, isTyping } from '@presentation/engine/input';
+import { QualityGovernor, type Quality } from '@presentation/engine/quality';
 import { seededRandom } from '@presentation/engine/math';
 import { cameraRelative } from '@presentation/engine/movement';
-import { createRenderer, fitToContainer } from '@presentation/engine/renderer';
+import { createRenderer, fitToContainer, pixelRatioFor } from '@presentation/engine/renderer';
 import type { GameContext, Mode, PanelMode } from '@presentation/game-context';
 import { Controls } from '@presentation/ui/controls';
 import { Dialog } from '@presentation/ui/dialog';
 import { h } from '@presentation/ui/dom';
 import { Hud } from '@presentation/ui/hud';
 import { Minimap } from '@presentation/ui/minimap';
+import type { Gesture } from '@presentation/ui/controls';
+import { CalmPause } from '@presentation/ui/calm-pause';
+import { ChildCreator } from '@presentation/ui/child-creator';
+import { ChildStudio } from '@presentation/ui/child-studio';
+import { LoadingScreen } from '@presentation/ui/loading-screen';
 import { PadFocus } from '@presentation/ui/pad-focus';
+import {
+  colliderOf,
+  nearestPerson,
+  neighbors,
+  standingGround,
+  type Person,
+} from '@presentation/world/neighbors';
 import { PadHints } from '@presentation/ui/pad-hints';
 import { ProfileScreen } from '@presentation/ui/profile-screen';
 import { RestScreen } from '@presentation/ui/rest-screen';
-import { CityPlace } from '@presentation/world/city';
-import { firstObstruction } from '@presentation/world/collision';
+import { CITY, CityPlace } from '@presentation/world/city';
+import { firstObstruction, resolveCollisions } from '@presentation/world/collision';
 import { GameWorld } from '@presentation/world/game-world';
+import { skyLook } from '@presentation/world/sky-looks';
+import type { Town } from '@presentation/world/town';
+import type { MarketInterior } from '@presentation/world/market-interior';
 import { GoalMarker } from '@presentation/world/goal-marker';
+import { GuideArrow } from '@presentation/world/guide-arrow';
 import type { Interactable } from '@presentation/world/interactable';
 import { captureMap } from '@presentation/world/map-snapshot';
-import { emotionsArrival, EmotionsPlace } from '@presentation/world/emotions-garden';
-import { homeArrival, HomePlace } from '@presentation/world/home-area';
-import { campArrival, NaturePlace } from '@presentation/world/nature-camp';
-import { schoolArrival, SchoolPlace } from '@presentation/world/school-area';
-import { PORTAL_PLAZA, portalId } from '@presentation/world/portals';
 import type { RoadEvent } from '@presentation/world/road-safety';
-import { skillOfStation } from '@presentation/world/stations';
+import { standSpots, thingOf } from '@presentation/world/house';
 import { WorldAssets } from '@presentation/world/world-assets';
 import '@presentation/ui/styles.css';
 
@@ -56,6 +90,32 @@ const TIME_CHECK_MS = 5_000;
 const EXTRA_TIME_MS = 5 * 60_000;
 /** Seconds between two spoken street warnings. */
 const ROAD_WARNING_GAP = 6;
+/** In the calm town the engines are quieter and nobody honks. */
+const CALM_STREET = 0.4;
+/** Rare, and only from a distance. */
+const HORN_EVERY = 60;
+
+const isHeardInside = (sound: Ambience): boolean => sound !== 'birds' && sound !== 'street';
+
+/** Seconds between greetings: one wave at a time, even if the button is pressed again. */
+const GREET_GAP = 2.5;
+/** Rooms are smaller than streets: the arrow and Lilo fit them. */
+const INDOOR_MARKER = 0.42;
+const INDOOR_MASCOT = 0.6;
+/** Where the adult at home is, at the kitchen counter. */
+const KITCHEN_SPOT = { x: 5, z: 1.5, facing: 0 } as const;
+const GUARDIAN_SPOTS = {
+  kitchen: KITCHEN_SPOT,
+  fridge: { x: 5, z: 1.7, facing: 1.2 },
+  stove: { x: 2.2, z: 1.5, facing: Math.PI / 2 },
+  table: { x: 2.85, z: 2.75, facing: 0 },
+} as const;
+const GUARDIAN_SEAT = 0.2;
+/** The child's body and a person's: they meet, but never overlap. */
+const PERSON_SPACE = 0.45;
+const still = { x: 0, z: 0 };
+/** How fast the number shown in the dev stats follows each frame. */
+const FPS_SMOOTHING = 0.05;
 const cameraSpeeds = { low: 0.55, normal: 1, high: 1.6 } as const;
 
 /**
@@ -68,11 +128,22 @@ export class GameApp implements GameContext {
   private readonly camera = new THREE.PerspectiveCamera(55, 1, 0.1, 1200);
   private readonly ui = h('div', { className: 'ui' });
   private readonly fade = h('div', { className: 'fade', attrs: { 'aria-hidden': 'true' } });
-  private readonly hud = new Hud(() => {
-    if (this.currentMode === 'explore') this.menus.open();
+  private readonly hud = new Hud(
+    () => {
+      if (this.currentMode === 'explore') this.menus.open();
+    },
+    () => {
+      this.togglePause();
+    },
+  );
+  private readonly calmPause = new CalmPause(() => {
+    this.togglePause();
   });
+  /** What the pause interrupted, to go back to exactly that. */
+  private beforePause: Mode | undefined;
   readonly dialog = new Dialog();
   private readonly marker = new GoalMarker();
+  private readonly guide = new GuideArrow();
   private readonly mascot = new Mascot();
   private readonly minimap = new Minimap(() => {
     if (this.currentMode === 'explore') this.menus.openMap();
@@ -81,14 +152,17 @@ export class GameApp implements GameContext {
   private readonly profileScreen: ProfileScreen;
   private readonly restScreen: RestScreen;
   private readonly missions: MissionController;
-  private readonly learning: LearningController;
-  private readonly wardrobe: WardrobeController;
+  private readonly errands: ErrandController;
+  private readonly learning: ActivityController;
+  private readonly day: SessionController;
+  readonly wardrobe: WardrobeController;
+  readonly home: HomeController;
   private readonly menus: MenuController;
   private readonly avatars: AvatarLibrary;
   private readonly gamepad = new GamepadReader((connected) => {
     this.input?.reset();
     this.showPadControls(connected);
-    this.say(connected ? '🎮 Controle conectado!' : 'O controle desligou.');
+    this.say(connected ? phrases.padConnected : phrases.padDisconnected);
   });
   private readonly padFocus: PadFocus;
   private readonly padHints = new PadHints();
@@ -101,7 +175,7 @@ export class GameApp implements GameContext {
   private activeProfile: PlayerProfile | undefined;
   private playerServices: PlayerServices | undefined;
   private currentSettings: Settings = defaultSettings;
-  private worldMap: WorldMap | undefined;
+  private readonly deviceReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   private goal: Goal = { kind: 'explore' };
   private destination: Interactable | undefined;
   private lastTime = 0;
@@ -114,6 +188,20 @@ export class GameApp implements GameContext {
   private safeTrip = false;
   private returningToSidewalk = false;
   private lastRoadWarning = -Infinity;
+  private lastGreeting = -Infinity;
+  private nextHorn = HORN_EVERY;
+  private readonly governor = new QualityGovernor();
+  private readonly loading = new LoadingScreen();
+  private fps = 60;
+  private people: readonly Person[] = [];
+  private guardianPerson: Person | undefined;
+  private today: DayState = firstDay;
+  private readonly breath = new THREE.Vector3();
+  private readonly studio = new ChildStudio();
+  private readonly creator = new ChildCreator(this.studio, {
+    onSpeak: (text) => void this.services.speech.speak(text),
+  });
+  private characterKey: string | undefined;
 
   constructor(
     private readonly root: HTMLElement,
@@ -123,14 +211,16 @@ export class GameApp implements GameContext {
     this.padFocus = new PadFocus(this.root);
     this.controls = new Controls({
       onMove: (move) => this.input?.setJoystick(move),
-      onJump: () => this.input?.requestJump(),
+      onGesture: () => this.input?.requestGesture(),
+      onAgenda: () => {
+        if (this.currentMode === 'explore') this.home.openAgenda();
+      },
       onAction: () => this.input?.requestAction(),
     });
     this.profileScreen = new ProfileScreen({
       onSelect: (profile) => void this.selectProfile(profile),
-      onCreate: (name, avatarId) => void this.createProfile(name, avatarId),
-      onPreviewAvatar: (avatarId) => {
-        this.avatars.preload(avatarId);
+      onCreate: (name) => {
+        this.newChild(name);
       },
       onRename: (profile, name) => void this.renameProfile(profile, name),
       onDelete: (profile) => void this.deleteProfile(profile),
@@ -144,17 +234,79 @@ export class GameApp implements GameContext {
         this.playedMs = Math.max(0, this.playedMs - EXTRA_TIME_MS);
         this.warnedLastMission = false;
         this.restScreen.close();
+        this.services.audio.startMusic();
         this.backToExploring();
       },
     });
     this.avatars = new AvatarLibrary(options.baseUrl);
     this.missions = new MissionController(this);
-    this.learning = new LearningController(this);
+    this.learning = new ActivityController(this);
+    this.day = new SessionController(this, this.learning);
     this.wardrobe = new WardrobeController(this);
+    this.home = new HomeController(this);
+    this.errands = new ErrandController(this, this.home);
     this.menus = new MenuController(this, () => this.goalPlace()?.id);
   }
 
   // ---------- GameContext ----------
+
+  get restIsDue(): boolean {
+    const limit = this.currentSettings.sessionLimitMinutes;
+    return sessionTimeStatus(limit, this.playedMs, false).kind === 'time-to-rest';
+  }
+
+  get session(): SessionController {
+    return this.day;
+  }
+
+  get errand(): ErrandController {
+    return this.errands;
+  }
+
+  get guardian(): Player | undefined {
+    return this.guardianPerson?.character;
+  }
+
+  guardianStandsAt(where: 'kitchen' | 'fridge' | 'stove' | 'table'): void {
+    const spot = GUARDIAN_SPOTS[where];
+    const person = this.guardianPerson;
+    if (person === undefined) return;
+    const { character } = person;
+    character.setPerch(where === 'table' ? GUARDIAN_SEAT : 0);
+    character.release();
+    character.placeAt(this.world.house.world(spot), spot.facing);
+    if (where === 'table' && character.canDo('Sit')) character.playEmote('Sit');
+  }
+
+  enterShop(market: MarketInterior): void {
+    const world = this.world;
+    world.shopping = market;
+    this.minimap.setVisible(false);
+    this.rig.setIndoors(true);
+    this.avatar.placeAt(market.entrance, Math.PI);
+    market.followWithCart(this.avatar.position, Math.PI, 1);
+    this.rig.snapTo(market.entrance);
+  }
+
+  leaveShop(): void {
+    const world = this.world;
+    world.shopping = undefined;
+    this.rig.setIndoors(false);
+    const door = world.townPlaces.find((place) => place.id === CityPlace.market);
+    if (door === undefined) return;
+    const towardStreet = door.position.z > CITY.z ? Math.PI : 0;
+    this.avatar.placeAt(door.position, towardStreet);
+    this.rig.yaw = towardStreet;
+    this.rig.snapTo(door.position);
+  }
+
+  refreshGoal(): void {
+    this.showMarker();
+  }
+
+  practice(subject: Station, onLeave: () => void): Promise<void> {
+    return this.learning.open(subject, onLeave);
+  }
 
   get player(): PlayerServices {
     if (this.playerServices === undefined) throw new Error('No player selected');
@@ -202,25 +354,25 @@ export class GameApp implements GameContext {
     }
   }
 
-  backToExploring(): void {
+  backToExploring(message?: string): void {
     this.services.speech.stop();
     this.ui.classList.remove('has-panel');
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     this.cameraRig?.clearFocus();
     this.currentMode = 'explore';
     this.controls.setVisible(true);
-    this.minimap.setVisible(this.currentSettings.showMinimap);
+    this.showMinimap();
     if (this.input !== undefined) {
       this.input.reset();
       this.input.enabled = true;
     }
     void this.refresh().then(() => {
-      if (this.destination === undefined) this.say(this.goalMessage());
+      if (this.destination === undefined) this.say(message ?? this.goalMessage());
     });
   }
 
-  say(message: string): void {
-    this.dialog.say(message);
+  say(message: string, written = message): void {
+    this.dialog.say(written);
     void this.services.speech.speak(message);
   }
 
@@ -231,10 +383,9 @@ export class GameApp implements GameContext {
   async refresh(): Promise<void> {
     if (this.playerServices === undefined) return;
     const player = this.playerServices;
-    const [progress, wardrobe, worldMap, goal] = await Promise.all([
+    const [progress, wardrobe, goal] = await Promise.all([
       player.getPlayerProgress.execute(),
       player.getWardrobe.execute(),
-      player.getWorldMap.execute(),
       player.suggestNextGoal.execute(),
     ]);
     this.hud.set(progress.coins.amount, progress.stars);
@@ -242,28 +393,112 @@ export class GameApp implements GameContext {
       progress.equipped,
       wardrobe.entries.map((entry) => entry.item),
     );
-    if (this.worldMap?.stars !== worldMap.stars) this.gameWorld?.showWorlds(worldMap.worlds);
-    this.worldMap = worldMap;
     this.goal = goal;
     this.showMarker();
   }
 
   applySettings(settings: Settings): void {
+    const fixed = this.currentSettings.fixedWeather;
     this.currentSettings = settings;
+    if (fixed !== settings.fixedWeather && this.activeProfile !== undefined) {
+      this.showDay(this.today);
+    }
     if (this.renderer !== undefined) {
       this.renderer.domElement.style.filter = settings.softColors
         ? 'saturate(0.68) brightness(1.03)'
         : '';
     }
     this.root.classList.toggle('reduce-motion', settings.reducedMotion);
-    const motion = settings.reducedMotion ? 0.3 : 1;
+    // The device setting counts too: CSS follows it by itself, the 3D world does not.
+    const motion = settings.reducedMotion || this.deviceReducedMotion.matches ? 0.3 : 1;
     this.gameWorld?.setMotionScale(motion);
+    this.gameWorld?.setCalm(settings.worldActivity === 'calm');
     this.mascot.motionScale = motion;
     this.marker.motionScale = motion;
     if (this.cameraRig !== undefined) {
       this.cameraRig.sensitivity = cameraSpeeds[settings.cameraSensitivity];
     }
-    this.minimap.setVisible(settings.showMinimap && this.currentMode === 'explore');
+    if (this.currentMode === 'explore') this.showMinimap();
+  }
+
+  private showMinimap(): void {
+    const indoors = this.gameWorld?.indoors ?? true;
+    const shopping = this.gameWorld?.shopping !== undefined;
+    this.minimap.setVisible(this.currentSettings.showMinimap && !indoors && !shopping);
+  }
+
+  get town(): Town {
+    const town = this.gameWorld?.outside;
+    if (town === undefined) throw new Error('Town not ready');
+    return town;
+  }
+
+  async stopPoint(): Promise<void> {
+    await this.saveSession();
+    this.lastTimeCheck = 0;
+    this.say(phrases.blockDone);
+  }
+
+  whileNotPaused(): Promise<void> {
+    return new Promise((resolve) => {
+      const check = () => {
+        if (this.beforePause === undefined) resolve();
+        else window.setTimeout(check, 200);
+      };
+      check();
+    });
+  }
+
+  async goOutside(): Promise<void> {
+    const world = this.world;
+    const first = world.outside === undefined;
+    const town = await this.whileLoading(world.openTown());
+    const door = world.street;
+    if (first) this.addNeighbors(town);
+    await this.transition(() => {
+      this.setIndoors(false);
+      if (door === undefined) return;
+      // Looking down the street to the market, with the bus stop out of the way.
+      this.avatar.placeAt(door.position, Math.PI / 2);
+      this.rig.yaw = -Math.PI / 2;
+      this.rig.snapTo(door.position);
+      if (first) this.pictureTheMap(town);
+    });
+    this.fade.classList.remove('is-on');
+  }
+
+  async goInside(): Promise<void> {
+    await this.transition(() => {
+      this.setIndoors(true);
+    });
+    this.rig.snapTo(this.avatar.position);
+  }
+
+  private setIndoors(indoors: boolean): void {
+    this.world.setIndoors(indoors);
+    this.rig.setIndoors(indoors);
+    this.marker.setSize(indoors ? INDOOR_MARKER : 1);
+    this.showComfort();
+    this.playAmbience();
+    this.mascot.root.scale.setScalar(indoors ? INDOOR_MASCOT : 1);
+  }
+
+  /** The map's picture, taken once behind the fade of the first time outside. */
+  private pictureTheMap(town: Town): void {
+    const renderer = this.renderer;
+    if (renderer === undefined) return;
+    town.showAllZones(true);
+    const picture = captureMap(
+      renderer,
+      this.scene,
+      [this.avatar.root, this.mascot.root, this.marker.group],
+      (visible) => {
+        town.setCloudsVisible(visible);
+      },
+    );
+    town.showAllZones(false);
+    this.menus.map.setPicture(picture);
+    this.minimap.setPicture(picture);
   }
 
   setDestination(place: Interactable | undefined): void {
@@ -274,8 +509,11 @@ export class GameApp implements GameContext {
   async switchPlayer(): Promise<void> {
     await this.saveSession();
     this.services.speech.stop();
+    this.services.audio.stopMusic();
     this.missions.close();
     this.learning.close();
+    this.errands.close();
+    this.day.close();
     this.wardrobe.close();
     this.menus.closeAll();
     this.restScreen.close();
@@ -289,18 +527,105 @@ export class GameApp implements GameContext {
     const result = await this.services.changeAvatar.execute(this.profile.id, avatarId);
     if (!result.ok) return;
     this.activeProfile = result.value;
-    await this.useAvatar(avatarId);
+    await this.useAvatar(result.value);
     await this.refresh();
   }
 
+  async changeOutfit(outfit: OutfitId): Promise<void> {
+    const result = await this.services.changeChild.execute(this.profile.id, { outfit });
+    if (!result.ok) return;
+    this.activeProfile = result.value;
+    this.character?.wear(outfitClothes[outfit]);
+    this.showComfort();
+  }
+
+  showDay(day: DayState): void {
+    this.today = day;
+    this.world.setMoment(phaseOf(day), this.weather);
+    this.showComfort();
+    this.playAmbience();
+  }
+
+  get weather(): Weather {
+    const seed = this.activeProfile?.id ?? '';
+    return weatherOf(this.today.number, seed, this.currentSettings.fixedWeather);
+  }
+
+  /** The body answers the weather outside; indoors everyone is fine. */
+  private showComfort(): void {
+    const outside = this.gameWorld?.indoors === false;
+    const child = this.activeProfile?.avatarId === CHILD_AVATAR_ID;
+    const outfit = this.activeProfile?.outfit ?? 'home';
+    this.character?.setPosture(outside && child ? comfortIn(this.weather, outfit) : 'fine');
+  }
+
+  private playAmbience(): void {
+    const { weather } = this;
+    const night = phaseOf(this.today) === 'night';
+    const sounds: Ambience[] = [night ? 'crickets' : 'birds', 'street'];
+    if (weather === 'rain') sounds.push('rain');
+    if (weather === 'wind') sounds.push('wind');
+    const indoors = this.gameWorld?.indoors === true;
+    this.services.audio.setAmbience(indoors ? sounds.filter(isHeardInside) : sounds);
+  }
+
+  private breathSpot(player: Player): THREE.Vector3 {
+    return this.breath
+      .copy(player.position)
+      .add(new THREE.Vector3(Math.sin(player.facing) * 0.4, 1.15, Math.cos(player.facing) * 0.4));
+  }
+
+  editChild(changed: () => void): void {
+    const { profile } = this;
+    this.creator.open(
+      profile,
+      '✓ Pronto',
+      (choices) => {
+        void this.saveChild(choices).then(changed);
+      },
+      () => undefined,
+    );
+  }
+
+  private async saveChild(choices: ChildChoices): Promise<void> {
+    const result = await this.services.changeChild.execute(this.profile.id, choices);
+    if (!result.ok) return;
+    this.activeProfile = result.value;
+    await this.useAvatar(result.value);
+    await this.refresh();
+    this.say(phrases.childChanged);
+  }
+
   avatarPicture(avatarId: string): string {
+    if (avatarId === CHILD_AVATAR_ID && this.activeProfile !== undefined) {
+      return this.profilePicture({ ...this.activeProfile, avatarId });
+    }
     return avatarPictureUrl(this.options.baseUrl, avatarId);
   }
 
+  outfitPicture(outfit: OutfitId): string {
+    return this.studio.picture(childPerson(this.profile.look, outfit), 'body');
+  }
+
+  private profilePicture(profile: PlayerProfile): string {
+    return profile.avatarId === CHILD_AVATAR_ID
+      ? this.studio.picture(childPerson(profile.look, profile.outfit), 'face')
+      : avatarPictureUrl(this.options.baseUrl, profile.avatarId);
+  }
+
   /** Replaces the 3D character in place (same spot, same direction). */
-  private async useAvatar(avatarId: string): Promise<void> {
-    if (this.character?.avatarId === avatarId) return;
-    const next = await this.avatars.create(avatarId);
+  private async useAvatar(profile: PlayerProfile): Promise<void> {
+    const { avatarId, look, outfit } = profile;
+    const isChild = avatarId === CHILD_AVATAR_ID;
+    const key = isChild ? JSON.stringify(look) : avatarId;
+    if (this.characterKey === key) {
+      this.character?.wear(outfitClothes[outfit]);
+      return;
+    }
+    const next = isChild
+      ? this.avatars.createPerson(childPerson(look, outfit))
+      : await this.avatars.create(avatarId);
+    this.characterKey = key;
     const previous = this.character;
     if (previous !== undefined) {
       next.placeAt(previous.position, previous.facing);
@@ -320,13 +645,18 @@ export class GameApp implements GameContext {
       this.controls.element,
       this.missions.panel.element,
       this.learning.panel.element,
+      this.errands.panel.element,
+      this.day.board.element,
+      this.home.agenda.element,
+      this.home.sheet.element,
       this.wardrobe.panel.element,
       ...this.menus.elements,
       this.restScreen.element,
+      this.calmPause.element,
       this.padHints.element,
       this.fade,
     );
-    this.root.append(this.ui, this.profileScreen.element);
+    this.root.append(this.ui, this.profileScreen.element, this.creator.element);
     this.ui.addEventListener(
       'click',
       (event) => {
@@ -344,21 +674,25 @@ export class GameApp implements GameContext {
         fitToContainer(renderer, this.camera, this.root);
       });
 
-      const assets = await WorldAssets.load(this.options.baseUrl);
-      const world = new GameWorld(this.scene, seededRandom(this.options.seed ?? 20261028), assets);
+      const world = new GameWorld(this.scene, seededRandom(this.options.seed ?? 20261028), () =>
+        WorldAssets.load(this.options.baseUrl),
+      );
       this.gameWorld = world;
-      const player = await this.avatars.create(DEFAULT_AVATAR_ID);
+      const player = this.avatars.createPerson(
+        childPerson(defaultChildChoices.look, defaultChildChoices.outfit),
+      );
       this.character = player;
-      player.placeAt(world.spawn, Math.PI / 2);
-      this.mascot.placeNear(world.spawn);
-      this.scene.add(player.root, this.mascot.root, this.marker.group);
+      const start = world.house.world(standSpots.bed);
+      player.placeAt(start, standSpots.bed.facing);
+      this.mascot.placeNear(start);
+      this.scene.add(player.root, this.mascot.root, this.marker.group, this.guide.group);
 
       this.cameraRig = new CameraRig(
         this.camera,
         (x, z) => world.heightAt(x, z),
         (from, to) => firstObstruction(from, to, world.colliders),
       );
-      this.cameraRig.yaw = world.spawnYaw;
+      this.cameraRig.setIndoors(true);
       this.cameraRig.snapTo(player.position);
       this.input = new Input(renderer.domElement);
       this.enterPanel('menu');
@@ -369,14 +703,16 @@ export class GameApp implements GameContext {
         this.frame(time);
       });
       this.listenToPage();
+      this.loading.hide();
+      // The house is open: the street comes down quietly while the child plays.
+      world.downloadTown();
       if (import.meta.env.DEV) this.exposeDevTools();
 
-      this.profileScreen.setAvatars(await this.services.listAvatars.execute(), (id) =>
-        this.avatarPicture(id),
-      );
+      this.profileScreen.setPictures((profile) => this.profilePicture(profile));
       this.profileScreen.show(await this.services.listProfiles.execute());
     } catch (error) {
       console.error(error);
+      this.loading.hide();
       this.profileScreen.setLoading('Não foi possível abrir o jogo. Tente recarregar a página.');
     }
   }
@@ -388,8 +724,18 @@ export class GameApp implements GameContext {
     if (result.ok) await this.beginProfile(result.value, false);
   }
 
-  private async createProfile(name: string, avatarId: string): Promise<void> {
-    const result = await this.services.createProfile.execute(name, avatarId);
+  /** After the name, the child creates themself. Costumes are in the wardrobe. */
+  private newChild(name: string): void {
+    this.creator.open(
+      defaultChildChoices,
+      '▶ Começar',
+      (choices) => void this.createProfile(name, choices),
+      () => undefined,
+    );
+  }
+
+  private async createProfile(name: string, choices: ChildChoices): Promise<void> {
+    const result = await this.services.createProfile.execute(name, CHILD_AVATAR_ID, choices);
     if (result.ok) await this.beginProfile(result.value, true);
   }
 
@@ -410,50 +756,36 @@ export class GameApp implements GameContext {
     this.activeProfile = profile;
     this.playerServices = this.services.forPlayer(profile.id);
     this.profileScreen.setLoading(`Preparando ${profile.name}…`);
-    await this.useAvatar(profile.avatarId);
+    await this.useAvatar(profile);
     this.applySettings(await this.player.applySettings.execute());
 
     const session = await this.player.loadSession.execute();
     const world = this.world;
-    if (session !== undefined && world.isWalkable(session.x, session.z)) {
-      this.avatar.placeAt(
-        new THREE.Vector3(session.x, world.heightAt(session.x, session.z), session.z),
-        session.facing,
-      );
-      this.rig.yaw = session.cameraYaw;
-    } else {
-      this.avatar.placeAt(world.spawn, Math.PI / 2);
-      this.rig.yaw = world.spawnYaw;
-    }
-    this.rig.snapTo(this.avatar.position);
-    this.mascot.placeNear(this.avatar.position);
+    this.rig.clearFocus();
+    world.shopping = undefined;
+    this.setIndoors(true);
+    this.addGuardian(profile, world);
+    const resumeAt =
+      session !== undefined && world.house.contains(session.x, session.z)
+        ? new THREE.Vector3(session.x, world.house.floor, session.z)
+        : undefined;
 
     this.playedMs = 0;
     this.warnedLastMission = false;
     this.destination = undefined;
-    this.worldMap = undefined;
     await this.refresh();
 
-    // The start screen still covers the game, so this extra frame is never seen.
-    const picture = captureMap(
-      renderer,
-      this.scene,
-      [this.avatar.root, this.mascot.root, this.marker.group],
-      (visible) => {
-        world.setCloudsVisible(visible);
-      },
-    );
-    this.menus.map.setPicture(picture);
-    this.minimap.setPicture(picture);
-
+    this.fade.classList.remove('is-on');
     this.profileScreen.hide();
     this.services.audio.startMusic();
     this.backToExploringQuietly();
-    this.say(
-      isNew
-        ? `Oi, ${profile.name}! Eu sou o Lilo. ${this.goalMessage()}`
-        : `Que bom te ver, ${profile.name}! ${this.goalMessage()}`,
-    );
+    await this.home.begin(isNew, resumeAt);
+    this.rig.snapTo(this.avatar.position);
+    this.mascot.placeNear(this.avatar.position);
+    if (this.currentMode === 'explore') {
+      this.say(isNew ? phrases.hello(profile.name) : phrases.welcomeBack(profile.name));
+    }
+    this.showMarker();
   }
 
   private backToExploringQuietly(): void {
@@ -461,7 +793,7 @@ export class GameApp implements GameContext {
     this.cameraRig?.clearFocus();
     this.currentMode = 'explore';
     this.controls.setVisible(true);
-    this.minimap.setVisible(this.currentSettings.showMinimap);
+    this.showMinimap();
     if (this.input !== undefined) {
       this.input.reset();
       this.input.enabled = true;
@@ -485,6 +817,9 @@ export class GameApp implements GameContext {
     const dt = Math.min(0.05, this.lastTime === 0 ? 0 : (timeMs - this.lastTime) / 1000);
     this.lastTime = timeMs;
     this.elapsed += dt;
+    if (dt > 0) this.fps += (1 / dt - this.fps) * FPS_SMOOTHING;
+    const quality = this.governor.sample(dt);
+    if (quality !== undefined) this.applyQuality(quality, renderer, world);
 
     const exploring = this.currentMode === 'explore';
     this.pollGamepad(dt, input, exploring);
@@ -492,11 +827,13 @@ export class GameApp implements GameContext {
     if (exploring) rig.rotate(look.x, look.y);
 
     const move = exploring ? input.move : { x: 0, y: 0, running: false };
-    if (exploring && input.consumeJump() && player.isGrounded) {
-      player.jump();
-      this.sound('jump');
-    }
-    player.update(dt, cameraRelative(move, rig.yaw), move.running, world);
+    if (exploring && input.consumeGesture()) this.gesture(player, world);
+    const standing = standingGround(world);
+    const steered = this.home.steer(player.position);
+    if (steered !== undefined) player.update(dt, steered, true, standing);
+    else player.update(dt, cameraRelative(move, rig.yaw), move.running, world);
+    this.updatePeople(dt, player, standing);
+    this.watchTheStreet(player, world);
 
     const cameraYaw = Math.atan2(
       this.camera.position.x - player.position.x,
@@ -504,11 +841,12 @@ export class GameApp implements GameContext {
     );
     this.mascot.update(this.elapsed, dt, player.position, cameraYaw);
     this.marker.update(this.elapsed);
-    world.update(this.elapsed, dt, player.position);
+    this.showGuide(player, world, exploring);
+    world.update(this.elapsed, dt, player.position, this.breathSpot(player));
     rig.update(dt, player.position);
 
     if (exploring) {
-      this.updateExploration(player.position, input);
+      this.updateExploration(player.position, input, world);
       this.watchTheRoad(player.position, world);
       this.missions.update(player.position);
       const goal = this.goalPlace();
@@ -520,6 +858,7 @@ export class GameApp implements GameContext {
       );
     }
     this.missions.tick(dt);
+    this.errands.update(dt);
     if (this.activeProfile !== undefined && this.currentMode !== 'profiles') {
       this.trackSession(dt);
     }
@@ -531,17 +870,22 @@ export class GameApp implements GameContext {
   private pollGamepad(dt: number, input: Input, exploring: boolean): void {
     const pad = this.gamepad.poll();
     if (pad === undefined) return;
+    if (!pad.selectHeld) this.padFocus.release();
     if (padIsActive(pad)) this.showPadControls(true);
     if (exploring) {
       input.applyPad(pad, dt);
       if (pad.menu) this.goBack();
+      if (pad.agenda) this.home.openAgenda();
+      if (pad.pause) this.togglePause();
       return;
     }
+    if (pad.pause) this.togglePause();
     if (!document.body.classList.contains('is-pad')) return;
     this.padFocus.keep();
     if (pad.navigate !== undefined) this.padFocus.move(pad.navigate);
     if (pad.select) this.padFocus.press();
     if (pad.back || pad.menu) this.goBack();
+    if (pad.agenda && this.currentMode === 'session') this.goBack();
   }
 
   /** Shows the controller's buttons on screen and hides the touch controls. */
@@ -550,23 +894,51 @@ export class GameApp implements GameContext {
     if (active) this.padHints.setStyle(this.gamepad.style);
   }
 
+  /** A pause on top of whatever is happening, which waits there unchanged. */
+  private togglePause(): void {
+    const paused = this.beforePause;
+    if (paused !== undefined) {
+      this.beforePause = undefined;
+      this.calmPause.hide();
+      if (paused === 'explore') this.backToExploring(phrases.pauseBack);
+      else this.currentMode = paused;
+      return;
+    }
+    const mode = this.currentMode;
+    if (mode === 'loading' || mode === 'profiles' || mode === 'rest') return;
+    this.beforePause = mode;
+    this.services.speech.stop();
+    if (mode === 'explore') this.enterPanel('pause');
+    else this.currentMode = 'pause';
+    this.calmPause.show();
+    this.say(phrases.pauseOpen);
+  }
+
   /** Esc, or B / Start on a controller: opens the menu or closes what is open. */
   private goBack(): void {
-    if (this.currentMode === 'explore') this.menus.open();
+    if (this.creator.isOpen) this.creator.back();
+    else if (this.currentMode === 'home') return;
+    else if (this.currentMode === 'pause') this.togglePause();
+    else if (this.currentMode === 'explore') this.menus.open();
     else if (this.currentMode === 'menu') {
       this.menus.closeAll();
       this.backToExploring();
     } else if (this.currentMode === 'wardrobe') {
-      this.wardrobe.close();
-      this.backToExploring();
+      this.wardrobe.leave();
     } else if (this.currentMode === 'mission') void this.missions.exit();
     else if (this.currentMode === 'learning') this.learning.exit();
+    else if (this.currentMode === 'session') {
+      this.home.closeAgenda();
+      this.day.later();
+    }
   }
 
   /** Calm street rules: a warning brings the child back, and safe trips earn coins. */
   private watchTheRoad(position: THREE.Vector3, world: GameWorld): void {
+    const town = world.outside;
     if (this.missions.isCrossingStreet || this.returningToSidewalk) return;
-    const event = world.roadSafety.update(position.x, position.z, world.trafficPhase.walk);
+    if (town === undefined || world.indoors) return;
+    const event = town.roadSafety.update(position.x, position.z, town.trafficPhase.walk);
     if (event === 'crossed') {
       this.safeTrip = true;
     } else if (event !== undefined) {
@@ -576,7 +948,7 @@ export class GameApp implements GameContext {
   }
 
   private async backToSidewalk(event: RoadEvent, world: GameWorld): Promise<void> {
-    const spot = world.roadSafety.lastSafeSpot;
+    const spot = world.outside?.roadSafety.lastSafeSpot;
     if (spot === undefined) return;
     this.returningToSidewalk = true;
     if (this.input !== undefined) this.input.enabled = false;
@@ -584,18 +956,14 @@ export class GameApp implements GameContext {
     if (this.elapsed - this.lastRoadWarning > ROAD_WARNING_GAP) {
       this.lastRoadWarning = this.elapsed;
       this.sound('hint');
-      this.say(
-        event === 'red-light'
-          ? 'O boneco está vermelho. Vamos esperar na calçada.'
-          : 'A rua é dos carros. Ande na calçada e atravesse na faixa.',
-      );
+      this.say(event === 'red-light' ? phrases.redLight : phrases.keepToSidewalk);
     }
     await this.transition(() => {
       this.character?.placeAt(
         new THREE.Vector3(spot.x, world.heightAt(spot.x, spot.z), spot.z),
         this.character.facing,
       );
-      world.roadSafety.reset();
+      world.outside?.roadSafety.reset();
     });
     if (this.input !== undefined && this.currentMode === 'explore') {
       this.input.enabled = true;
@@ -613,7 +981,97 @@ export class GameApp implements GameContext {
     await this.refresh();
   }
 
-  private updateExploration(position: THREE.Vector3, input: Input): void {
+  private applyQuality(quality: Quality, renderer: THREE.WebGLRenderer, world: GameWorld): void {
+    renderer.setPixelRatio(pixelRatioFor(quality));
+    world.setQuality(quality);
+  }
+
+  /** ▢: greets who is close. On a playground with nobody around, jumps. */
+  private gesture(player: Player, world: GameWorld): void {
+    if (this.gestureNow(player.position, world) === 'jump') {
+      if (player.isGrounded) {
+        player.jump();
+        this.sound('jump');
+      }
+      return;
+    }
+    if (this.elapsed - this.lastGreeting < GREET_GAP) return;
+    this.lastGreeting = this.elapsed;
+    player.playEmote('Wave');
+    const person = nearestPerson(this.people, player.position);
+    if (person === undefined) return;
+    player.faceTowards(person.character.position);
+    person.character.faceTowards(player.position);
+    person.character.playEmote('Wave');
+    this.say(person.reply);
+  }
+
+  private gestureNow(position: THREE.Vector3, world: GameWorld): Gesture {
+    const someoneHere = nearestPerson(this.people, position) !== undefined;
+    return !someoneHere && world.canJumpAt(position.x, position.z) ? 'jump' : 'greet';
+  }
+
+  /** The adult at home, in the kitchen, looks like the child's family. */
+  private addGuardian(profile: PlayerProfile, world: GameWorld): void {
+    const others = this.people.filter((person) => person !== this.guardianPerson);
+    this.guardianPerson?.character.dispose();
+    const character = this.avatars.createPerson(personOfGuardian(profile.guardian, profile.look));
+    character.placeAt(world.house.world(KITCHEN_SPOT), KITCHEN_SPOT.facing);
+    this.scene.add(character.root);
+    this.guardianPerson = { character, reply: phrases.replyGoodDay };
+    this.people = [...others, this.guardianPerson];
+  }
+
+  private addNeighbors(town: Town): void {
+    const replies = [phrases.replyHello, phrases.replyGoodDay];
+    const added = neighbors.map(({ member, route, facing }, index) => {
+      const character = this.addPerson(member);
+      const start = route[0] ?? { x: 0, z: 0 };
+      character.placeAt(
+        new THREE.Vector3(start.x, town.shape.heightAt(start.x, start.z), start.z),
+        facing,
+      );
+      return {
+        character,
+        reply: replies[index % replies.length] ?? phrases.replyHello,
+        route,
+        routine: startRoutine,
+      };
+    });
+    this.people = [...this.people, ...added];
+  }
+
+  /** Daily life goes on around the child, and nobody walks through anybody. */
+  private updatePeople(dt: number, player: Player, ground: Ground): void {
+    for (const person of this.people) {
+      const { character, route, routine } = person;
+      if (route === undefined || routine === undefined) {
+        character.update(dt, still, false, ground);
+        continue;
+      }
+      const step = stepRoutine(routine, route, character.position, player.position, dt, (curb) =>
+        this.mayCross(curb),
+      );
+      person.routine = step.routine;
+      if (step.lookAtChild) character.faceTowards(player.position);
+      if (step.wave) character.playEmote('Wave');
+      character.update(dt, step.walk, false, ground);
+      const pushed = resolveCollisions(player.position, PERSON_SPACE, [
+        colliderOf(character.position.x, character.position.z),
+      ]);
+      player.position.x = pushed.x;
+      player.position.z = pushed.z;
+    }
+  }
+
+  private mayCross(curb: Spot): boolean {
+    return this.gameWorld?.outside?.mayCross(curb) ?? true;
+  }
+
+  private updateExploration(position: THREE.Vector3, input: Input, world: GameWorld): void {
+    const gesture = this.gestureNow(position, world);
+    this.controls.setGesture(gesture);
+    this.padHints.setGesture(gesture);
     const nearby = this.nearbyPlace(position);
     if (nearby === undefined) this.controls.hideAction();
     else this.controls.showAction(nearby.icon, nearby.label);
@@ -625,7 +1083,7 @@ export class GameApp implements GameContext {
           this.destination.position.z - position.z,
         ) < this.destination.radius;
       if (reached) {
-        this.say(`Você chegou: ${this.destination.name}!`);
+        this.say(phrases.arrived(this.destination.name));
         this.destination = undefined;
         this.showMarker();
       }
@@ -648,6 +1106,20 @@ export class GameApp implements GameContext {
 
   private async use(place: Interactable): Promise<void> {
     await this.rewardSafeTrip();
+    const task = this.home.errand;
+    if (task?.stage === 'shop') {
+      if (place.id === CityPlace.market && !isBakeryRun(task)) {
+        this.sound('open');
+        await this.errands.enterMarket();
+        return;
+      }
+      if (place.id === CityPlace.bakery && isBakeryRun(task)) {
+        this.sound('open');
+        await this.errands.orderAtBakery();
+        return;
+      }
+    }
+    if (await this.errands.useInMarket(place.id)) return;
     const missionId = Object.entries(missionPlaces).find(
       ([, placeId]) => placeId === place.id,
     )?.[0];
@@ -656,66 +1128,17 @@ export class GameApp implements GameContext {
       await this.missions.open(missionId);
       return;
     }
+    const thing = thingOf(place.id);
+    if (thing !== undefined) {
+      this.sound('open');
+      await this.home.use(thing);
+      return;
+    }
     if (place.id === CityPlace.home) {
       this.sound('open');
-      await this.wardrobe.open();
+      await this.home.comeHome();
       return;
     }
-    if (
-      place.id === NaturePlace.back ||
-      place.id === HomePlace.back ||
-      place.id === SchoolPlace.back ||
-      place.id === EmotionsPlace.back
-    ) {
-      this.sound('open');
-      await this.travel(
-        new THREE.Vector3(PORTAL_PLAZA.x, PORTAL_PLAZA.height, PORTAL_PLAZA.z + 7),
-        0,
-      );
-      return;
-    }
-    const skill = skillOfStation(place.id);
-    if (skill !== undefined) {
-      this.sound('open');
-      await this.learning.open(skill);
-      return;
-    }
-
-    const portal = this.worldMap?.worlds.find((entry) => portalId(entry.world.id) === place.id);
-    if (portal === undefined) return;
-    if (!portal.unlocked) {
-      const plural = portal.starsMissing === 1 ? 'estrela' : 'estrelas';
-      this.say(`Ganhe mais ${portal.starsMissing} ${plural} para abrir ${portal.world.name}.`);
-    } else if (portal.world.id === 'nature') {
-      this.sound('open');
-      await this.travel(campArrival, Math.PI / 2);
-      this.say('Bem-vindo à Natureza! Visite a fazenda, a horta e a reciclagem.');
-    } else if (portal.world.id === 'emotions') {
-      this.sound('open');
-      await this.travel(emotionsArrival, 0);
-      this.say('Bem-vindo ao Jardim das Emoções! Vamos conhecer o que sentimos.');
-    } else if (portal.world.id === 'school') {
-      this.sound('open');
-      await this.travel(schoolArrival, 0);
-      this.say('Bem-vindo à Escola! Visite a sala de aula, a professora e o parque.');
-    } else if (portal.world.id === 'home') {
-      this.sound('open');
-      await this.travel(homeArrival, 0);
-      this.say('Bem-vindo à Casa! Vamos cuidar das nossas rotinas.');
-    } else {
-      this.say(`${portal.world.name} ainda está sendo construído!`);
-    }
-  }
-
-  /** Moves the child far away behind a short, gentle fade (never a sudden cut). */
-  private async travel(to: THREE.Vector3, yaw: number): Promise<void> {
-    await this.transition(() => {
-      this.character?.placeAt(to, yaw + Math.PI);
-      if (this.cameraRig !== undefined && this.character !== undefined) {
-        this.cameraRig.yaw = yaw;
-        this.cameraRig.snapTo(this.character.position);
-      }
-    });
   }
 
   /** Runs `change` while a short, gentle fade covers the screen (never a sudden cut). */
@@ -731,16 +1154,45 @@ export class GameApp implements GameContext {
   }
 
   /** Another character in the scene (the cashier, for example). */
-  async createCharacter(avatarId: string): Promise<Player> {
-    const character = await this.avatars.create(avatarId);
+  whileLoading<T>(work: Promise<T>): Promise<T> {
+    return this.loading.during(work);
+  }
+
+  addPerson(member: CastMember): Player {
+    const character = this.avatars.createPerson(cast[member]);
     this.scene.add(character.root);
     return character;
+  }
+
+  /** Dev only: rows of the cast or outfits in front of the camera, for checking them by eye. */
+  private showPeople(rows: readonly (readonly [string, Emote?, number?, Expression?])[]): void {
+    const start = this.character?.position;
+    if (start === undefined) return;
+    rows.forEach(([who, emote, time, expression], index) => {
+      const person =
+        who in cast ? cast[who as CastMember] : childPerson(this.profile.look, who as OutfitId);
+      const shown = this.avatars.createPerson(person);
+      const x = start.x + (index - (rows.length - 1) / 2) * 1.5;
+      shown.placeAt(new THREE.Vector3(x, start.y, start.z - 3), 0);
+      this.scene.add(shown.root);
+      this.people = [...this.people, { character: shown, reply: '' }];
+      if (emote !== undefined) shown.playEmote(emote);
+      if (time !== undefined) shown.freezeAt(time);
+      if (expression !== undefined) shown.feel(expression);
+    });
   }
 
   // ---------- Goal arrow ----------
 
   private goalPlace(): Interactable | undefined {
     if (this.destination !== undefined) return this.destination;
+    const world = this.gameWorld;
+    const task = world?.indoors === true ? undefined : this.errands.goalPlaceId;
+    if (task !== undefined) return world?.places.find((place) => place.id === task);
+    if (world?.indoors === true) {
+      return world.places.find((place) => place.id === this.home.goalPlaceId);
+    }
+    if (this.home.step !== 'outside') return world?.street;
     const placeId =
       this.goal.kind === 'mission'
         ? missionPlaces[this.goal.missionId]
@@ -750,6 +1202,21 @@ export class GameApp implements GameContext {
     return this.gameWorld?.places.find((p) => p.id === placeId);
   }
 
+  /** The street as the child hears it and as the cars see it. */
+  private watchTheStreet(player: Player, world: GameWorld): void {
+    const town = world.outside;
+    if (town === undefined || world.indoors) return;
+    town.people = this.people
+      .filter((person) => person.route !== undefined)
+      .map((person) => person.character.position);
+    const calm = this.currentSettings.worldActivity === 'calm';
+    const noise = town.streetNoise(player.position);
+    this.services.audio.setStreet(calm ? noise * CALM_STREET : noise);
+    if (calm || this.elapsed < this.nextHorn) return;
+    this.nextHorn = this.elapsed + HORN_EVERY + Math.random() * HORN_EVERY;
+    if (noise > 0 && noise < 0.6) this.sound('horn');
+  }
+
   private showMarker(): void {
     const place = this.goalPlace();
     if (place === undefined) this.marker.hide();
@@ -757,15 +1224,20 @@ export class GameApp implements GameContext {
     if (this.currentMode !== 'explore') this.marker.group.visible = false;
   }
 
+  /** Near the child's feet, where a far-away arrow could never be missed. */
+  private showGuide(player: Player, world: GameWorld, exploring: boolean): void {
+    if (exploring && !world.indoors) this.guide.update(player.position, this.goalPlace()?.position);
+    else this.guide.hide();
+  }
+
   private goalMessage(): string {
+    if (this.gameWorld?.indoors === true) return this.home.tip ?? phrases.backHome;
     switch (this.goal.kind) {
       case 'mission': {
         const placeId = missionPlaces[this.goal.missionId];
         const name =
           this.gameWorld?.places.find((p) => p.id === placeId)?.name ?? 'a próxima missão';
-        return this.goal.isNew
-          ? `Vamos para: ${name}? Siga a seta amarela!`
-          : `Que tal voltar em: ${name} e ganhar mais moedas?`;
+        return this.goal.isNew ? phrases.goToMission(name) : phrases.backToMission(name);
       }
       case 'wardrobe':
         return 'Você tem moedas! Vamos ao guarda-roupa na sua casa?';
@@ -807,16 +1279,17 @@ export class GameApp implements GameContext {
         this.hud.setTimeLeft(status.minutesLeft, true);
         if (!this.warnedLastMission && this.currentMode === 'explore') {
           this.warnedLastMission = true;
-          this.say('Falta pouco! Mais uma missão e depois vamos descansar.');
+          this.say(phrases.lastMission);
         }
         return;
       case 'time-to-rest':
         this.hud.setTimeLeft(0, true);
         if (this.currentMode === 'explore') {
           await this.saveSession();
+          this.services.audio.stopMusic();
           this.enterPanel('rest');
           this.restScreen.open(this.profile.name);
-          this.say(`Hora de descansar, ${this.profile.name}. Você brincou muito bem!`);
+          this.say(phrases.rest(this.profile.name));
         }
         return;
     }
@@ -838,14 +1311,29 @@ export class GameApp implements GameContext {
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         this.services.speech.stop();
+        this.services.audio.stopMusic();
         void this.saveSession();
+      } else if (!['loading', 'profiles', 'rest'].includes(this.currentMode)) {
+        this.services.audio.startMusic();
       }
+    });
+    this.deviceReducedMotion.addEventListener('change', () => {
+      this.applySettings(this.currentSettings);
     });
     window.addEventListener('pagehide', () => {
       void this.saveSession();
     });
     window.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') this.goBack();
+      if (isTyping(event.target) || event.repeat) return;
+      const key = gameKey(event.code);
+      if (key === 'pause') this.togglePause();
+      if (this.currentMode !== 'explore') return;
+      if (key === 'menu') this.goBack();
+      if (key === 'agenda') {
+        event.preventDefault();
+        this.home.openAgenda();
+      }
     });
     window.addEventListener('pointerdown', () => {
       this.showPadControls(false);
@@ -856,6 +1344,15 @@ export class GameApp implements GameContext {
   private exposeDevTools(): void {
     Object.assign(window, {
       lilo: {
+        drill: async (skillId: string) => {
+          const lines = await this.player.planSession.overview();
+          const skill = lines.find((line) => line.skill.id === skillId)?.skill;
+          if (skill === undefined) return;
+          await this.learning.openPlanned(
+            { skill, role: 'play', length: 3, isNew: false },
+            () => undefined,
+          );
+        },
         goTo: (placeId: string) => {
           const place = this.gameWorld?.places.find((p) => p.id === placeId);
           if (place !== undefined) this.character?.placeAt(place.position, 0);
@@ -878,6 +1375,26 @@ export class GameApp implements GameContext {
         use: (placeId: string) => {
           const place = this.gameWorld?.places.find((p) => p.id === placeId);
           if (place !== undefined) void this.use(place);
+        },
+        people: (rows: readonly (readonly [string, Emote?, number?, Expression?])[]) => {
+          this.showPeople(rows);
+        },
+        look: (from: readonly [number, number, number], at: readonly [number, number, number]) => {
+          this.rig.setFocus(new THREE.Vector3(...from), new THREE.Vector3(...at), true);
+        },
+        stats: () => {
+          const { render, memory } = this.renderer?.info ?? { render: {}, memory: {} };
+          return { ...render, ...memory, quality: this.governor.quality, fps: this.fps };
+        },
+        step: () => this.home.step,
+        moment: (phase: Phase, weather: Weather) => {
+          this.world.setMoment(phase, weather);
+          this.world.sky.setLook(skyLook(phase, weather), true);
+          this.character?.setPosture(comfortIn(weather, this.profile.outfit));
+        },
+        skipBlock: async () => {
+          await this.player.followDay.skipBlock();
+          await this.home.begin(false, this.avatar.position.clone());
         },
         addPlayTime: (minutes: number) => {
           this.playedMs += minutes * 60_000;

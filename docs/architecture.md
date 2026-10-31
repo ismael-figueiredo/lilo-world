@@ -10,7 +10,7 @@ flowchart TB
     container["container.ts<br/>createServices / createBrowserAdapters"]
   end
   subgraph presentation["presentation"]
-    gameapp["GameApp"] --> world3d["world/ (terreno, cidade, portais)"]
+    gameapp["GameApp"] --> world3d["world/ (casa, terreno, cidade)"]
     gameapp --> actors["actors/ (Player, Mascot)"]
     gameapp --> ui["ui/ (HUD, missão, guarda-roupa)"]
   end
@@ -100,8 +100,8 @@ sequenceDiagram
   C->>G: toca na banana (errado)
   G->>S: chooseMissionAnswer.execute(attempt, "banana")
   S->>D: attempt.choose("banana")
-  D-->>S: outcome "hint" (nível 1, depois 2)
-  S-->>G: a maçã brilha; no nível 2 aparece a seta
+  D-->>S: outcome "model"
+  S-->>G: só a maçã fica ativa, com brilho e seta
   C->>G: toca na maçã, no leite e no pão
   D-->>S: outcome "completed"
   S->>R: save(progress.completeMission())
@@ -110,15 +110,17 @@ sequenceDiagram
 
 ## Apresentação 3D
 
-| Módulo                      | Papel                                                                           |
-| --------------------------- | ------------------------------------------------------------------------------- |
-| `world/terrain-shape.ts`    | Altura da ilha (simplex noise + áreas planas). Puro e testado                   |
-| `world/collision.ts`        | Colisão do personagem (círculos e caixas) e da câmera. Puro e testado           |
-| `world/city.ts`, `props.ts` | Cidade low-poly: casas, mercado, padaria, ônibus, semáforo, fonte               |
-| `world/nature.ts`           | Árvores, pedras, grama e flores com `InstancedMesh` (leve no tablet)            |
-| `world/portals.ts`          | Portais para os outros mundos, com cadeado e estrelas que faltam                |
-| `actors/player.ts`          | Personagem animado (andar, correr, pular, emotes) e acessórios presos aos ossos |
-| `engine/camera-rig.ts`      | Câmera em terceira pessoa suave, que não atravessa paredes                      |
-| `ui/*`                      | Interface em HTML/CSS sobre o canvas: nítida e acessível                        |
+| Módulo                      | Papel                                                                                                                                                      |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `world/terrain-shape.ts`    | Altura da ilha (simplex noise + áreas planas). Puro e testado                                                                                              |
+| `world/collision.ts`        | Colisão do personagem (círculos e caixas) e da câmera. Puro e testado                                                                                      |
+| `world/city.ts`, `props.ts` | Cidade low-poly: casas, mercado, padaria, ônibus, semáforo, fonte                                                                                          |
+| `world/nature.ts`           | Árvores, pedras, grama e flores com `InstancedMesh` (leve no tablet)                                                                                       |
+| `world/zones/`              | Lugares baixados e desenhados à parte. `zone-entries.ts` lista as zonas; `anchors.ts` guarda posições e ids, que o resto do jogo conhece sem baixar a zona |
+| `world/house.ts`            | A casa onde o jogo começa: quatro cômodos, objetos que brilham e cenas do dia. `house-plan.ts` calcula o caminho pelas portas                              |
+| `world/town.ts`             | Tudo fora de casa. É baixado em segundo plano e montado quando a criança abre a porta                                                                      |
+| `actors/player.ts`          | Personagem animado (andar, correr, pular, emotes) e acessórios presos aos ossos                                                                            |
+| `engine/camera-rig.ts`      | Câmera em terceira pessoa suave, que não atravessa paredes                                                                                                 |
+| `ui/*`                      | Interface em HTML/CSS sobre o canvas: nítida e acessível                                                                                                   |
 
 Decisões detalhadas ficam nas [ADRs](adr/).

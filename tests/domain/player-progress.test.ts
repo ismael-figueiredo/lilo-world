@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PlayerProgress } from '@domain/progress/player-progress';
-import { isWorldUnlocked } from '@domain/world/world';
-import { expensiveShirt, hat, mission, otherHat, worlds } from '../support/fixtures';
+import { expensiveShirt, hat, mission, otherHat } from '../support/fixtures';
 
 const richProgress = (): PlayerProgress =>
   PlayerProgress.fromSnapshot({
@@ -102,14 +101,6 @@ describe('PlayerProgress', () => {
     expect(restored.coins.amount).toBe(0);
     expect(restored.stars).toBe(0);
     expect(restored.equipped).toEqual({});
-  });
-});
-
-describe('isWorldUnlocked', () => {
-  it('opens a world once enough stars are earned', () => {
-    const nature = worlds[1]!;
-    expect(isWorldUnlocked(nature, 2)).toBe(false);
-    expect(isWorldUnlocked(nature, 3)).toBe(true);
   });
 });
 

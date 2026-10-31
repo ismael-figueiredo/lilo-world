@@ -1,18 +1,22 @@
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import { avatarModelUrl, rigFor } from '@presentation/actors/avatar-rigs';
+import { Figure, figureClips } from '@presentation/actors/child-figure';
+import type { PersonLook } from '@presentation/actors/cast';
 import { Player } from '@presentation/actors/player';
 
-/** Loads avatar models once and builds fresh characters from them. */
+/** Loads costume models once and builds fresh characters from them. */
 export class AvatarLibrary {
   private readonly loader = new GLTFLoader();
   private readonly cache = new Map<string, Promise<GLTF>>();
 
   constructor(private readonly baseUrl: string) {}
 
-  /** Starts downloading in the background (e.g. while the child picks a character). */
-  preload(avatarId: string): void {
-    void this.load(avatarId).catch(() => undefined);
+  /** The child, a grown-up or a neighbor: made of parts, nothing to download. */
+  createPerson({ look, clothes, build }: PersonLook): Player {
+    const figure = new Figure(look, build);
+    figure.wear(clothes);
+    return new Player(figure.model, figureClips(build), build, rigFor(build), figure);
   }
 
   async create(avatarId: string): Promise<Player> {

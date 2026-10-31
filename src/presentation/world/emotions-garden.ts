@@ -4,23 +4,8 @@ import type { Interactable } from '@presentation/world/interactable';
 import { lowPoly, solid } from '@presentation/world/materials';
 import { createPostSign } from '@presentation/world/sign';
 import { fitHeight, type WorldAssets } from '@presentation/world/world-assets';
-
-/** A quiet garden in the island's south-west, for the Emotions missions. */
-export const EMOTIONS_GARDEN = { x: -60, z: 45, radius: 14, height: 4.6 } as const;
-
-export const EmotionsPlace = {
-  faces: 'emotions:faces',
-  stories: 'emotions:stories',
-  calm: 'emotions:calm',
-  back: 'emotions:back',
-} as const;
-
-/** Where the child appears when coming through the portal (looking at the garden). */
-export const emotionsArrival = new THREE.Vector3(
-  EMOTIONS_GARDEN.x,
-  EMOTIONS_GARDEN.height,
-  EMOTIONS_GARDEN.z + 9,
-);
+import { EMOTIONS_GARDEN, EmotionsPlace } from '@presentation/world/zones/anchors';
+import type { Zone } from '@presentation/world/zones/zone';
 
 /** The five faces, each with its own soft color. */
 const faces: readonly (readonly [string, string])[] = [
@@ -72,7 +57,7 @@ function faceDisc(emoji: string, color: string): THREE.Group {
 }
 
 /** Five big faces in a half circle, a little story stage, the calm corner and the way back. */
-export class EmotionsGarden {
+export class EmotionsGarden implements Zone {
   readonly group = new THREE.Group();
   readonly colliders: Collider[] = [];
   readonly places: Interactable[] = [];
@@ -86,7 +71,6 @@ export class EmotionsGarden {
     this.addFaces();
     this.addStage();
     this.addCalmCorner();
-    this.addWayBack();
   }
 
   /** Very slow movement only: faces sway a little, the calm lamp breathes. */
@@ -267,29 +251,5 @@ export class EmotionsGarden {
     this.colliders.push(box(spot.x, spot.z, 4.4, 2.6));
     this.sign('🧸 CANTINHO CALMO', '#5fa8f5', x - 2.6, z + 1.6);
     this.addPlace(EmotionsPlace.calm, x, z + 2.6, '🧸', 'Cantinho calmo', 'Cantinho calmo');
-  }
-
-  private addWayBack(): void {
-    const arch = new THREE.Group();
-    const frame = lowPoly(0xf07a9a, { emissive: 0xf07a9a, emissiveIntensity: 0.3 });
-    for (const dx of [-1.4, 1.4])
-      arch.add(solid(new THREE.BoxGeometry(0.5, 2.4, 0.5), frame, [dx, 1.2, 0]));
-    arch.add(solid(new THREE.TorusGeometry(1.4, 0.28, 8, 16, Math.PI), frame, [0, 2.4, 0]));
-    arch.position.set(-6, 0, 9);
-    this.group.add(arch);
-    for (const dx of [-1.4, 1.4]) {
-      const spot = this.at(-6 + dx, 9);
-      this.colliders.push(circle(spot.x, spot.z, 0.4));
-    }
-    const spot = this.at(-6, 7.6);
-    this.places.push({
-      id: EmotionsPlace.back,
-      position: new THREE.Vector3(spot.x, EMOTIONS_GARDEN.height, spot.z),
-      markerPosition: new THREE.Vector3(spot.x, EMOTIONS_GARDEN.height + 4, spot.z),
-      radius: 2.4,
-      icon: '🌀',
-      label: 'Voltar aos portais',
-      name: 'Portal de volta',
-    });
   }
 }

@@ -22,6 +22,16 @@ export interface Point {
   readonly z: number;
 }
 
+/** A round piece of ground, such as a playground. */
+export interface Area {
+  readonly x: number;
+  readonly z: number;
+  readonly radius: number;
+}
+
+export const isInsideAny = (areas: readonly Area[], x: number, z: number): boolean =>
+  areas.some((area) => Math.hypot(x - area.x, z - area.z) <= area.radius);
+
 export const circle = (x: number, z: number, radius: number): CircleCollider => ({
   kind: 'circle',
   x,

@@ -6,6 +6,7 @@ export class GoalMarker {
   private readonly arrow = new THREE.Group();
   private readonly ring: THREE.Mesh;
   private baseY = 0;
+  private size = 1;
   motionScale = 1;
 
   constructor() {
@@ -42,6 +43,12 @@ export class GoalMarker {
     this.ring.position.set(groundPosition.x, groundPosition.y + 0.2, groundPosition.z);
   }
 
+  /** Smaller inside the house, where a street-sized arrow would hide the rooms. */
+  setSize(size: number): void {
+    this.size = size;
+    this.arrow.scale.setScalar(size);
+  }
+
   hide(): void {
     this.group.visible = false;
   }
@@ -50,7 +57,7 @@ export class GoalMarker {
     if (!this.group.visible) return;
     this.arrow.position.y = this.baseY + Math.sin(time * 2.2) * 0.35 * this.motionScale;
     this.arrow.rotation.y = time * 1.2 * this.motionScale;
-    const pulse = 1 + Math.sin(time * 2.2) * 0.12 * this.motionScale;
+    const pulse = (1 + Math.sin(time * 2.2) * 0.12 * this.motionScale) * this.size;
     this.ring.scale.set(pulse, pulse, pulse);
   }
 }

@@ -3,11 +3,13 @@ import type { MissionAttempt } from '@domain/mission/mission-attempt';
 import type { Reward } from '@domain/reward/reward';
 import { shuffled } from '@domain/shared/random';
 import { h, picture, replayAnimation } from '@presentation/ui/dom';
+import { repeatButton } from '@presentation/ui/repeat-button';
 
 export interface MissionPanelCallbacks {
   onChoose(choiceId: string): void;
   onExit(): void;
   onReplay(): void;
+  onRepeat(): void;
 }
 
 const MAIN_GROUP = 'main';
@@ -69,6 +71,9 @@ export class MissionPanel {
   private readonly shelfTitle = h('p', { className: 'mission__shelf-title' });
   /** What the current step shows big (a sound, a thing to sort). */
   private readonly question = h('p', { className: 'mission__question is-hidden' });
+  /** The balloon goes away and the voice plays once: the instruction stays here. */
+  private readonly prompt = h('p', { className: 'instruction__text' });
+  private readonly instruction: HTMLElement;
   private groups = new Map<string, string>();
   private readonly collected = new Set<string>();
   private stopWaiting: ((spoken: boolean) => void) | undefined;
@@ -84,6 +89,12 @@ export class MissionPanel {
         callbacks.onExit();
       },
     });
+    this.instruction = h('div', { className: 'instruction' }, [
+      repeatButton(() => {
+        callbacks.onRepeat();
+      }),
+      this.prompt,
+    ]);
     this.element = h('section', { className: 'mission', attrs: { 'aria-label': 'Missão' } }, [
       h('div', { className: 'mission__sheet' }, [
         exit,
@@ -91,6 +102,7 @@ export class MissionPanel {
         h('div', { className: 'mission__body' }, [
           h('div', { className: 'mission__list-card' }, [this.listTitle, this.list]),
           h('div', { className: 'mission__shelf-area' }, [
+            this.instruction,
             this.shelfTitle,
             this.question,
             this.speakArea,
@@ -224,8 +236,11 @@ export class MissionPanel {
     });
   }
 
-  /** `result` is what was made or bought (🎂), shown big above the prize. */
-  celebrate(reward: Reward, result?: string): void {
+  /**
+   * `result` is what was made or bought (🎂), shown big above the prize. With
+   * `restDue` there is no "De novo": the session ends as the child was told.
+   */
+  celebrate(reward: Reward, result?: string, restDue = false): void {
     // A task in the street is replayed right there, by walking to it again.
     const canReplay = this.element.dataset.kind !== 'world-task';
     // The celebration covers the screen, also after a task in the street
@@ -257,6 +272,7 @@ export class MissionPanel {
             },
           }),
           canReplay &&
+            !restDue &&
             h('button', {
               className: 'big-button big-button--green',
               text: '🔁 De novo',
@@ -299,6 +315,8 @@ export class MissionPanel {
     this.question.textContent = step?.show ?? '';
     this.question.classList.toggle('is-hidden', step?.show === undefined);
     if (step?.show !== undefined) replayAnimation(this.question, 'is-popping');
+    this.prompt.textContent = step?.prompt ?? '';
+    this.instruction.classList.toggle('is-hidden', step === undefined);
     // Only the cards of the current step's group are on the shelf (e.g. the cashier's coins).
     if (step === undefined) return;
     const group = this.groups.get(step.targetId) ?? MAIN_GROUP;

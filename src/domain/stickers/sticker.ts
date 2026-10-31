@@ -1,4 +1,4 @@
-import { MAX_LEVEL, skills, type Skill } from '@domain/learning/challenge';
+import { MAX_LEVEL, stations, type Station } from '@domain/curriculum/skill';
 
 export type StickerId = string;
 
@@ -8,29 +8,38 @@ export interface Sticker {
   readonly picture: string;
 }
 
-const skillStickers: Readonly<Record<Skill, readonly [string, string][]>> = {
+const skillStickers: Readonly<Record<Station, readonly [string, string][]>> = {
   letters: [
     ['Primeiras letras', '🔤'],
-    ['Leitor de letras', '📖'],
-    ['Leitor de palavras', '📚'],
+    ['Conhece as letras', '📖'],
+    ['Letras das palavras', '📚'],
   ],
   numbers: [
+    ['Primeiros números', '🔢'],
     ['Conta até 5', '🖐️'],
     ['Conta até 10', '🔟'],
-    ['Faz somas', '➕'],
   ],
   coins: [
     ['Primeiras compras', '🪙'],
     ['Paga certinho', '👛'],
     ['Craque das moedas', '💰'],
   ],
+  world: [
+    ['Primeiras descobertas', '🌱'],
+    ['Conhece o mundo', '🌎'],
+    ['Pequeno explorador', '🧭'],
+  ],
 };
 
-/** The sticker earned by reaching a level of a skill (levels start at 1; level 1 is free). */
-export const stickerId = (skill: Skill, level: number): StickerId => `${skill}-${level}`;
+/**
+ * The sticker of a level: the first is for a first right answer, the others for
+ * reaching that level, which means the level before it was done well. Names say
+ * what the child already did, never what comes next.
+ */
+export const stickerId = (skill: Station, level: number): StickerId => `${skill}-${level}`;
 
 /** Every sticker of the album, in the order they are shown. Level 1 is where everyone starts. */
-export const albumStickers: readonly Sticker[] = skills.flatMap((skill) =>
+export const albumStickers: readonly Sticker[] = stations.flatMap((skill) =>
   skillStickers[skill].slice(0, MAX_LEVEL).map(([name, picture], index) => ({
     id: stickerId(skill, index + 1),
     name,

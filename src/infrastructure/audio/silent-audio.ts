@@ -14,6 +14,14 @@ export class SilentAudio implements AudioPlayer {
     // No sound.
   }
 
+  setStreet(): void {
+    // Nothing to play.
+  }
+
+  setAmbience(): void {
+    // No sound.
+  }
+
   setVolumes(): void {
     // No sound.
   }

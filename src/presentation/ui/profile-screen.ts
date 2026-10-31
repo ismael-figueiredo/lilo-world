@@ -1,17 +1,11 @@
-import type { AvatarDefinition } from '@domain/avatar/avatar';
-import {
-  DEFAULT_AVATAR_ID,
-  MAX_NAME_LENGTH,
-  type PlayerProfile,
-} from '@domain/profile/player-profile';
+import { MAX_NAME_LENGTH, type PlayerProfile } from '@domain/profile/player-profile';
 import { h } from '@presentation/ui/dom';
 import { holdButton } from '@presentation/ui/hold-button';
 
 export interface ProfileScreenCallbacks {
   onSelect(profile: PlayerProfile): void;
-  onCreate(name: string, avatarId: string): void;
-  /** The child is looking at a character: start loading it. */
-  onPreviewAvatar?(avatarId: string): void;
+  /** A name was given: next comes creating the child. */
+  onCreate(name: string): void;
   onRename(profile: PlayerProfile, name: string): void;
   onDelete(profile: PlayerProfile): void;
 }
@@ -34,8 +28,7 @@ export class ProfileScreen {
   private readonly status = h('p', { className: 'start__status', text: 'Preparando o mundo…' });
   private profiles: readonly PlayerProfile[] = [];
   private editing = false;
-  private avatars: readonly AvatarDefinition[] = [];
-  private pictureOf: (avatarId: string) => string = () => '';
+  private pictureOf: (profile: PlayerProfile) => string = () => '';
 
   constructor(private readonly callbacks: ProfileScreenCallbacks) {
     this.element = h('div', { className: 'start' }, [
@@ -52,8 +45,7 @@ export class ProfileScreen {
     ]);
   }
 
-  setAvatars(avatars: readonly AvatarDefinition[], pictureOf: (avatarId: string) => string): void {
-    this.avatars = avatars;
+  setPictures(pictureOf: (profile: PlayerProfile) => string): void {
     this.pictureOf = pictureOf;
   }
 
@@ -75,7 +67,7 @@ export class ProfileScreen {
       'button',
       {
         className: 'profile-card profile-card--new',
-        attrs: { type: 'button' },
+        attrs: { type: 'button', 'aria-label': 'Novo jogador' },
         onTap: () => {
           this.showForm();
         },
@@ -128,7 +120,7 @@ export class ProfileScreen {
       [
         h('img', {
           className: 'avatar-picture',
-          attrs: { src: this.pictureOf(profile.avatarId), alt: '', draggable: 'false' },
+          attrs: { src: this.pictureOf(profile), alt: '', draggable: 'false' },
         }),
       ],
     );
@@ -183,43 +175,6 @@ export class ProfileScreen {
     });
     if (existing !== undefined) input.value = existing.name;
 
-    let chosen = existing?.avatarId ?? this.avatars[0]?.id ?? DEFAULT_AVATAR_ID;
-    const picker = h('div', {
-      className: 'avatar-picker',
-      attrs: { role: 'radiogroup', 'aria-label': 'Personagem' },
-    });
-    const renderPicker = () => {
-      picker.replaceChildren(
-        ...this.avatars.map((avatarOption) =>
-          h(
-            'button',
-            {
-              className: `avatar-option${avatarOption.id === chosen ? ' is-selected' : ''}`,
-              attrs: {
-                type: 'button',
-                role: 'radio',
-                'aria-checked': String(avatarOption.id === chosen),
-                'aria-label': avatarOption.name,
-              },
-              onTap: () => {
-                chosen = avatarOption.id;
-                this.callbacks.onPreviewAvatar?.(chosen);
-                renderPicker();
-              },
-            },
-            [
-              h('img', {
-                className: 'avatar-picture',
-                attrs: { src: this.pictureOf(avatarOption.id), alt: '', draggable: 'false' },
-              }),
-              h('span', { className: 'avatar-option__name', text: avatarOption.name }),
-            ],
-          ),
-        ),
-      );
-    };
-    renderPicker();
-
     const submit = () => {
       const name = input.value.trim();
       if (name.length === 0) {
@@ -227,7 +182,7 @@ export class ProfileScreen {
         input.classList.add('is-empty');
         return;
       }
-      if (existing === undefined) this.callbacks.onCreate(name, chosen);
+      if (existing === undefined) this.callbacks.onCreate(name);
       else this.callbacks.onRename(existing, name);
     };
     input.addEventListener('keydown', (event) => {
@@ -249,15 +204,11 @@ export class ProfileScreen {
     this.body.replaceChildren(
       h('div', { className: 'profiles__form' }, [
         input,
-        existing === undefined
-          ? h('p', { className: 'profiles__hint', text: 'Escolha o seu personagem:' })
-          : null,
-        existing === undefined ? picker : null,
         h('div', { className: 'profiles__actions' }, [
           back,
           h('button', {
             className: 'big-button big-button--green',
-            text: existing === undefined ? '▶ Começar' : '✓ Salvar',
+            text: existing === undefined ? 'Próximo →' : '✓ Salvar',
             attrs: { type: 'button' },
             onTap: submit,
           }),

@@ -1,3 +1,5 @@
 allowBuilds:
   sharp: false
   unrs-resolver: false
+# Minutes a new release must exist before it can be installed (one week).
+minimumReleaseAge: 10080

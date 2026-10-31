@@ -56,23 +56,40 @@ export interface ModelPart {
 export const worldModelUrl = (baseUrl: string, id: WorldModelId): string =>
   `${baseUrl}models/world/${id}.glb`;
 
-/** Loads every world model once, before the island is built. */
+/** Used by the farm only: they come with it. */
+const zoneModelIds: readonly WorldModelId[] = ['cow', 'pig', 'sheep', 'horse', 'chick'];
+
+/** Loads models once: most before the island is built, the others with their zone. */
 export class WorldAssets {
   private readonly recolored = new Map<string, THREE.Material>();
   private readonly partsCache = new Map<WorldModelId, ModelPart[]>();
 
-  private constructor(private readonly scenes: ReadonlyMap<WorldModelId, THREE.Group>) {}
+  private readonly loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+  private readonly scenes = new Map<WorldModelId, THREE.Group>();
 
-  static async load(baseUrl: string): Promise<WorldAssets> {
-    const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-    const entries = await Promise.all(
-      worldModelIds.map(async (id) => {
-        const gltf = await loader.loadAsync(worldModelUrl(baseUrl, id));
-        prepare(gltf.scene);
-        return [id, gltf.scene] as const;
-      }),
+  private constructor(private readonly baseUrl: string) {}
+
+  /** `onProgress` receives how much is done, from 0 to 1. */
+  static async load(baseUrl: string, onProgress?: (done: number) => void): Promise<WorldAssets> {
+    const assets = new WorldAssets(baseUrl);
+    const ids = worldModelIds.filter((id) => !zoneModelIds.includes(id));
+    await assets.add(ids, (loaded) => onProgress?.(loaded / ids.length));
+    return assets;
+  }
+
+  async add(ids: readonly WorldModelId[], onLoaded?: (loaded: number) => void): Promise<void> {
+    let loaded = 0;
+    await Promise.all(
+      ids
+        .filter((id) => !this.scenes.has(id))
+        .map(async (id) => {
+          const gltf = await this.loader.loadAsync(worldModelUrl(this.baseUrl, id));
+          prepare(gltf.scene);
+          this.scenes.set(id, gltf.scene);
+          loaded += 1;
+          onLoaded?.(loaded);
+        }),
     );
-    return new WorldAssets(new Map(entries));
   }
 
   /** A fresh copy of a model (geometry is shared), optionally with new colors. */
