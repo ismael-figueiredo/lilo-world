@@ -59,7 +59,7 @@ O plano completo do projeto está em [docs/plano-jogo-autismo.md](docs/plano-jog
 
 **Plano de hoje:** ao entrar, a criança vê três atividades curtas e um prêmio, e escolhe o que vem primeiro. A sessão cabe em 10 minutos, com caminhada entre as atividades, uma pausa opcional e sempre o mesmo fim. Quem preferir pode explorar: o plano fica no menu.
 
-**Primeira missão:** siga a seta até o 🍎 **Mercado**, entre e pegue os ingredientes da receita do dia (cada vez é uma: bolo, salada, sopa…) e pague no caixa contando moedas. Com as moedas, vá até **🏠 Minha casa** e escolha cores, chapéus e acessórios no guarda-roupa. Nas **estações de Letras, Números e Moedas** (🔤 🔢 🪙) ela pratica no próprio ritmo, em rodadas de 5 perguntas: 4 acertos de primeira sobem o nível e cada nível novo dá uma figurinha para o álbum. As estrelas abrem os portais para novos mundos.
+**O dia:** a criança acorda na própria casa e segue a agenda (△ ou 📅): café da manhã, dentes, roupa, mochila, estudo, rua, banho, pijama e cama. Luzes no chão levam até cada coisa. **Na rua:** siga a seta até o 🍎 **Mercado**, pegue os ingredientes da receita do dia e pague no caixa contando moedas. Com as moedas, escolha cores, chapéus e acessórios no armário de casa. Nas **estações de Letras, Números e Moedas** (🔤 🔢 🪙) ela pratica no próprio ritmo, em rodadas de 5 perguntas: 4 acertos de primeira sobem o nível e cada nível novo dá uma figurinha para o álbum.
 
 ## Rodar localmente
 

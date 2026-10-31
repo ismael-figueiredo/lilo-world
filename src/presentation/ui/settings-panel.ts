@@ -7,6 +7,7 @@ import { holdButton } from '@presentation/ui/hold-button';
 export interface SettingsPanelCallbacks {
   onChange(patch: Partial<Settings>, preview?: 'effects' | 'voice' | 'music'): void;
   onClose(): void;
+  onSkipBlock(): void;
   loadSkills(): Promise<readonly SkillOverview[]>;
 }
 
@@ -119,8 +120,22 @@ export class SettingsPanel {
               ),
             ]),
       ]),
-      ...(this.limitUnlocked ? this.skillSections(settings) : []),
+      ...(this.limitUnlocked ? [this.skipRow(), ...this.skillSections(settings)] : []),
     );
+  }
+
+  private skipRow(): HTMLElement {
+    return h('div', { className: 'settings__row' }, [
+      h('span', { className: 'settings__label', text: 'Parte do dia' }),
+      h('button', {
+        className: 'small-button',
+        text: '⏭️ Pular esta parte',
+        attrs: { type: 'button' },
+        onTap: () => {
+          this.callbacks.onSkipBlock();
+        },
+      }),
+    ]);
   }
 
   private async unlock(): Promise<void> {

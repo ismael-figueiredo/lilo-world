@@ -27,6 +27,9 @@ export class MenuController {
     this.settingsPanel = new SettingsPanel({
       onChange: (patch, preview) => void this.changeSettings(patch, preview),
       onClose: back,
+      onSkipBlock: () => {
+        void this.skipBlock();
+      },
       loadSkills: () => this.ctx.player.planSession.overview(),
     });
     this.map = new MapPanel({
@@ -88,6 +91,12 @@ export class MenuController {
         await this.ctx.switchPlayer();
         return;
     }
+  }
+
+  private async skipBlock(): Promise<void> {
+    this.closeAll();
+    this.ctx.backToExploring();
+    await this.ctx.home.skipBlock();
   }
 
   private showMap(): void {

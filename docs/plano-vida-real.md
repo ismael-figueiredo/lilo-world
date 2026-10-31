@@ -169,20 +169,20 @@ Objetivo: uma criança que representa quem joga e que sabe fazer as ações do d
 
 Objetivo: primeira experiência nova e completa.
 
-- [ ] **C4.1 Agenda do dia (domínio).** Blocos, passos, avanço e salvamento. Pronto: testada, retomando no passo certo.
-- [ ] **C4.2 Agenda na tela.** Figuras "agora → depois", no botão △. Pronto: entende-se sem ler.
-- [ ] **C4.3 Casa caminhável.** Sala, quarto, banheiro, cozinha e porta da rua, com colisão e câmera de interior. Pronto: andar por tudo sem a câmera atravessar paredes.
-- [ ] **C4.4 Interação no mundo.** Objeto brilha, botão ✕ aparece, personagem anda até lá e faz a ação. Pronto: mesma mecânica em cama, armário, pia, mesa.
-- [ ] **C4.5 Cena de acordar.** Início do jogo: quarto, luz entrando, levantar. Pronto: o jogo inicia na cama em vez da rua.
-- [ ] **C4.6 Comer.** Sentar à mesa, escolher o que comer, comer. Pronto: alimento some aos poucos.
-- [ ] **C4.7 Escovar os dentes.** Passos no banheiro com animação e espuma. Pronto: substitui a missão de sequência em cartão.
-- [ ] **C4.8 Tomar banho e lavar as mãos.** Com roupa preservada, sem nudez, com cortina ou box opaco. Pronto: revisado pelo critério D12.
-- [ ] **C4.9 Guarda-roupa e espelho.** Abrir armário, escolher, ver no espelho. Pronto: substitui o painel antigo.
-- [ ] **C4.10 Arrumar a mochila.** Pegar itens do dia no quarto. Pronto: lista vem do que a agenda tem.
-- [ ] **C4.11 Fim dos portais.** Remover portais, estrelas de bloqueio e mundos no mapa, mantendo os saves. Pronto: nada travado por estrelas e teste de migração.
-- [ ] **C4.12 Bloco como sessão.** Ao fim de um bloco, parada natural e salvamento. Pronto: limite de 10 minutos nunca corta uma ação no meio.
-- [ ] **C4.13 Primeira execução.** Criar criança → acordar → aprender andar e ✕ dentro de casa. Pronto: criança nova chega à mesa sem ajuda de texto.
-- [ ] **C4.14 Rua sob demanda.** Ilha e cidade viram zona, e o jogo abre só com a casa. Pronto: a casa aparece sem baixar os modelos da rua.
+- [x] **C4.1 Agenda do dia (domínio).** Blocos, passos, avanço e salvamento. Pronto: testada, retomando no passo certo.
+- [x] **C4.2 Agenda na tela.** Figuras "agora → depois", no botão △. Pronto: entende-se sem ler.
+- [x] **C4.3 Casa caminhável.** Sala, quarto, banheiro, cozinha e porta da rua, com colisão e câmera de interior. Pronto: andar por tudo sem a câmera atravessar paredes.
+- [x] **C4.4 Interação no mundo.** Objeto brilha, botão ✕ aparece, personagem anda até lá e faz a ação. Pronto: mesma mecânica em cama, armário, pia, mesa.
+- [x] **C4.5 Cena de acordar.** Início do jogo: quarto, luz entrando, levantar. Pronto: o jogo inicia na cama em vez da rua.
+- [x] **C4.6 Comer.** Sentar à mesa, escolher o que comer, comer. Pronto: alimento some aos poucos.
+- [x] **C4.7 Escovar os dentes.** Passos no banheiro com animação e espuma. Pronto: substitui a missão de sequência em cartão.
+- [x] **C4.8 Tomar banho e lavar as mãos.** Com roupa preservada, sem nudez, com cortina ou box opaco. Feito no jogo; a revisão de fono/TO do critério D12 ainda está pendente.
+- [x] **C4.9 Guarda-roupa e espelho.** Abrir armário, escolher, ver no espelho. Pronto: substitui o painel antigo.
+- [x] **C4.10 Arrumar a mochila.** Pegar itens do dia no quarto. Pronto: lista vem do que a agenda tem.
+- [x] **C4.11 Fim dos portais.** Remover portais, estrelas de bloqueio e mundos no mapa, mantendo os saves. Pronto: nada travado por estrelas e teste de migração.
+- [x] **C4.12 Bloco como sessão.** Ao fim de um bloco, parada natural e salvamento. Pronto: limite de 10 minutos nunca corta uma ação no meio.
+- [x] **C4.13 Primeira execução.** Criar criança → acordar → aprender andar e ✕ dentro de casa. Pronto: criança nova chega à mesa sem ajuda de texto.
+- [x] **C4.14 Rua sob demanda.** Ilha e cidade viram zona, e o jogo abre só com a casa. Pronto: a casa aparece sem baixar os modelos da rua.
 
 ### C5. Hora, clima e roupa
 

@@ -199,6 +199,12 @@ export class HomeController {
     }
   }
 
+  /** An adult jumps over the rest of this block of the day. */
+  async skipBlock(): Promise<void> {
+    await this.ctx.player.followDay.skipBlock();
+    await this.begin(false, this.ctx.avatar.position.clone());
+  }
+
   /** The child came back through the door of the house. */
   async comeHome(): Promise<void> {
     await this.ctx.goInside();
@@ -537,10 +543,15 @@ export class HomeController {
     }
     this.busy = true;
     this.ctx.enterPanel('home');
-    await this.ctx.goOutside();
-    this.busy = false;
-    this.house.show(undefined);
-    this.ctx.backToExploring(phrases.outsideNow);
+    try {
+      await this.ctx.goOutside();
+      this.house.show(undefined);
+      this.ctx.backToExploring(phrases.outsideNow);
+    } catch {
+      this.ctx.backToExploring(phrases.streetNotReady);
+    } finally {
+      this.busy = false;
+    }
   }
 
   private async sleep(): Promise<void> {

@@ -10,7 +10,7 @@ flowchart TB
     container["container.ts<br/>createServices / createBrowserAdapters"]
   end
   subgraph presentation["presentation"]
-    gameapp["GameApp"] --> world3d["world/ (terreno, cidade, portais)"]
+    gameapp["GameApp"] --> world3d["world/ (casa, terreno, cidade)"]
     gameapp --> actors["actors/ (Player, Mascot)"]
     gameapp --> ui["ui/ (HUD, missão, guarda-roupa)"]
   end
@@ -117,7 +117,8 @@ sequenceDiagram
 | `world/city.ts`, `props.ts` | Cidade low-poly: casas, mercado, padaria, ônibus, semáforo, fonte                                                                                          |
 | `world/nature.ts`           | Árvores, pedras, grama e flores com `InstancedMesh` (leve no tablet)                                                                                       |
 | `world/zones/`              | Lugares baixados e desenhados à parte. `zone-entries.ts` lista as zonas; `anchors.ts` guarda posições e ids, que o resto do jogo conhece sem baixar a zona |
-| `world/portals.ts`          | Portais para os outros mundos, com cadeado e estrelas que faltam                                                                                           |
+| `world/house.ts`            | A casa onde o jogo começa: quatro cômodos, objetos que brilham e cenas do dia. `house-plan.ts` calcula o caminho pelas portas                              |
+| `world/town.ts`             | Tudo fora de casa. É baixado em segundo plano e montado quando a criança abre a porta                                                                      |
 | `actors/player.ts`          | Personagem animado (andar, correr, pular, emotes) e acessórios presos aos ossos                                                                            |
 | `engine/camera-rig.ts`      | Câmera em terceira pessoa suave, que não atravessa paredes                                                                                                 |
 | `ui/*`                      | Interface em HTML/CSS sobre o canvas: nítida e acessível                                                                                                   |

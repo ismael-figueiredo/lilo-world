@@ -49,6 +49,7 @@ export const phrases = {
   goodNight: (name: string) => `Boa noite, ${name}. Durma bem.`,
   mapOutside: 'O mapa é da rua. Vamos vê-lo lá fora!',
   backHome: 'Chegamos em casa!',
+  streetNotReady: 'A rua ainda não abriu. Tente de novo com internet.',
   outsideNow: 'Que dia bonito! Explore a rua.',
   correct: 'Isso!',
   completed: 'Você conseguiu! Muito bem!',
