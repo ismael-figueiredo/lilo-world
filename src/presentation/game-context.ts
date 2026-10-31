@@ -1,3 +1,6 @@
+import type { HomeController } from '@presentation/controllers/home-controller';
+import type { WardrobeController } from '@presentation/controllers/wardrobe-controller';
+import type { Town } from '@presentation/world/town';
 import type { OutfitId } from '@domain/avatar/child';
 import type { CastMember } from '@presentation/actors/cast';
 import type { GameServices, PlayerServices } from '@application/game-services';
@@ -21,9 +24,11 @@ export type Mode =
   | 'wardrobe'
   | 'menu'
   | 'pause'
+  | 'home'
   | 'rest';
 
-export type PanelMode = 'mission' | 'learning' | 'session' | 'wardrobe' | 'menu' | 'pause' | 'rest';
+export type PanelMode =
+  'mission' | 'learning' | 'session' | 'wardrobe' | 'menu' | 'pause' | 'home' | 'rest';
 
 /** What controllers can use. Implemented by GameApp; keeps controllers small and focused. */
 export interface GameContext {
@@ -41,6 +46,11 @@ export interface GameContext {
   readonly restIsDue: boolean;
   /** The day's plan, also reachable from the menu. */
   readonly session: SessionController;
+  /** Life inside the house. */
+  readonly home: HomeController;
+  readonly wardrobe: WardrobeController;
+  /** The town, for those who only happen outside. */
+  readonly town: Town;
   enterPanel(mode: PanelMode): void;
   /** Back to the world. `message` is said instead of the suggestion of what to do next. */
   backToExploring(message?: string): void;
@@ -61,6 +71,14 @@ export interface GameContext {
   editChild(changed: () => void): void;
   avatarPicture(avatarId: string): string;
   outfitPicture(outfit: OutfitId): string;
+  /** A block of the day ended: saves and lets a due rest come now, between things. */
+  stopPoint(): Promise<void>;
+  /** Waits until a calm pause is over. */
+  whileNotPaused(): Promise<void>;
+  /** Goes through the street door, downloading the town if needed. */
+  goOutside(): Promise<void>;
+  /** Back from the street into the house. */
+  goInside(): Promise<void>;
   /** Runs `change` behind a short fade, e.g. to step into a building. */
   transition(change: () => void): Promise<void>;
   /** Shows the loading screen while something takes longer than a blink. */

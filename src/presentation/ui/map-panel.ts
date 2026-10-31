@@ -7,9 +7,7 @@ export interface MapPanelCallbacks {
   onClose(): void;
 }
 
-const groupNames: Readonly<Record<string, { icon: string; name: string }>> = {
-  portals: { icon: '🌀', name: 'Portais' },
-};
+const groupNames: Readonly<Record<string, { icon: string; name: string }>> = {};
 
 /** One pin per place, except grouped places (the portals) which share one pin in the middle. */
 function mapPins(

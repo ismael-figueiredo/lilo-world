@@ -27,6 +27,7 @@ export class SessionController {
   /** The activity the child chose and is walking to. */
   private heading: Step | undefined;
   private rewarded = false;
+  private onDone: (() => void) | undefined;
 
   constructor(
     private readonly ctx: GameContext,
@@ -48,8 +49,9 @@ export class SessionController {
     });
   }
 
-  /** The first thing a child sees: what today will have. */
-  async start(): Promise<void> {
+  /** Sitting at the desk: what today's study has. */
+  async start(onDone?: () => void): Promise<void> {
+    this.onDone = onDone;
     const plan = await this.ctx.player.planSession.execute();
     this.steps = plan.map((activity) => ({ activity, done: false }));
     this.rewarded = false;
@@ -59,7 +61,7 @@ export class SessionController {
 
   open(): void {
     if (this.steps.length === 0 || this.steps.every((step) => step.done)) {
-      this.ctx.backToExploring(phrases.dayAllDone);
+      this.leave();
       return;
     }
     this.heading = undefined;
@@ -145,5 +147,7 @@ export class SessionController {
   private leave(): void {
     this.board.hide();
     this.ctx.backToExploring();
+    this.onDone?.();
+    this.onDone = undefined;
   }
 }

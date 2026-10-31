@@ -145,7 +145,7 @@ describe('session use cases', () => {
 });
 
 describe('GetProgressSummary', () => {
-  it('summarizes coins, stars, items, worlds and missions', async () => {
+  it('summarizes coins, stars, items and missions', async () => {
     const bought = PlayerProgress.fromSnapshot({
       coins: 20,
       stars: 0,
@@ -166,8 +166,6 @@ describe('GetProgressSummary', () => {
       stars: 1,
       itemsOwned: 1,
       itemsTotal: 3,
-      worldsOpen: 1,
-      worldsTotal: 2,
     });
     expect(summary.missions).toEqual([
       {

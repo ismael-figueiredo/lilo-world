@@ -705,6 +705,7 @@ function dailyClips(hips: number): THREE.AnimationClip[] {
   };
   return [
     shared('sit', 0.6, sitting, [-0.24, -0.24]),
+    shared('sit-eat', 1.5, { ...sitting, ...toMouth([-108, 0, 30], [-72, 0, 0]) }, [-0.24, -0.24]),
     shared(
       'stand',
       0.6,

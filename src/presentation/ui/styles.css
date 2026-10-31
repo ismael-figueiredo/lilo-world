@@ -2627,3 +2627,155 @@ img.stimulus__picture {
     height: 64px;
   }
 }
+
+/* ---------- Life at home ---------- */
+.home-sheet {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: min(720px, calc(100% - 24px));
+  padding: 14px;
+  border-radius: 30px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+}
+
+.home-sheet.is-visible {
+  display: flex;
+}
+
+.home-sheet__title {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.home-sheet__steps,
+.home-sheet__choices {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.home-step,
+.home-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 96px;
+  padding: 8px 10px;
+  border: 4px solid transparent;
+  border-radius: 20px;
+  background: #f0ece2;
+  font: inherit;
+  color: inherit;
+}
+
+.home-choice {
+  background: #fff;
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.1);
+}
+
+.home-step.is-now {
+  border-color: var(--leaf);
+  background: #eaf8ee;
+}
+
+.home-step.is-done,
+.home-choice.is-used {
+  opacity: 0.45;
+}
+
+.home-step__icon {
+  font-size: 2.2rem;
+}
+
+.home-step__label {
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.agenda__now {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.agenda__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 160px;
+  padding: 14px;
+  border-radius: 26px;
+  background: #f0ece2;
+}
+
+.agenda__card.is-now {
+  background: #eaf8ee;
+  box-shadow: 0 0 0 4px var(--leaf);
+}
+
+.agenda__when {
+  font-weight: 900;
+  color: var(--ink-soft);
+}
+
+.agenda__icon {
+  font-size: 3.6rem;
+}
+
+.agenda__name {
+  font-size: 1.05rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.agenda__arrow {
+  font-size: 2.2rem;
+  font-weight: 900;
+}
+
+.agenda__blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.agenda__block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 18px;
+}
+
+.agenda__block.is-current {
+  background: #fff6cf;
+}
+
+.agenda__block-icon {
+  font-size: 1.5rem;
+}
+
+.agenda__step {
+  font-size: 1.5rem;
+}
+
+.agenda__step.is-done {
+  opacity: 0.35;
+}

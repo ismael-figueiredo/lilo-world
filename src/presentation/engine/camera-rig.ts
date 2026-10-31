@@ -3,6 +3,8 @@ import { clamp, damping } from '@presentation/engine/math';
 
 const MIN_PITCH = 0.12;
 const MAX_PITCH = 0.95;
+const INDOOR_PITCH = 0.92;
+const INDOOR_DISTANCE = 10;
 
 /**
  * Third-person camera that follows the player smoothly (no shakes, no sudden
@@ -19,6 +21,7 @@ export class CameraRig {
   private readonly lookTarget = new THREE.Vector3();
   private readonly desired = new THREE.Vector3();
   private focus: { position: THREE.Vector3; lookAt: THREE.Vector3 } | null = null;
+  private outdoors: { yaw: number; pitch: number; distance: number } | null = null;
 
   constructor(
     readonly camera: THREE.PerspectiveCamera,
@@ -27,7 +30,25 @@ export class CameraRig {
     private readonly obstruction: (from: THREE.Vector3, to: THREE.Vector3) => number = () => 1,
   ) {}
 
+  /**
+   * Inside the house the camera stays high on the side of the low walls: it
+   * follows the child, does not turn and so never goes through a wall.
+   */
+  setIndoors(indoors: boolean): void {
+    if (indoors === (this.outdoors !== null)) return;
+    if (indoors) {
+      this.outdoors = { yaw: this.yaw, pitch: this.pitch, distance: this.distance };
+      this.yaw = 0;
+      this.pitch = INDOOR_PITCH;
+      this.distance = INDOOR_DISTANCE;
+    } else if (this.outdoors !== null) {
+      Object.assign(this, this.outdoors);
+      this.outdoors = null;
+    }
+  }
+
   rotate(dx: number, dy: number): void {
+    if (this.outdoors !== null) return;
     this.yaw -= dx * 0.006 * this.sensitivity;
     this.pitch = clamp(this.pitch + dy * 0.004 * this.sensitivity, MIN_PITCH, MAX_PITCH);
   }
@@ -48,6 +69,14 @@ export class CameraRig {
       this.lookTarget.copy(lookAt);
       this.camera.lookAt(this.lookTarget);
     }
+  }
+
+  /** Skips the glide to the current view (only behind a fade). */
+  snap(): void {
+    if (this.focus === null) return;
+    this.camera.position.copy(this.focus.position);
+    this.lookTarget.copy(this.focus.lookAt);
+    this.camera.lookAt(this.lookTarget);
   }
 
   get isFocused(): boolean {
@@ -75,7 +104,7 @@ export class CameraRig {
     if (position.y < floor) position.y = floor;
 
     // Slide in front of walls instead of looking through them.
-    const clear = this.obstruction(this.target, position);
+    const clear = this.outdoors === null ? this.obstruction(this.target, position) : 1;
     if (clear < 1) position.lerpVectors(this.target, position, Math.max(0.12, clear - 0.04));
     this.camera.position.lerp(position, damping(clear < 1 ? 20 : 8, dt));
     this.lookTarget.lerp(this.target, damping(12, dt));

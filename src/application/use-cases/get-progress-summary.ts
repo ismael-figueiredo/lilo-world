@@ -1,7 +1,6 @@
 import type { ContentCatalog } from '@application/ports/content-catalog';
 import type { ProgressRepository } from '@application/ports/progress-repository';
 import type { MissionStats } from '@domain/progress/player-progress';
-import { isWorldUnlocked } from '@domain/world/world';
 
 export interface MissionSummary {
   readonly id: string;
@@ -16,8 +15,6 @@ export interface ProgressSummary {
   readonly stars: number;
   readonly itemsOwned: number;
   readonly itemsTotal: number;
-  readonly worldsOpen: number;
-  readonly worldsTotal: number;
   readonly missions: readonly MissionSummary[];
 }
 
@@ -54,8 +51,6 @@ export class GetProgressSummary {
       stars: progress.stars,
       itemsOwned: items.filter((item) => progress.owns(item.id)).length,
       itemsTotal: items.length,
-      worldsOpen: worlds.filter((world) => isWorldUnlocked(world, progress.stars)).length,
-      worldsTotal: worlds.length,
       missions,
     };
   }

@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { BuyWardrobeItem } from '@application/use-cases/buy-wardrobe-item';
 import { GetPlayerProgress } from '@application/use-cases/get-player-progress';
 import { GetWardrobe } from '@application/use-cases/get-wardrobe';
-import { GetWorldMap } from '@application/use-cases/get-world-map';
 import { ToggleWardrobeItem } from '@application/use-cases/toggle-wardrobe-item';
 import { PlayerProgress } from '@domain/progress/player-progress';
 import { StaticContentCatalog } from '@infrastructure/catalog/static-content-catalog';
@@ -73,16 +72,5 @@ describe('wardrobe use cases', () => {
   it('cannot wear an item that is not owned', async () => {
     const result = await new ToggleWardrobeItem(catalog, progress).execute(hat.id);
     expect(result.ok).toBe(false);
-  });
-});
-
-describe('GetWorldMap', () => {
-  it('marks worlds as locked or unlocked by stars', async () => {
-    const map = await new GetWorldMap(new StaticContentCatalog(content), withCoins(0, 1)).execute();
-    expect(map.stars).toBe(1);
-    expect(map.worlds.map((e) => [e.world.id, e.unlocked, e.starsMissing])).toEqual([
-      ['city', true, 0],
-      ['nature', false, 2],
-    ]);
   });
 });

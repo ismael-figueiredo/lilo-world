@@ -10,6 +10,7 @@ import { WardrobePanel, type WardrobeView } from '@presentation/ui/wardrobe-pane
 export class WardrobeController {
   readonly panel: WardrobePanel;
   private busy = false;
+  private onClose: (() => void) | undefined;
 
   constructor(private readonly ctx: GameContext) {
     this.panel = new WardrobePanel({
@@ -20,22 +21,29 @@ export class WardrobeController {
         this.editChild();
       },
       onClose: () => {
-        this.panel.close();
-        this.ctx.backToExploring();
+        this.leave();
       },
     });
   }
 
-  async open(): Promise<void> {
+  async open(onClose?: () => void): Promise<void> {
+    this.onClose = onClose;
     this.ctx.enterPanel('wardrobe');
     this.panel.open(await this.view());
-    this.frameCharacter();
+    if (!this.ctx.world.indoors) this.frameCharacter();
     this.ctx.avatar.playEmote('Wave');
     this.ctx.say(phrases.wardrobeOpen);
   }
 
   close(): void {
     this.panel.close();
+  }
+
+  leave(): void {
+    this.panel.close();
+    if (this.onClose === undefined) this.ctx.backToExploring();
+    this.onClose?.();
+    this.onClose = undefined;
   }
 
   private async view(): Promise<WardrobeView> {
@@ -54,6 +62,7 @@ export class WardrobeController {
   }
 
   private frameCharacter(): void {
+    if (this.ctx.world.indoors) return;
     const { x, y, z } = this.ctx.avatar.position;
     const cameraPosition = new THREE.Vector3(x - 0.6, y + 1.6, z - 4);
     this.ctx.avatar.faceTowards(cameraPosition);

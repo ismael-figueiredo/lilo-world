@@ -2,7 +2,6 @@ import type { ContentCatalog } from '@application/ports/content-catalog';
 import type { ProgressRepository } from '@application/ports/progress-repository';
 import type { WardrobeItemId } from '@domain/avatar/wardrobe-item';
 import type { MissionId } from '@domain/mission/mission';
-import { isWorldUnlocked } from '@domain/world/world';
 
 export type Goal =
   | { readonly kind: 'mission'; readonly missionId: MissionId; readonly isNew: boolean }
@@ -26,9 +25,7 @@ export class SuggestNextGoal {
       this.progress.load(),
     ]);
 
-    const missionIds = worlds
-      .filter((world) => isWorldUnlocked(world, progress.stars))
-      .flatMap((world) => world.missionIds);
+    const missionIds = worlds.flatMap((world) => world.missionIds);
 
     const newMission = missionIds.find((id) => !progress.hasCompleted(id));
     if (newMission !== undefined) return { kind: 'mission', missionId: newMission, isNew: true };

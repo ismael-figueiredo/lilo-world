@@ -321,7 +321,7 @@ export class City {
       home.doorZ,
       home.height + 0.8,
       '🏠',
-      'Guarda-roupa',
+      'Entrar em casa',
       'Minha casa',
     );
 

@@ -15,7 +15,6 @@ import type { GetPlayerProgress } from '@application/use-cases/get-player-progre
 import type { GetProgressSummary } from '@application/use-cases/get-progress-summary';
 import type { GetSettings } from '@application/use-cases/get-settings';
 import type { GetWardrobe } from '@application/use-cases/get-wardrobe';
-import type { GetWorldMap } from '@application/use-cases/get-world-map';
 import type { LeaveMission } from '@application/use-cases/leave-mission';
 import type { ListAvatars } from '@application/use-cases/list-avatars';
 import type { ListProfiles } from '@application/use-cases/list-profiles';
@@ -40,7 +39,6 @@ import type { ProfileId } from '@domain/profile/player-profile';
 export interface PlayerServices {
   readonly getPlayerProgress: GetPlayerProgress;
   readonly getProgressSummary: GetProgressSummary;
-  readonly getWorldMap: GetWorldMap;
   readonly suggestNextGoal: SuggestNextGoal;
   readonly startMission: StartMission;
   readonly chooseMissionAnswer: ChooseMissionAnswer;

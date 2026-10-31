@@ -1,9 +1,55 @@
+import type { StepId } from '@domain/day/day-plan';
 /**
  * Everything Lilo says that is not content of an activity or mission, by id:
  * the voice can be recorded later without touching the code that says it.
  * Short and warm. A wrong answer is never called "wrong".
  */
+/** What the mascot says to lead to each step of the day. */
+export const stepTips: Readonly<Record<StepId, string>> = {
+  wake: 'Bom dia!',
+  eat: 'Hora do café da manhã. Vamos para a mesa!',
+  teeth: 'Agora vamos escovar os dentes.',
+  dress: 'Vamos ao armário escolher a roupa.',
+  backpack: 'Vamos arrumar a mochila na escrivaninha.',
+  study: 'Hora de estudar. Vamos para a escrivaninha!',
+  outside: 'Agora você pode sair para a rua. Vamos até a porta!',
+  shower: 'Hora do banho!',
+  pajamas: 'Vamos vestir o pijama.',
+  sleep: 'Boa noite! Vamos para a cama.',
+};
+
 export const phrases = {
+  goodMorning: (name: string) => `Bom dia, ${name}! Vamos levantar?`,
+  firstWalk: 'Use a bolinha para andar. Siga as luzes até a mesa.',
+  chooseFood: 'O que você quer comer?',
+  foodChosen: (food: string) => `${food}! Vamos comer?`,
+  mealDone: 'Hum! Que delícia!',
+  teethPaste: 'Coloque a pasta na escova.',
+  teethBrush: 'Agora escove bem.',
+  teethRinse: 'Enxágue a boca.',
+  teethDone: 'Dentes limpinhos!',
+  handsSoap: 'Passe o sabonete nas mãos.',
+  handsRinse: 'Enxágue com água.',
+  handsDone: 'Mãos limpinhas!',
+  showerWater: 'Abra o chuveiro.',
+  showerSoap: 'Passe o sabonete.',
+  showerRinse: 'Enxágue e feche o chuveiro.',
+  showerDone: 'Banho tomado! Que cheirinho bom.',
+  outfitForDay: 'Escolha a roupa de hoje e veja no espelho.',
+  outfitForNight: 'Escolha o pijama e veja no espelho.',
+  packList: 'Pegue o que vai na mochila hoje.',
+  packed: (thing: string) => `${thing} na mochila.`,
+  notToday: (thing: string) => `${thing} fica em casa hoje.`,
+  packDone: 'Mochila pronta!',
+  bedNotYet: 'Ainda não é hora de dormir.',
+  deskFree: 'A escrivaninha está arrumada.',
+  firstThis: (tip: string) => `Antes de sair: ${tip}`,
+  nightStays: 'Já é noite. Hoje ficamos em casa.',
+  blockDone: 'Muito bem! Essa parte do dia acabou.',
+  goodNight: (name: string) => `Boa noite, ${name}. Durma bem.`,
+  mapOutside: 'O mapa é da rua. Vamos vê-lo lá fora!',
+  backHome: 'Chegamos em casa!',
+  outsideNow: 'Que dia bonito! Explore a rua.',
   correct: 'Isso!',
   completed: 'Você conseguiu! Muito bem!',
   model: 'Olhe, é esta:',
@@ -34,7 +80,6 @@ export const phrases = {
 
   goToMission: (place: string) => `Vamos para: ${place}? Siga a seta amarela!`,
   backToMission: (place: string) => `Que tal voltar em: ${place} e ganhar mais moedas?`,
-  goToPortals: 'Vamos aos portais! Siga a seta amarela.',
   goToPlace: (place: string) => `Vamos para: ${place}! Siga a seta amarela.`,
   goToStation: (place: string) => `Vamos até ${place}! Siga a seta.`,
 

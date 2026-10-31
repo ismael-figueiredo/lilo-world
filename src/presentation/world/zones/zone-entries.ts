@@ -1,15 +1,9 @@
 import { MARKET_INTERIOR } from '@presentation/world/market-position';
-import {
-  EMOTIONS_GARDEN,
-  HOME_AREA,
-  NATURE_CAMP,
-  SCHOOL_AREA,
-} from '@presentation/world/zones/anchors';
+import { EMOTIONS_GARDEN, NATURE_CAMP, SCHOOL_AREA } from '@presentation/world/zones/anchors';
 import type { Zone, ZoneContext, ZoneEntry } from '@presentation/world/zones/zone';
 
 export const ZoneId = {
   camp: 'camp',
-  home: 'home',
   school: 'school',
   emotions: 'emotions',
   market: 'market',
@@ -25,16 +19,6 @@ export const zoneEntries: readonly ZoneEntry[] = [
     build: async ({ assets }: ZoneContext): Promise<Zone> => {
       const { NatureCamp } = await import('@presentation/world/nature-camp');
       return new NatureCamp(assets);
-    },
-  },
-  {
-    id: ZoneId.home,
-    area: HOME_AREA,
-    models: [],
-    onIsland: true,
-    build: async ({ assets }: ZoneContext): Promise<Zone> => {
-      const { HomeArea } = await import('@presentation/world/home-area');
-      return new HomeArea(assets);
     },
   },
   {

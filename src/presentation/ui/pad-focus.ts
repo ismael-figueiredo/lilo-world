@@ -56,7 +56,7 @@ export function pickNearest(from: Box, candidates: readonly Box[]): number | und
 
 /** Full-screen layers (menus, missions, wardrobe, profiles); the last open one is on top. */
 const LAYERS =
-  '.overlay.is-visible, .mission.is-visible, .wardrobe.is-visible, .start:not(.is-hidden), .creator.is-visible';
+  '.overlay.is-visible, .mission.is-visible, .wardrobe.is-visible, .home-sheet.is-visible, .start:not(.is-hidden), .creator.is-visible';
 const FOCUSABLE = 'button:not([disabled]), input, select, [tabindex]:not([tabindex="-1"])';
 
 /** Sent to a hold button while the controller's button is down, as a finger would hold it. */

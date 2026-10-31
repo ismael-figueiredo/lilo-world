@@ -15,6 +15,7 @@ export type Emote =
   | 'Stand'
   | 'Lie'
   | 'Eat'
+  | 'SitEat'
   | 'Drink'
   | 'Brush'
   | 'Wash'
@@ -35,6 +36,7 @@ const emoteClips: Record<Emote, readonly string[]> = {
   Stand: ['stand'],
   Lie: ['lie'],
   Eat: ['eat', 'yes'],
+  SitEat: ['sit-eat', 'eat', 'yes'],
   Drink: ['drink', 'yes'],
   Brush: ['brush', 'yes'],
   Wash: ['wash', 'yes'],
@@ -83,9 +85,11 @@ export class Player {
   private readonly trimMaterial: THREE.MeshStandardMaterial | undefined;
   private readonly defaultBody: number | undefined;
   private readonly defaultTrim: number | undefined;
+  private readonly groundOffset: number;
+  private foam: THREE.Group | undefined;
 
   constructor(
-    model: THREE.Object3D,
+    private readonly model: THREE.Object3D,
     animations: readonly THREE.AnimationClip[],
     readonly avatarId: string,
     rig: AvatarRig,
@@ -122,6 +126,7 @@ export class Player {
     this.defaultBody = rig.defaultBody ?? this.bodyMaterial?.color.getHex();
     this.defaultTrim = rig.defaultTrim ?? this.trimMaterial?.color.getHex();
 
+    this.groundOffset = model.position.y;
     this.root.add(model);
     this.mixer = new THREE.AnimationMixer(model);
     for (const clip of animations) this.actions.set(clip.name, this.mixer.clipAction(clip));
@@ -163,6 +168,45 @@ export class Player {
     this.play(clip, 0.2, emote !== 'Swim');
   }
 
+  /** Costumes can walk and greet, but only the child has the motions of daily life. */
+  canDo(emote: Emote): boolean {
+    return this.actions.has(emoteClips[emote][0] ?? '');
+  }
+
+  /** Ends a motion that holds, such as sitting. */
+  release(): void {
+    this.emote = null;
+  }
+
+  /** Raises the body over the floor: on a chair or in bed. */
+  setPerch(height: number): void {
+    this.model.position.y = this.groundOffset + height;
+  }
+
+  /** Toothpaste foam, while brushing. */
+  showFoam(on: boolean): void {
+    if (!on) {
+      this.foam?.removeFromParent();
+      this.foam = undefined;
+      return;
+    }
+    if (this.foam === undefined) {
+      const size = this.headWidth;
+      const bubbles = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(size * 0.16, 1),
+        new THREE.MeshStandardMaterial({ color: 0xffffff }),
+      );
+      const brush = new THREE.Mesh(
+        new THREE.BoxGeometry(size * 0.5, size * 0.05, size * 0.05),
+        new THREE.MeshStandardMaterial({ color: 0x3fa9f5 }),
+      );
+      brush.position.set(-size * 0.3, 0, size * 0.08);
+      this.foam = new THREE.Group().add(bubbles, brush);
+      this.foam.position.y = -size * 0.3;
+    }
+    this.anchors.face.add(this.foam);
+  }
+
   /** Changes clothes on the same body. Only the customizable child has them. */
   wear(clothes: Clothes): void {
     this.figure?.wear(clothes);
@@ -193,6 +237,7 @@ export class Player {
     if (amount > 0.05) {
       this.facing = dampAngle(this.facing, Math.atan2(direction.x, direction.z), 12, dt);
       this.emote = null;
+      this.setPerch(0);
       this.moveHorizontally(dt, direction, amount, ground);
     }
     this.root.rotation.y = dampAngle(this.root.rotation.y, this.facing, 14, dt);

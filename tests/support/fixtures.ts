@@ -52,8 +52,8 @@ export const expensiveShirt: WardrobeItem = {
 };
 
 export const worlds: readonly World[] = [
-  { id: 'city', name: 'Cidade', requiredStars: 0, missionIds: [mission.id], color: 0 },
-  { id: 'nature', name: 'Natureza', requiredStars: 3, missionIds: [], color: 0 },
+  { id: 'city', name: 'Cidade', missionIds: [mission.id], color: 0 },
+  { id: 'nature', name: 'Natureza', missionIds: [], color: 0 },
 ];
 
 export const content: GameContent = {

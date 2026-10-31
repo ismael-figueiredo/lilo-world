@@ -7,12 +7,7 @@ import { MissionPanel } from '@presentation/ui/mission-panel';
 import type { Player } from '@presentation/actors/player';
 import { CITY, CityPlace, CROSSWALK } from '@presentation/world/city';
 import { CrossingTracker, type CrossingEvent } from '@presentation/world/crosswalk';
-import {
-  EmotionsPlace,
-  HomePlace,
-  NaturePlace,
-  SchoolPlace,
-} from '@presentation/world/zones/anchors';
+import { EmotionsPlace, NaturePlace, SchoolPlace } from '@presentation/world/zones/anchors';
 
 /** Where each mission happens in the open world. */
 export const missionPlaces: Readonly<Record<string, string>> = {
@@ -23,9 +18,6 @@ export const missionPlaces: Readonly<Record<string, string>> = {
   'nature-animals': NaturePlace.farm,
   'nature-garden': NaturePlace.garden,
   'nature-recycling': NaturePlace.recycling,
-  'home-hygiene': HomePlace.bathroom,
-  'home-dressing': HomePlace.bedroom,
-  'home-table': HomePlace.kitchen,
   'school-backpack': SchoolPlace.classroom,
   'school-talk': SchoolPlace.teacher,
   'school-turn': SchoolPlace.park,
@@ -158,12 +150,12 @@ export class MissionController {
 
   /** Every frame: keeps the cashier breathing and waving. */
   tick(dt: number): void {
-    this.cashier?.update(dt, { x: 0, z: 0 }, false, this.ctx.world);
+    if (this.cashier !== undefined) this.cashier.update(dt, { x: 0, z: 0 }, false, this.ctx.world);
   }
 
   /** Into the market: today's groceries on the shelves, the cart, the cashier. */
   private async goInside(attempt: MissionAttempt): Promise<void> {
-    const market = await this.ctx.whileLoading(this.ctx.world.prepareMarket());
+    const market = await this.ctx.whileLoading(this.ctx.town.prepareMarket());
     this.cashier ??= this.ctx.addPerson('cashier');
     const cashier = this.cashier;
     await this.ctx.transition(() => {
@@ -192,7 +184,7 @@ export class MissionController {
 
   /** Inside the market the 3D shelf follows the panel: picks fly to the cart. */
   private showIndoors(choiceId: string, nextTargetId: string | undefined): void {
-    const market = this.ctx.world.market;
+    const market = this.ctx.town.market;
     if (!this.indoors || this.attempt === undefined || market === undefined) return;
     market.collect(choiceId);
     market.hint(nextTargetId);
@@ -212,7 +204,7 @@ export class MissionController {
     const event = this.crossing.update(
       position.x - CITY.x,
       position.z - CITY.z,
-      this.ctx.world.trafficPhase.walk,
+      this.ctx.town.trafficPhase.walk,
       waiting,
     );
     if (event !== undefined) void this.choose(crossingChoices[event]);
@@ -231,7 +223,7 @@ export class MissionController {
         case 'model':
           this.ctx.sound('hint');
           this.panel.showModel(outcome.step.targetId);
-          if (this.indoors) this.ctx.world.market?.hint(outcome.step.targetId);
+          if (this.indoors) this.ctx.town.market?.hint(outcome.step.targetId);
           this.modeling = modelSentence(this.attempt, outcome.step);
           this.ctx.dialog.say(this.modeling);
           break;

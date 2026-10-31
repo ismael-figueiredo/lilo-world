@@ -69,7 +69,7 @@ export class MenuController {
         this.ctx.backToExploring();
         return;
       case 'today':
-        this.ctx.session.open();
+        this.ctx.home.openAgenda();
         return;
       case 'map':
         this.showMap();
@@ -91,17 +91,23 @@ export class MenuController {
   }
 
   private showMap(): void {
+    if (this.ctx.world.indoors) {
+      this.ctx.backToExploring(phrases.mapOutside);
+      return;
+    }
     const { position, facing } = this.ctx.avatar;
-    this.map.open(this.ctx.world.places, { x: position.x, z: position.z, facing }, this.goalId());
+    this.map.open(
+      this.ctx.world.townPlaces,
+      { x: position.x, z: position.z, facing },
+      this.goalId(),
+    );
   }
 
   private goTo(place: Interactable): void {
     this.closeAll();
     this.ctx.setDestination(place);
     this.ctx.backToExploring();
-    this.ctx.say(
-      place.mapGroup === 'portals' ? phrases.goToPortals : phrases.goToPlace(place.name),
-    );
+    this.ctx.say(phrases.goToPlace(place.name));
   }
 
   private async changeSettings(

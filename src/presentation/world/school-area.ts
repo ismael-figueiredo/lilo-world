@@ -224,26 +224,5 @@ export class SchoolArea implements Zone {
       const spot = this.at(x, z);
       this.colliders.push(circle(spot.x, spot.z, 0.45));
     }
-    const arch = new THREE.Group();
-    const frame = lowPoly(0xb08ee6, { emissive: 0xb08ee6, emissiveIntensity: 0.3 });
-    for (const dx of [-1.4, 1.4])
-      arch.add(solid(new THREE.BoxGeometry(0.5, 2.4, 0.5), frame, [dx, 1.2, 0]));
-    arch.add(solid(new THREE.TorusGeometry(1.4, 0.28, 8, 16, Math.PI), frame, [0, 2.4, 0]));
-    arch.position.set(4, 0, 9);
-    this.group.add(arch);
-    for (const dx of [-1.4, 1.4]) {
-      const spot = this.at(4 + dx, 9);
-      this.colliders.push(circle(spot.x, spot.z, 0.4));
-    }
-    const spot = this.at(4, 7.6);
-    this.places.push({
-      id: SchoolPlace.back,
-      position: new THREE.Vector3(spot.x, SCHOOL_AREA.height, spot.z),
-      markerPosition: new THREE.Vector3(spot.x, SCHOOL_AREA.height + 4, spot.z),
-      radius: 2.4,
-      icon: '🌀',
-      label: 'Voltar aos portais',
-      name: 'Portal de volta',
-    });
   }
 }

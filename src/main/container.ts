@@ -25,7 +25,6 @@ import { GetPlayerProgress } from '@application/use-cases/get-player-progress';
 import { GetProgressSummary } from '@application/use-cases/get-progress-summary';
 import { GetSettings } from '@application/use-cases/get-settings';
 import { GetWardrobe } from '@application/use-cases/get-wardrobe';
-import { GetWorldMap } from '@application/use-cases/get-world-map';
 import { LeaveMission } from '@application/use-cases/leave-mission';
 import { ListAvatars } from '@application/use-cases/list-avatars';
 import { ListProfiles } from '@application/use-cases/list-profiles';
@@ -89,7 +88,6 @@ export function createServices(adapters: Adapters): GameServices {
     return {
       getPlayerProgress: new GetPlayerProgress(progress),
       getProgressSummary: new GetProgressSummary(catalog, progress),
-      getWorldMap: new GetWorldMap(catalog, progress),
       suggestNextGoal: new SuggestNextGoal(catalog, progress),
       startMission: new StartMission(catalog, speech, random),
       chooseMissionAnswer: new ChooseMissionAnswer(progress, speech, clock),

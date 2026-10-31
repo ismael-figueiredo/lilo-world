@@ -71,7 +71,6 @@ export class EmotionsGarden implements Zone {
     this.addFaces();
     this.addStage();
     this.addCalmCorner();
-    this.addWayBack();
   }
 
   /** Very slow movement only: faces sway a little, the calm lamp breathes. */
@@ -252,29 +251,5 @@ export class EmotionsGarden implements Zone {
     this.colliders.push(box(spot.x, spot.z, 4.4, 2.6));
     this.sign('🧸 CANTINHO CALMO', '#5fa8f5', x - 2.6, z + 1.6);
     this.addPlace(EmotionsPlace.calm, x, z + 2.6, '🧸', 'Cantinho calmo', 'Cantinho calmo');
-  }
-
-  private addWayBack(): void {
-    const arch = new THREE.Group();
-    const frame = lowPoly(0xf07a9a, { emissive: 0xf07a9a, emissiveIntensity: 0.3 });
-    for (const dx of [-1.4, 1.4])
-      arch.add(solid(new THREE.BoxGeometry(0.5, 2.4, 0.5), frame, [dx, 1.2, 0]));
-    arch.add(solid(new THREE.TorusGeometry(1.4, 0.28, 8, 16, Math.PI), frame, [0, 2.4, 0]));
-    arch.position.set(-6, 0, 9);
-    this.group.add(arch);
-    for (const dx of [-1.4, 1.4]) {
-      const spot = this.at(-6 + dx, 9);
-      this.colliders.push(circle(spot.x, spot.z, 0.4));
-    }
-    const spot = this.at(-6, 7.6);
-    this.places.push({
-      id: EmotionsPlace.back,
-      position: new THREE.Vector3(spot.x, EMOTIONS_GARDEN.height, spot.z),
-      markerPosition: new THREE.Vector3(spot.x, EMOTIONS_GARDEN.height + 4, spot.z),
-      radius: 2.4,
-      icon: '🌀',
-      label: 'Voltar aos portais',
-      name: 'Portal de volta',
-    });
   }
 }
