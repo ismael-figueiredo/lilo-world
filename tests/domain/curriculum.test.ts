@@ -131,16 +131,42 @@ describe('session plan', () => {
       return pool[(seed >> (index % 6)) & 3] ?? 'new';
     });
 
-  it('always has Portuguese and math, at most three activities and 18 questions', () => {
+  it('always mixes tracks, with at most three activities and 18 questions', () => {
     for (const profile of profiles()) {
       const activities = plan(profile);
       expect(activities.length).toBeLessThanOrEqual(MAX_ACTIVITIES);
-      expect(new Set(activities.map((a) => a.skill.track))).toEqual(
-        new Set(['portuguese', 'math']),
-      );
+      expect(new Set(activities.map((a) => a.skill.track)).size).toBeGreaterThan(1);
       expect(activities.reduce((sum, a) => sum + a.length, 0)).toBeLessThanOrEqual(18);
       expect(new Set(activities.map((a) => a.skill.id)).size).toBe(activities.length);
     }
+  });
+
+  it('gives a first day one activity of each track', () => {
+    const activities = plan(() => 'new');
+    expect(new Set(activities.map((a) => a.skill.track))).toEqual(
+      new Set(['portuguese', 'math', 'knowledge']),
+    );
+  });
+
+  it('goes gently or ahead when an adult sets a pace for a track', () => {
+    const skills = curriculum;
+    const gentle = planSession({
+      skills,
+      statusOf: () => 'new',
+      pace: { portuguese: 'gentle', math: 'gentle', knowledge: 'gentle' },
+    });
+    expect(gentle.every((activity) => activity.length === 3)).toBe(true);
+
+    const hidden = Object.fromEntries(
+      skills.filter((s) => s.requires.length === 0).map((s) => [s.id, 'hide' as const]),
+    );
+    const ahead = planSession({
+      skills,
+      statusOf: () => 'new',
+      choices: { ...hidden, 'math.count.5': 'hide' },
+      pace: { math: 'ahead' },
+    });
+    expect(ahead.some((a) => a.skill.track === 'math' && a.skill.requires.length > 0)).toBe(true);
   });
 
   it('gives a first-day child only what needs nothing before it, shown first', () => {

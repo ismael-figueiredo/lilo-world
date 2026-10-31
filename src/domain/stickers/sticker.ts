@@ -24,6 +24,11 @@ const skillStickers: Readonly<Record<Station, readonly [string, string][]>> = {
     ['Paga certinho', '👛'],
     ['Craque das moedas', '💰'],
   ],
+  world: [
+    ['Primeiras descobertas', '🌱'],
+    ['Conhece o mundo', '🌎'],
+    ['Pequeno explorador', '🧭'],
+  ],
 };
 
 /**

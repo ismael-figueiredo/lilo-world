@@ -11,9 +11,11 @@ import {
   type StepId,
 } from '@domain/day/day-plan';
 import { fitsWeather, phaseOf } from '@domain/day/weather';
+import type { Station } from '@domain/curriculum/skill';
 import type { GameContext } from '@presentation/game-context';
 import { AgendaPanel } from '@presentation/ui/agenda-panel';
 import { schoolThingLooks, stepLooks } from '@presentation/ui/day-looks';
+import { studyLooks } from '@presentation/ui/study-looks';
 import { skyLook } from '@presentation/world/sky-looks';
 import { HomeSheet, type Picture } from '@presentation/ui/home-sheet';
 import { placeOf, standSpots, type FoodId, type HouseThing } from '@presentation/world/house';
@@ -39,6 +41,9 @@ const foods: readonly { readonly id: FoodId; readonly icon: string; readonly lab
   { id: 'cereal', icon: '🥣', label: 'Cereal' },
   { id: 'egg', icon: '🍳', label: 'Ovo' },
 ];
+
+const subjects: readonly Station[] = ['letters', 'numbers', 'world'];
+const NOT_NOW = 'later';
 
 const WALK_TIMEOUT_MS = 5000;
 const REACHED = 0.12;
@@ -199,7 +204,7 @@ export class HomeController {
       case 'desk':
         if (this.isOpen('backpack')) await this.pack();
         else if (this.isOpen('study')) await this.study();
-        else this.ctx.say(phrases.deskFree);
+        else await this.practice();
         return;
       case 'door':
         await this.door();
@@ -536,17 +541,51 @@ export class HomeController {
     });
   }
 
-  /** The day's activities, sitting at the desk: they are the same as ever. */
-  private async study(): Promise<void> {
+  /** Sitting at the desk: the study happens in the room, with the answers on the side. */
+  private async sitToStudy(): Promise<void> {
     this.busy = true;
     this.ctx.enterPanel('home');
     this.house.show(undefined);
     await this.walkTo(standSpots.desk);
     this.sitAt(DESK_CHAIR, CHAIR_HEIGHT);
     this.busy = false;
-    await this.ctx.session.start(() => {
-      this.standUp(standSpots.desk);
-      void this.studied();
+  }
+
+  private getUp(): void {
+    this.standUp(standSpots.desk);
+    this.showGoal();
+  }
+
+  private async study(): Promise<void> {
+    await this.sitToStudy();
+    await this.ctx.session.start(
+      () => {
+        this.standUp(standSpots.desk);
+        void this.studied();
+      },
+      () => {
+        this.getUp();
+      },
+    );
+  }
+
+  /** The desk stays open: a child who likes studying can always study more. */
+  private async practice(): Promise<void> {
+    await this.sitToStudy();
+    this.ctx.enterPanel('home');
+    this.ctx.say(phrases.deskFree);
+    const chosen = await this.sheet.choose(phrases.deskFree, [
+      ...subjects.map((id) => ({ id, icon: studyLooks[id].icon, label: studyLooks[id].name })),
+      { id: NOT_NOW, icon: '🚶', label: 'Agora não' },
+    ]);
+    const subject = subjects.find((id) => id === chosen);
+    if (subject === undefined) {
+      this.ctx.backToExploring(this.tip);
+      this.getUp();
+      return;
+    }
+    await this.ctx.practice(subject, () => {
+      this.getUp();
     });
   }
 

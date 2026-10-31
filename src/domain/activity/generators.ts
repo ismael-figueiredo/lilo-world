@@ -1,17 +1,23 @@
-import type {
-  ActivityBuilder,
-  ActivityContext,
-  ActivityOption,
-  Picture,
+import {
+  scrambled,
+  type ActivityBuilder,
+  type ActivityContext,
+  type ActivityOption,
+  type Picture,
 } from '@domain/activity/activity';
 import { firstLetter, type Word } from '@domain/language/word';
 import { pick, randomInt, shuffled, type Random } from '@domain/shared/random';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-const COUNTABLE: readonly Picture[] = ['🍎', '⭐', '🐟', '🌸', '🚗', '🎈'].map((pictogram) => ({
-  pictogram,
-}));
-const COIN: Picture = { pictogram: '🪙' };
+const COUNTABLE: readonly Picture[] = [
+  { pictogram: '🍎', thing: 'apple' },
+  { pictogram: '⭐', thing: 'star' },
+  { pictogram: '🐟', thing: 'fish' },
+  { pictogram: '🌸', thing: 'flower' },
+  { pictogram: '🚗', thing: 'car' },
+  { pictogram: '🎈', thing: 'balloon' },
+];
+const COIN: Picture = { pictogram: '🪙', thing: 'coin' };
 
 /** Highest quantity of a round's first question, and how far below the top others may go. */
 const RAMP_START = 3;
@@ -39,23 +45,23 @@ function steppedAmount({ random, progress = 1 }: ActivityContext, max: number): 
   return randomInt(random, Math.max(1, top - RAMP_SPREAD), top);
 }
 
-const numberOption = (value: number): ActivityOption => ({
+export const numberOption = (value: number): ActivityOption => ({
   id: String(value),
   label: String(value),
   text: String(value),
 });
 
-const letterOption = (letter: string): ActivityOption => ({
+export const letterOption = (letter: string): ActivityOption => ({
   id: letter,
   label: letter,
   text: letter,
 });
 
-const wordPicture = ({ pictogram, image }: Word): Picture =>
+export const wordPicture = ({ pictogram, image }: Word): Picture =>
   image === undefined ? { pictogram } : { pictogram, image };
 
 /** The right answer plus distinct wrong ones, in random order. */
-function withDistractors(
+export function withDistractors(
   random: Random,
   answer: number,
   count: number,
@@ -73,7 +79,7 @@ function withDistractors(
   return shuffled(random, [...values]);
 }
 
-const lettersWith = (random: Random, letter: string, count: number): ActivityOption[] => {
+export const lettersWith = (random: Random, letter: string, count: number): ActivityOption[] => {
   const others = shuffled(
     random,
     ALPHABET.filter((l) => l !== letter),
@@ -227,5 +233,172 @@ export const payCoins =
         target: '🧾',
       },
       teach: { text: `São ${coins(price)}.` },
+    };
+  };
+
+/** Fewer or more: two plates, never the same amount. */
+export const compareGroups =
+  ({ max }: { max: number }): ActivityBuilder =>
+  ({ random }) => {
+    const a = randomInt(random, 1, max);
+    const others = Array.from({ length: max }, (_, index) => index + 1).filter((n) => n !== a);
+    const b = pick(random, others);
+    const options: readonly ActivityOption[] = [
+      { id: 'blue', label: 'Prato azul', picture: { pictogram: '🔵' } },
+      { id: 'red', label: 'Prato vermelho', picture: { pictogram: '🔴' } },
+    ];
+    const more = a > b ? 'azul' : 'vermelho';
+    return {
+      prompt: { text: 'Qual prato tem mais?' },
+      stimulus: { kind: 'compare', picture: pick(random, COUNTABLE), a, b },
+      interaction: { kind: 'tap', options, answerId: a > b ? 'blue' : 'red' },
+      teach: { text: `O prato ${more} tem mais.` },
+    };
+  };
+
+/** Visual subtraction: some of the things really go away. */
+export const takeAway =
+  ({ max }: { max: number }): ActivityBuilder =>
+  ({ random }) => {
+    const a = randomInt(random, 2, max);
+    const b = randomInt(random, 1, a - 1);
+    const answer = a - b;
+    return {
+      // The numbers are heard and seen on the desk: written, one could be the answer.
+      prompt: { text: `Tinha ${a}. Saíram ${b}. Quantos ficaram?`, written: 'Quantos ficaram?' },
+      stimulus: { kind: 'minus', picture: pick(random, COUNTABLE), a, b },
+      interaction: {
+        kind: 'tap',
+        options: withDistractors(random, answer, 3, 0, max).map(numberOption),
+        answerId: String(answer),
+      },
+      teach: { text: `${a} menos ${b} é igual a ${answer}.` },
+    };
+  };
+
+/** The number that is missing in a row. */
+export const missingNumber =
+  ({ max, length }: { max: number; length: number }): ActivityBuilder =>
+  ({ random }) => {
+    const start = randomInt(random, 1, max - length + 1);
+    const row = Array.from({ length }, (_, index) => start + index);
+    // Never the first: the numbers before it are what the child uses to find it.
+    const hidden = randomInt(random, 1, length - 1);
+    const answer = start + hidden;
+    return {
+      prompt: { text: 'Qual número está faltando?' },
+      stimulus: {
+        kind: 'word',
+        text: row.map((value, index) => (index === hidden ? '_' : value)).join(' '),
+      },
+      interaction: {
+        kind: 'tap',
+        options: withDistractors(random, answer, 3, 1, max).map(numberOption),
+        answerId: String(answer),
+      },
+      teach: { text: `Depois do ${answer - 1} vem o ${answer}.` },
+    };
+  };
+
+/** Numbers from the smallest to the biggest. */
+export const orderNumbers =
+  ({ max, length }: { max: number; length: number }): ActivityBuilder =>
+  ({ random }) => {
+    const start = randomInt(random, 1, max - length + 1);
+    const row = Array.from({ length }, (_, index) => start + index);
+    return {
+      prompt: { text: 'Coloque em ordem, do menor para o maior.' },
+      stimulus: { kind: 'none' },
+      interaction: {
+        kind: 'order',
+        pieces: scrambled(random, row.map(numberOption), row.map(String)),
+        answer: row.map(String),
+      },
+      teach: { text: `A ordem é ${row.join(', ')}.` },
+    };
+  };
+
+const SHAPES: readonly (Picture & { readonly name: string; readonly article: string })[] = [
+  { name: 'círculo', article: 'o', pictogram: '🔴' },
+  { name: 'quadrado', article: 'o', pictogram: '🟦' },
+  { name: 'triângulo', article: 'o', pictogram: '🔺' },
+  { name: 'estrela', article: 'a', pictogram: '⭐' },
+];
+
+export const findShape =
+  ({ options }: { options: number }): ActivityBuilder =>
+  ({ random }) => {
+    const chosen = pick(random, SHAPES);
+    const others = shuffled(
+      random,
+      SHAPES.filter((shape) => shape !== chosen),
+    ).slice(0, options - 1);
+    return {
+      prompt: { text: `Onde está ${chosen.article} ${chosen.name}?` },
+      stimulus: { kind: 'none' },
+      interaction: {
+        kind: 'tap',
+        options: shuffled(random, [chosen, ...others]).map((shape) => ({
+          id: shape.name,
+          label: shape.name,
+          picture: { pictogram: shape.pictogram },
+        })),
+        answerId: chosen.name,
+      },
+      teach: { text: `${chosen.article === 'a' ? 'Esta é a' : 'Este é o'} ${chosen.name}.` },
+    };
+  };
+
+const hours = (hour: number): string => `${hour} ${hour === 1 ? 'hora' : 'horas'}`;
+
+/** Whole hours on a real clock. */
+export const readClock: ActivityBuilder = ({ random }) => {
+  const hour = randomInt(random, 1, 12);
+  return {
+    prompt: { text: 'Que horas são?' },
+    stimulus: { kind: 'clock', hour },
+    interaction: {
+      kind: 'tap',
+      options: withDistractors(random, hour, 3, 1, 12).map((value) => ({
+        id: String(value),
+        label: hours(value),
+        text: hours(value),
+      })),
+      answerId: String(hour),
+    },
+    teach: { text: `São ${hours(hour)}. O ponteiro pequeno mostra a hora.` },
+  };
+};
+
+const CASH_VALUES = [1, 2, 5, 10] as const;
+
+/** Adding toy money: the same notes and coins the market will ask for. */
+export const countCash =
+  ({ max, pieces }: { max: number; pieces: number }): ActivityBuilder =>
+  ({ random }) => {
+    const values: number[] = [];
+    while (values.length < pieces) {
+      const room = max - values.reduce((sum, value) => sum + value, 0);
+      const value = pick(
+        random,
+        CASH_VALUES.filter((candidate) => candidate <= room - (pieces - values.length - 1)),
+      );
+      values.push(value);
+    }
+    const total = values.reduce((sum, value) => sum + value, 0);
+    const reais = (count: number) => `${count} ${count === 1 ? 'real' : 'reais'}`;
+    return {
+      prompt: { text: 'Quanto dinheiro tem aqui?' },
+      stimulus: { kind: 'cash', values },
+      interaction: {
+        kind: 'tap',
+        options: withDistractors(random, total, 3, 1, max).map((value) => ({
+          id: String(value),
+          label: reais(value),
+          text: `R$ ${value}`,
+        })),
+        answerId: String(total),
+      },
+      teach: { text: `Aqui tem ${reais(total)}.` },
     };
   };

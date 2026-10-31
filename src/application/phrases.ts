@@ -60,7 +60,7 @@ export const phrases = {
   notToday: (thing: string) => `${thing} fica em casa hoje.`,
   packDone: 'Mochila pronta!',
   bedNotYet: 'Ainda não é hora de dormir.',
-  deskFree: 'A escrivaninha está arrumada.',
+  deskFree: 'O que você quer estudar?',
   firstThis: (tip: string) => `Antes de sair: ${tip}`,
   nightStays: 'Já é noite. Hoje ficamos em casa.',
   blockDone: 'Muito bem! Essa parte do dia acabou.',
@@ -100,7 +100,6 @@ export const phrases = {
   goToMission: (place: string) => `Vamos para: ${place}? Siga a seta amarela!`,
   backToMission: (place: string) => `Que tal voltar em: ${place} e ganhar mais moedas?`,
   goToPlace: (place: string) => `Vamos para: ${place}! Siga a seta amarela.`,
-  goToStation: (place: string) => `Vamos até ${place}! Siga a seta.`,
 
   dayStart: 'Por onde vamos começar?',
   dayNext: 'O que vem agora?',

@@ -1,4 +1,5 @@
 import type { SkillOverview } from '@application/use-cases/plan-session';
+import type { Track } from '@domain/curriculum/skill';
 import type { SkillChoice } from '@domain/curriculum/session-plan';
 import { sessionLimits, type Settings } from '@domain/settings/settings';
 import { h } from '@presentation/ui/dom';
@@ -182,9 +183,25 @@ export class SettingsPanel {
           return { skillChoices: Object.fromEntries([...others, ...chosen]) };
         },
       );
-    const section = (title: string, track: SkillOverview['skill']['track']) =>
-      this.section(title, this.overview.filter((l) => l.skill.track === track).map(row));
-    return [section('👪 Português', 'portuguese'), section('👪 Matemática', 'math')];
+    const section = (title: string, track: Track) =>
+      this.section(title, [
+        this.choice(
+          '🎚️ Dificuldade',
+          settings.pace[track] ?? 'normal',
+          [
+            ['gentle', '🌱 Com calma'],
+            ['normal', 'Normal'],
+            ['ahead', '🚀 Mais desafio'],
+          ],
+          (value) => ({ pace: { ...settings.pace, [track]: value } }),
+        ),
+        ...this.overview.filter((l) => l.skill.track === track).map(row),
+      ]);
+    return [
+      section('👪 Português', 'portuguese'),
+      section('👪 Matemática', 'math'),
+      section('👪 Conhecimentos gerais', 'knowledge'),
+    ];
   }
 
   private section(title: string, rows: readonly HTMLElement[]): HTMLElement {

@@ -154,8 +154,10 @@ export class GameWorld {
   }
 
   update(time: number, dt: number, focus: THREE.Vector3, face: THREE.Vector3): void {
-    if (this.indoors) this.house.update(time);
-    else {
+    if (this.indoors) {
+      this.house.update(time);
+      this.house.study.update(dt);
+    } else {
       this.town?.update(time, dt, focus);
       this.effects.update(time, dt, focus, face);
     }

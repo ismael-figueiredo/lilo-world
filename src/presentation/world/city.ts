@@ -26,7 +26,6 @@ import {
 import type { CrosswalkZone } from '@presentation/world/crosswalk';
 import { mergeStatic } from '@presentation/world/merge-static';
 import { createPostSign, createSign } from '@presentation/world/sign';
-import { LearningStations } from '@presentation/world/stations';
 import {
   fitFootprint,
   fitHeight,
@@ -130,7 +129,6 @@ export class City {
   private lightPools!: THREE.InstancedMesh;
   private puddles!: THREE.InstancedMesh;
   private glass: readonly THREE.MeshStandardMaterial[] | undefined;
-  private readonly stations = new LearningStations(CITY.height);
   private readonly plan = planStreets(ROADS, CROSSINGS.map(crossingRect));
   /** Follows the child near the streets. */
   readonly roadSafety = new RoadSafety(
@@ -148,13 +146,9 @@ export class City {
     this.addBuildings();
     this.addStreetLife();
     this.addSouthDistrict();
-    this.group.add(this.stations.group);
-    this.colliders.push(...this.stations.colliders);
-    this.places.push(...this.stations.places);
     this.lightPools = this.spots(3.4, 0xffe2a0, 0.28, 0.9);
     this.puddles = this.spots(1.1, 0x5a7a9a, 0.45, -1.6);
     mergeStatic(this.group, [
-      this.stations.group,
       ...this.trafficLights.map((light) => light.group),
       ...(this.fountainWater === undefined ? [] : [this.fountainWater]),
     ]);
@@ -166,7 +160,6 @@ export class City {
   update(time: number): void {
     this.phase = trafficPhase(time);
     for (const light of this.trafficLights) light.update(this.phase);
-    this.stations.update(time);
     if (this.fountainWater !== undefined)
       this.fountainWater.position.y = 0.62 + Math.sin(time * 2) * 0.03;
   }

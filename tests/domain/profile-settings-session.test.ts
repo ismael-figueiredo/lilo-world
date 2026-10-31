@@ -106,3 +106,21 @@ describe('session', () => {
     expect(sessionTimeStatus(15, 16 * minute, false)).toEqual({ kind: 'time-to-rest' });
   });
 });
+
+describe('pace of a track', () => {
+  it('keeps only valid paces', () => {
+    const settings = sanitizeSettings({
+      pace: { math: 'gentle', knowledge: 'fast', art: 'ahead' },
+    });
+    expect(settings.pace).toEqual({ math: 'gentle' });
+  });
+
+  it('survives a change to any other setting', () => {
+    const settings = sanitizeSettings({ pace: { math: 'ahead' } });
+    expect(sanitizeSettings({ showMinimap: false }, settings).pace).toEqual({ math: 'ahead' });
+  });
+
+  it('starts empty for saves from before it existed', () => {
+    expect(sanitizeSettings({}).pace).toEqual({});
+  });
+});

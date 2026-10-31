@@ -41,6 +41,7 @@ export class PlanSession {
       skills,
       statusOf: (id) => skillStatus(progress.skillRecord(id), now),
       choices: settings.skillChoices,
+      pace: settings.pace,
     });
   }
 

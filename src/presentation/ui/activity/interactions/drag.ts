@@ -12,7 +12,7 @@ const inside = (box: DOMRect, x: number, y: number): boolean =>
  * pressing it, which is also how a controller or a keyboard plays: press again
  * to bring it back. "Pronto" answers, so a miscount can still be fixed.
  */
-export const dragInteraction: InteractionFactory<'drag'> = (interaction, onAnswer) => {
+export const dragInteraction: InteractionFactory<'drag'> = (interaction, onAnswer, onCarry) => {
   const tray = h('div', { className: 'drag__tray' });
   const target = h('div', { className: 'drag__target' }, [
     h('span', { className: 'drag__target-icon', text: interaction.target }),
@@ -28,6 +28,7 @@ export const dragInteraction: InteractionFactory<'drag'> = (interaction, onAnswe
   const carried = () => [...target.querySelectorAll<HTMLButtonElement>('.drag__piece')];
   const refresh = () => {
     done.disabled = carried().length === 0;
+    onCarry?.(carried().length);
   };
   const toggle = (piece: HTMLButtonElement) => {
     (piece.parentElement === tray ? target : tray).append(piece);
@@ -85,6 +86,7 @@ export const dragInteraction: InteractionFactory<'drag'> = (interaction, onAnswe
       target.append(...pieces.slice(0, interaction.goal));
       tray.append(...pieces.slice(interaction.goal));
       for (const piece of pieces) piece.disabled = true;
+      onCarry?.(interaction.goal);
       done.disabled = false;
       done.classList.add('is-hinted');
     },

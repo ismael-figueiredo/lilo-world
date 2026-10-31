@@ -6,6 +6,7 @@ import { box, type Collider } from '@presentation/world/collision';
 import { paintRain, paintWindow } from '@presentation/world/window-view';
 import { routeInside, type HouseSpot } from '@presentation/world/house-plan';
 import type { Interactable } from '@presentation/world/interactable';
+import { StudyDesk } from '@presentation/world/study-desk';
 import { lowPoly, solid } from '@presentation/world/materials';
 import { mergeStatic } from '@presentation/world/merge-static';
 
@@ -92,6 +93,7 @@ export class House {
   private readonly trail: THREE.Mesh[] = [];
   private readonly meal = new THREE.Group();
   private readonly desk = new THREE.Group();
+  readonly study = new StudyDesk(this.desk);
   private readonly sinkWater: THREE.Mesh;
   private readonly showerWater: THREE.Mesh;
   private readonly curtain: THREE.Mesh;
@@ -131,12 +133,13 @@ export class House {
     this.sunbeam.position.set(-6.2, 1.5, -4.1);
     this.sunbeam.visible = false;
     this.group.add(this.sunbeam);
-    this.group.add(this.meal, this.desk);
+    this.group.add(this.meal, this.desk, this.study.group);
 
     for (const thing of Object.keys(standSpots) as HouseThing[]) this.addPlace(thing);
     mergeStatic(this.group, [
       this.meal,
       this.desk,
+      this.study.group,
       this.sinkWater,
       this.showerWater,
       this.curtain,

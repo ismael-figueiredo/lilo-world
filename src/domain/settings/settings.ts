@@ -1,4 +1,5 @@
-import type { SkillChoice } from '@domain/curriculum/session-plan';
+import { paces, type Pace, type SkillChoice } from '@domain/curriculum/session-plan';
+import { tracks, type Track } from '@domain/curriculum/skill';
 import { weathers, type Weather } from '@domain/day/weather';
 
 /** Comfort and sensory settings, one set per child. */
@@ -19,6 +20,8 @@ export interface Settings {
   readonly sessionLimitMinutes: SessionLimit;
   /** Skills an adult pinned or hid, by id. */
   readonly skillChoices: Readonly<Record<string, SkillChoice>>;
+  /** How hard each track goes, set by an adult. */
+  readonly pace: Readonly<Partial<Record<Track, Pace>>>;
   /** 'auto' lets each day have its own weather. */
   readonly fixedWeather: Weather | 'auto';
 }
@@ -44,6 +47,7 @@ export const defaultSettings: Settings = {
   showMinimap: true,
   sessionLimitMinutes: 10,
   skillChoices: {},
+  pace: {},
   fixedWeather: 'auto',
 };
 
@@ -55,6 +59,17 @@ const flag = (value: unknown, fallback: boolean): boolean =>
 
 const oneOf = <T>(options: readonly T[], value: unknown, fallback: T): T =>
   options.includes(value as T) ? (value as T) : fallback;
+
+function paceOf(value: unknown, fallback: Settings['pace']): Settings['pace'] {
+  if (value === undefined) return fallback;
+  const saved =
+    typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {};
+  return Object.fromEntries(
+    tracks.flatMap((track) =>
+      paces.includes(saved[track] as Pace) ? [[track, saved[track]]] : [],
+    ),
+  );
+}
 
 const skillChoices = (value: unknown, fallback: Settings['skillChoices']) =>
   typeof value === 'object' && value !== null
@@ -86,6 +101,7 @@ export function sanitizeSettings(raw: unknown, base: Settings = defaultSettings)
     showMinimap: flag(data.showMinimap, base.showMinimap),
     sessionLimitMinutes: oneOf(sessionLimits, data.sessionLimitMinutes, base.sessionLimitMinutes),
     skillChoices: skillChoices(data.skillChoices, base.skillChoices),
+    pace: paceOf(data.pace, base.pace),
     fixedWeather: oneOf(['auto', ...weathers], data.fixedWeather, base.fixedWeather),
   };
 }

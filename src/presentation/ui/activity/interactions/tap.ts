@@ -4,7 +4,10 @@ import { h, picture, replayAnimation } from '@presentation/ui/dom';
 
 const face = (option: ActivityOption): HTMLElement =>
   option.picture === undefined
-    ? h('span', { className: 'pictogram pictogram--big challenge__face', text: option.text ?? '' })
+    ? h('span', {
+        className: `pictogram pictogram--big challenge__face${(option.text ?? '').length > 3 ? ' challenge__face--long' : ''}`,
+        text: option.text ?? '',
+      })
     : picture(option.picture, 'pictogram pictogram--big');
 
 /** A few big cards. They carry no words: a label would give the answer away. */

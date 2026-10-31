@@ -2779,3 +2779,244 @@ img.stimulus__picture {
 .agenda__step.is-done {
   opacity: 0.35;
 }
+
+/* ---------- Study at the desk ---------- */
+/* The room stays in view: what is studied is on the desk and on the board. */
+.challenge .challenge__show {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.challenge__board {
+  margin: 8px 0;
+  padding: 6px 14px;
+}
+
+.challenge {
+  background: none;
+}
+
+.challenge .mission__sheet {
+  max-height: 58dvh;
+}
+
+.challenge__face--long.challenge__face {
+  font-size: 1.9rem;
+  word-break: normal;
+}
+
+@media (orientation: landscape) {
+  .challenge {
+    align-items: stretch;
+    justify-content: flex-end;
+  }
+
+  .challenge .mission__sheet {
+    width: min(50%, 620px);
+    max-height: none;
+  }
+
+  .challenge .challenge__options {
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  }
+
+  .challenge .tile {
+    min-height: 110px;
+  }
+
+  .challenge .challenge__header {
+    padding-left: 56px;
+  }
+
+  .challenge .drag {
+    grid-template-columns: 1.5fr 1fr;
+  }
+
+  .challenge .drag__tray,
+  .challenge .drag__target {
+    min-height: 100px;
+  }
+}
+
+.pieces {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.pieces__slots,
+.pieces__tray,
+.pieces__groups,
+.pieces__columns {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.pieces__tray {
+  min-height: var(--touch);
+}
+
+.pieces__slot {
+  min-width: calc(var(--touch) + 12px);
+  min-height: calc(var(--touch) + 12px);
+  border: 4px dashed var(--ink-soft);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.piece {
+  position: relative;
+  min-width: var(--touch);
+  min-height: var(--touch);
+  padding: 4px 12px;
+  border: none;
+  border-radius: 18px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.12);
+}
+
+.piece__text {
+  font-size: 1.9rem;
+  font-weight: 900;
+}
+
+.piece__text--long {
+  font-size: 1.3rem;
+}
+
+.piece__picture {
+  font-size: 2.4rem;
+}
+
+.pieces__columns {
+  flex-wrap: nowrap;
+  justify-content: space-around;
+}
+
+.pieces__column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.piece.is-chosen {
+  outline: 6px solid var(--sky);
+}
+
+.piece.is-hinted,
+.pieces__group.is-hinted {
+  outline: 8px solid var(--sun);
+}
+
+.piece.is-linked {
+  background: var(--link);
+}
+
+.piece.is-linked::after {
+  content: attr(data-link);
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 900;
+  line-height: 26px;
+}
+
+.pieces__place {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.pieces__group {
+  min-height: 80px;
+  border: 4px dashed var(--ink-soft);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.pieces__group-box {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--touch);
+}
+
+.pieces .drag__done:disabled {
+  opacity: 0.45;
+}
+
+/* The panel says it all while studying: the balloon would only cover the board. */
+body:has(.challenge.is-visible) .dialog {
+  visibility: hidden;
+}
+
+@media (orientation: portrait) {
+  .challenge .challenge__options {
+    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  }
+
+  .challenge .tile {
+    min-height: 84px;
+  }
+
+  .challenge .challenge__header {
+    gap: 10px;
+  }
+
+  .challenge .mission__title {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-height: 500px) {
+  .challenge .mission__sheet {
+    padding: 8px 14px 12px;
+  }
+
+  .challenge .challenge__header {
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .challenge .mission__title {
+    font-size: 1.1rem;
+  }
+
+  .challenge .challenge__dot {
+    font-size: 1rem;
+  }
+
+  .challenge .challenge__step {
+    width: 14px;
+    height: 14px;
+  }
+
+  .challenge .tile {
+    min-height: 72px;
+  }
+
+  .challenge__board {
+    margin: 4px 0;
+    padding: 2px 8px;
+  }
+
+  .challenge__question {
+    font-size: 1rem;
+  }
+}

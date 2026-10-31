@@ -12,4 +12,5 @@ export interface InteractionView {
 export type InteractionFactory<K extends Interaction['kind']> = (
   interaction: Extract<Interaction, { kind: K }>,
   onAnswer: (answerId: string) => void,
+  onCarry?: (count: number) => void,
 ) => InteractionView;

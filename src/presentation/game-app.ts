@@ -13,6 +13,7 @@ import { firstDay, type DayState } from '@domain/day/day-plan';
 import { comfortIn, phaseOf, weatherOf, type Phase, type Weather } from '@domain/day/weather';
 import { startRoutine, stepRoutine } from '@domain/people/routine';
 import type { PlayerProfile } from '@domain/profile/player-profile';
+import type { Station } from '@domain/curriculum/skill';
 import { sessionTimeStatus } from '@domain/session/session';
 import { defaultSettings, type Settings } from '@domain/settings/settings';
 import { Mascot } from '@presentation/actors/mascot';
@@ -65,7 +66,6 @@ import { GoalMarker } from '@presentation/world/goal-marker';
 import type { Interactable } from '@presentation/world/interactable';
 import { captureMap } from '@presentation/world/map-snapshot';
 import type { RoadEvent } from '@presentation/world/road-safety';
-import { skillOfStation } from '@presentation/world/stations';
 import { standSpots, thingOf } from '@presentation/world/house';
 import { WorldAssets } from '@presentation/world/world-assets';
 import '@presentation/ui/styles.css';
@@ -230,6 +230,10 @@ export class GameApp implements GameContext {
 
   get session(): SessionController {
     return this.day;
+  }
+
+  practice(subject: Station, onLeave: () => void): Promise<void> {
+    return this.learning.open(subject, onLeave);
   }
 
   get player(): PlayerServices {
@@ -982,7 +986,7 @@ export class GameApp implements GameContext {
     const gesture = this.gestureNow(position, world);
     this.controls.setGesture(gesture);
     this.padHints.setGesture(gesture);
-    const nearby = this.offeredPlace(position);
+    const nearby = this.nearbyPlace(position);
     if (nearby === undefined) this.controls.hideAction();
     else this.controls.showAction(nearby.icon, nearby.label);
 
@@ -999,17 +1003,6 @@ export class GameApp implements GameContext {
       }
     }
     if (input.consumeAction() && nearby !== undefined) void this.use(nearby);
-  }
-
-  /** On the way to a station, the others do not offer themselves along the road. */
-  private offeredPlace(position: THREE.Vector3): Interactable | undefined {
-    const nearby = this.nearbyPlace(position);
-    const passing =
-      this.destination !== undefined &&
-      nearby !== this.destination &&
-      nearby !== undefined &&
-      skillOfStation(nearby.id) !== undefined;
-    return passing ? undefined : nearby;
   }
 
   private nearbyPlace(position: THREE.Vector3): Interactable | undefined {
@@ -1044,13 +1037,6 @@ export class GameApp implements GameContext {
     if (place.id === CityPlace.home) {
       this.sound('open');
       await this.home.comeHome();
-      return;
-    }
-    const skill = skillOfStation(place.id);
-    if (skill !== undefined) {
-      this.sound('open');
-      if (await this.day.arrive(skill)) return;
-      await this.learning.open(skill);
       return;
     }
   }
@@ -1235,6 +1221,15 @@ export class GameApp implements GameContext {
   private exposeDevTools(): void {
     Object.assign(window, {
       lilo: {
+        drill: async (skillId: string) => {
+          const lines = await this.player.planSession.overview();
+          const skill = lines.find((line) => line.skill.id === skillId)?.skill;
+          if (skill === undefined) return;
+          await this.learning.openPlanned(
+            { skill, role: 'play', length: 3, isNew: false },
+            () => undefined,
+          );
+        },
         goTo: (placeId: string) => {
           const place = this.gameWorld?.places.find((p) => p.id === placeId);
           if (place !== undefined) this.character?.placeAt(place.position, 0);

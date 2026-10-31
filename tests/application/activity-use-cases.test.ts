@@ -12,10 +12,12 @@ import { StaticContentCatalog } from '@infrastructure/catalog/static-content-cat
 import { InMemoryProgressRepository } from '@infrastructure/persistence/in-memory-progress-repository';
 import { content, FakeSpeech, FixedClock } from '../support/fixtures';
 
-const wrongAnswer = ({ item: { interaction } }: ActivityRound): string =>
-  interaction.kind === 'tap'
-    ? (interaction.options.find((o) => o.id !== interaction.answerId)?.id ?? '')
-    : String(interaction.goal + 1);
+const wrongAnswer = ({ item: { interaction } }: ActivityRound): string => {
+  if (interaction.kind === 'tap') {
+    return interaction.options.find((o) => o.id !== interaction.answerId)?.id ?? '';
+  }
+  return interaction.kind === 'drag' ? String(interaction.goal + 1) : 'wrong';
+};
 
 describe('activity use cases', () => {
   let speech: FakeSpeech;

@@ -201,14 +201,14 @@ Objetivo: o mundo muda e a criança responde a isso.
 
 Objetivo: gramática, matemática e conhecimentos gerais dentro da rotina.
 
-- [ ] **C6.1 Lugar de estudo.** Escrivaninha em casa e carteira na escola abrem as atividades. Pronto: estações saem da rua.
-- [ ] **C6.2 Sessão de estudo.** `planSession` passa a alimentar o passo "Estudar" da agenda. Pronto: três atividades curtas, depois recompensa.
-- [ ] **C6.3 Mostrar em 3D.** Contar maçãs de verdade na mesa, letra no quadro, objeto na carteira. Pronto: a contagem usa objetos 3D em vez de emoji.
-- [ ] **C6.4 Trilha de gramática.** Vogais, sílabas, rimas, plural, artigos, frase simples. Pronto: habilidades com geradores e sem resposta entregue. Áudio depende da gravação.
-- [ ] **C6.5 Trilha de matemática.** Sequência numérica, maior e menor, somar, subtrair, formas, horas simples, dinheiro. Pronto: progressão com degraus.
-- [ ] **C6.6 Trilha de conhecimentos gerais.** Corpo, animais, plantas, tempo, profissões, Brasil, cuidados. Pronto: nova trilha e catálogo de perguntas.
-- [ ] **C6.7 Interações novas.** Ligar, ordenar, separar em grupos, completar. Pronto: cada uma com controle, toque e teclado.
-- [ ] **C6.8 Painel do adulto.** Habilidades por trilha, com prioridade e dificuldade. Pronto: atualizado para as novas trilhas.
+- [x] **C6.1 Lugar de estudo.** Escrivaninha em casa abre as atividades, também fora do passo do dia, e as estações saíram da rua. A carteira da escola fica para quando a sala de aula virar um lugar 3D (C10); a mesa já não depende da casa para mostrar o conteúdo.
+- [x] **C6.2 Sessão de estudo.** `planSession` alimenta o passo "Estudar" da agenda: três atividades curtas, uma de cada trilha sempre que dá, depois recompensa.
+- [x] **C6.3 Mostrar em 3D.** Mesa e quadro vistos pelos olhos da criança: objetos de verdade para contar, pratos para somar e comparar, coisas que saem de verdade ao subtrair, relógio, dinheiro de brinquedo e cesta que enche enquanto a criança leva as peças. O painel guarda só a versão para leitor de tela. Bichos e coisas sem modelo aparecem como figura sobre a mesa.
+- [x] **C6.4 Trilha de gramática.** Vogais, sílabas, rimas, plural, artigos, frase simples, com geradores e sem resposta entregue. Áudio depende da gravação; a ordem pede revisão de fono (D12).
+- [x] **C6.5 Trilha de matemática.** Sequência numérica, maior e menor, somar, subtrair, formas, horas simples e dinheiro, com progressão por pré-requisitos.
+- [x] **C6.6 Trilha de conhecimentos gerais.** Corpo, animais, plantas, tempo, profissões, Brasil e cuidados, com catálogo de perguntas. O conteúdo é proposta e passa pela revisão do D12; perguntas sobre comida saudável ficaram de fora de propósito, por causa da seletividade alimentar.
+- [x] **C6.7 Interações novas.** Ligar, ordenar, separar em grupos e completar, todas feitas de botões, então funcionam com toque e teclado. O teste com controle físico segue pendente.
+- [x] **C6.8 Painel do adulto.** Habilidades por trilha, com prioridade, e dificuldade por trilha: com calma encurta as atividades, mais desafio abre habilidades sem esperar as anteriores.
 
 ### C7. Rua viva e calçadas livres
 

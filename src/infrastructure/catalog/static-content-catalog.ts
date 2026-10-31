@@ -7,6 +7,7 @@ import type { Mission, MissionId } from '@domain/mission/mission';
 import type { World } from '@domain/world/world';
 import { avatars, missions, wardrobeItems, worlds } from '@infrastructure/catalog/content';
 import { math } from '@infrastructure/catalog/curriculum/math';
+import { knowledge } from '@infrastructure/catalog/curriculum/knowledge';
 import { portuguese } from '@infrastructure/catalog/curriculum/portuguese';
 import { wordBank } from '@infrastructure/catalog/curriculum/word-bank';
 import pictograms from '@infrastructure/catalog/pictograms.json';
@@ -37,7 +38,7 @@ export function withWordPicture(word: Word): Word {
   return typeof id === 'number' ? { ...word, image: `pictograms/${id}.webp` } : word;
 }
 
-export const curriculum: readonly SkillDefinition[] = [...portuguese, ...math];
+export const curriculum: readonly SkillDefinition[] = [...portuguese, ...math, ...knowledge];
 
 const defaultContent: GameContent = {
   worlds,

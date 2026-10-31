@@ -4,17 +4,22 @@ import { MAX_LEVEL } from '@domain/curriculum/skill';
 import type { Sticker } from '@domain/stickers/sticker';
 import { dragInteraction } from '@presentation/ui/activity/interactions/drag';
 import type { InteractionView } from '@presentation/ui/activity/interactions/interaction-view';
+import { matchInteraction } from '@presentation/ui/activity/interactions/match';
+import { orderInteraction } from '@presentation/ui/activity/interactions/order';
+import { sortInteraction } from '@presentation/ui/activity/interactions/sort';
 import { tapInteraction } from '@presentation/ui/activity/interactions/tap';
 import { renderStimulus } from '@presentation/ui/activity/stimulus';
 import { h, replayAnimation } from '@presentation/ui/dom';
 import { repeatButton } from '@presentation/ui/repeat-button';
-import type { StationLook } from '@presentation/world/stations';
+import type { StudyLook } from '@presentation/ui/study-looks';
 
 export interface ActivityPanelCallbacks {
   onChoose(optionId: string): void;
   onAgain(): void;
   onExit(): void;
   onRepeat(): void;
+  /** How many pieces were carried so far. */
+  onCarry(count: number): void;
   /** What to put on screen for something the game says. */
   written(spoken: Spoken): string;
 }
@@ -22,10 +27,24 @@ export interface ActivityPanelCallbacks {
 /** What the round's end offers: going on here, or the next thing of the day. */
 export type RoundEnding = 'again' | 'leave-only' | 'onward';
 
-const viewOf = (interaction: Interaction, onAnswer: (id: string) => void): InteractionView =>
-  interaction.kind === 'tap'
-    ? tapInteraction(interaction, onAnswer)
-    : dragInteraction(interaction, onAnswer);
+function viewOf(
+  interaction: Interaction,
+  onAnswer: (id: string) => void,
+  onCarry: (count: number) => void,
+): InteractionView {
+  switch (interaction.kind) {
+    case 'tap':
+      return tapInteraction(interaction, onAnswer);
+    case 'drag':
+      return dragInteraction(interaction, onAnswer, onCarry);
+    case 'order':
+      return orderInteraction(interaction, onAnswer);
+    case 'match':
+      return matchInteraction(interaction, onAnswer);
+    case 'sort':
+      return sortInteraction(interaction, onAnswer);
+  }
+}
 
 /**
  * The same stage for every activity: the way of the day and the round on top,
@@ -61,14 +80,14 @@ export class ActivityPanel {
     const exit = h('button', {
       className: 'panel__close',
       text: '✕',
-      attrs: { type: 'button', 'aria-label': 'Sair da estação' },
+      attrs: { type: 'button', 'aria-label': 'Parar de estudar' },
       onTap: () => {
         callbacks.onExit();
       },
     });
     this.element = h(
       'section',
-      { className: 'mission challenge', attrs: { 'aria-label': 'Estação de aprendizado' } },
+      { className: 'mission challenge', attrs: { 'aria-label': 'Estudar' } },
       [
         h('div', { className: 'mission__sheet' }, [
           exit,
@@ -86,7 +105,7 @@ export class ActivityPanel {
     );
   }
 
-  open(look: StationLook, round: ActivityRound): void {
+  open(look: StudyLook, round: ActivityRound): void {
     this.title.dataset.icon = look.icon;
     this.element.style.setProperty('--station', look.color);
     this.title.textContent = `${look.icon} ${look.name}`;
@@ -115,9 +134,15 @@ export class ActivityPanel {
     this.show.replaceChildren(...(stimulus === null ? [] : [stimulus]));
     this.show.classList.toggle('is-hidden', item.stimulus.kind === 'none');
     this.question.textContent = this.callbacks.written(item.prompt);
-    this.view = viewOf(item.interaction, (answerId) => {
-      this.callbacks.onChoose(answerId);
-    });
+    this.view = viewOf(
+      item.interaction,
+      (answerId) => {
+        this.callbacks.onChoose(answerId);
+      },
+      (count) => {
+        this.callbacks.onCarry(count);
+      },
+    );
     this.options.replaceChildren(this.view.element);
     replayAnimation(this.options, 'is-new');
   }
@@ -132,8 +157,9 @@ export class ActivityPanel {
   }
 
   /** The answer is shown: only the right way stays active. */
-  showAnswer(): void {
+  showAnswer(teach: Spoken): void {
     this.view?.showAnswer();
+    this.question.textContent = this.callbacks.written(teach);
   }
 
   /** False when this way of answering has no gentler help than showing the answer. */

@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import { phrases } from '@application/phrases';
 import { writtenOf, type Spoken } from '@domain/activity/activity';
 import type { ActivityRound } from '@domain/activity/activity-round';
@@ -6,7 +5,7 @@ import type { PlannedActivity } from '@domain/curriculum/session-plan';
 import type { Station } from '@domain/curriculum/skill';
 import type { GameContext } from '@presentation/game-context';
 import { ActivityPanel, type RoundEnding } from '@presentation/ui/activity/activity-panel';
-import { stationId, stationLooks } from '@presentation/world/stations';
+import { studyLooks } from '@presentation/ui/study-looks';
 
 /** Pause after a right answer, so the child sees the praise before the next question. */
 const NEXT_QUESTION_MS = 1300;
@@ -35,13 +34,14 @@ export class ActivityController {
   private station: Station | undefined;
   private roundCoins = 0;
   private plan: Plan | undefined;
+  private onLeave: (() => void) | undefined;
   private readonly timers: number[] = [];
 
   constructor(private readonly ctx: GameContext) {
     this.panel = new ActivityPanel({
       onChoose: (answerId) => void this.choose(answerId),
       onAgain: () => {
-        if (this.station !== undefined) void this.open(this.station);
+        if (this.station !== undefined) void this.open(this.station, this.onLeave);
       },
       onExit: () => {
         this.exit();
@@ -50,6 +50,9 @@ export class ActivityController {
         const round = this.round;
         if (round === undefined) return;
         this.ask(round.isModeling ? round.item.teach : round.item.prompt);
+      },
+      onCarry: (count) => {
+        this.desk.carry(count);
       },
       written: (spoken) => this.written(spoken),
     });
@@ -61,9 +64,10 @@ export class ActivityController {
     }
   }
 
-  /** Free practice at a station, at the level the child reached. */
-  async open(station: Station): Promise<void> {
+  /** Free practice of a subject, at the level the child reached. */
+  async open(station: Station, onLeave?: () => void): Promise<void> {
     this.plan = undefined;
+    this.onLeave = onLeave;
     const round = await this.ctx.player.startActivity.execute(station);
     this.begin(station, round);
     this.ctx.dialog.say(this.written(round.item.prompt));
@@ -83,17 +87,47 @@ export class ActivityController {
   }
 
   exit(): void {
-    const plan = this.plan;
+    const { plan, onLeave } = this;
     this.close();
-    if (plan === undefined) this.ctx.backToExploring();
-    else plan.onEnd(plan.finished);
+    if (plan !== undefined) {
+      plan.onEnd(plan.finished);
+      return;
+    }
+    this.ctx.backToExploring();
+    onLeave?.();
   }
 
   close(): void {
     this.stopWatching();
     this.round = undefined;
     this.plan = undefined;
+    this.onLeave = undefined;
+    this.desk.hide();
+    this.ctx.avatar.root.visible = true;
     this.panel.close();
+  }
+
+  private get desk() {
+    return this.ctx.world.house.study;
+  }
+
+  /** The question, in the room and on the panel. */
+  private render(round: ActivityRound): void {
+    this.desk.calm = this.ctx.settings.reducedMotion;
+    this.desk.show(round.item);
+    this.panel.render(round);
+  }
+
+  /** The child's own view of the desk, where the answers do not cover it. */
+  private lookAtDesk(): void {
+    const { house } = this.ctx.world;
+    const [from, at] = this.desk.view(window.innerWidth > window.innerHeight);
+    const [fx = 0, fy = 0, fz = 0] = from;
+    const [ax = 0, ay = 0, az = 0] = at;
+    this.ctx.rig.setFocus(
+      house.world({ x: fx, z: fz }).setY(fy),
+      house.world({ x: ax, z: az }).setY(ay),
+    );
   }
 
   private written(spoken: Spoken): string {
@@ -109,18 +143,11 @@ export class ActivityController {
     this.station = station;
     this.roundCoins = 0;
     this.ctx.enterPanel('learning');
-    const place = this.ctx.world.places.find((p) => p.id === stationId(station));
-    if (place !== undefined) {
-      this.ctx.avatar.placeAt(place.position, 0);
-      const { x, y, z } = place.position;
-      // From the street side (main street at z = 0), looking at the station.
-      const side = Math.sign(z) || 1;
-      this.ctx.rig.setFocus(
-        new THREE.Vector3(x + 2.5, y + 3.4, z - 6 * side),
-        new THREE.Vector3(x, y + 1.4, z + 2.6 * side),
-      );
-    }
-    this.panel.open(stationLooks[station], round);
+    this.ctx.avatar.root.visible = false;
+    this.lookAtDesk();
+    this.desk.calm = this.ctx.settings.reducedMotion;
+    this.desk.show(round.item);
+    this.panel.open(studyLooks[station], round);
   }
 
   private stopWatching(): void {
@@ -162,7 +189,8 @@ export class ActivityController {
     if (round === undefined) return;
     this.round = round;
     this.stopWatching();
-    this.panel.showAnswer();
+    this.panel.showAnswer(round.item.teach);
+    this.desk.countAlong();
     this.ctx.say(round.item.teach.text);
   }
 
@@ -182,7 +210,8 @@ export class ActivityController {
       const { outcome } = result;
       if (outcome.kind === 'model') {
         this.ctx.sound('hint');
-        this.panel.showAnswer();
+        this.panel.showAnswer(current.item.teach);
+        this.desk.countAlong();
         this.ctx.dialog.say(current.item.teach.text);
         return;
       }
@@ -208,6 +237,7 @@ export class ActivityController {
         if (this.plan !== undefined) this.plan.finished = true;
         // The answers are gone from the screen, and nothing can answer this round again.
         this.round = undefined;
+        this.desk.hide();
         this.panel.showResult(outcome.summary, this.roundCoins, this.ending());
         if (outcome.summary.reachedLevel !== undefined) this.ctx.avatar.playEmote('Dance');
         this.ctx.dialog.say(
@@ -215,7 +245,7 @@ export class ActivityController {
         );
         return;
       }
-      this.panel.render(result.round);
+      this.render(result.round);
       // Said now, with the new answers on screen, so voice and picture go together.
       this.ask(result.round.item.prompt);
     } finally {

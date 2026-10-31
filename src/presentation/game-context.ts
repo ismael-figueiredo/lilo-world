@@ -11,6 +11,7 @@ import type { PlayerProfile } from '@domain/profile/player-profile';
 import type { Settings } from '@domain/settings/settings';
 import type { Player } from '@presentation/actors/player';
 import type { CameraRig } from '@presentation/engine/camera-rig';
+import type { Station } from '@domain/curriculum/skill';
 import type { SessionController } from '@presentation/controllers/session-controller';
 import type { Dialog } from '@presentation/ui/dialog';
 import type { GameWorld } from '@presentation/world/game-world';
@@ -48,6 +49,8 @@ export interface GameContext {
   readonly restIsDue: boolean;
   /** The day's plan, also reachable from the menu. */
   readonly session: SessionController;
+  /** Free study of a subject, at the desk. */
+  practice(subject: Station, onLeave: () => void): Promise<void>;
   /** Life inside the house. */
   readonly home: HomeController;
   readonly wardrobe: WardrobeController;

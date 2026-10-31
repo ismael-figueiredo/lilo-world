@@ -6,32 +6,33 @@ Documento vivo para continuar o desenvolvimento em qualquer sessão. Visão e pr
 
 ## Onde estamos
 
-| Sprint                                                                                       | Status     | Commit    |
-| -------------------------------------------------------------------------------------------- | ---------- | --------- |
-| Protótipo 3D (ilha, cidade, missão do mercado, guarda-roupa)                                 | ✅ feito   | `1fa268b` |
-| 1: perfis, salvamento, menu, ajustes, mapa, limite de tempo, som                             | ✅ feito   | `f5008d0` |
-| 2: 9 avatares (crianças, animais, robô), pipeline de assets                                  | ✅ feito   | `6bc1982` |
-| 3: mundo bonito (modelos CC0), água bloqueada, controle (gamepad)                            | ✅ feito   | `1d61174` |
-| 4a: padaria (CAA), ônibus (sequência), semáforo (no mundo 3D)                                | ✅ feito   | `a8f4dfd` |
-| 4b: estações de aprendizado, figurinhas, alfabeto, caixa do mercado                          | ✅ feito   | `2780634` |
-| 4c: missões sorteadas, receitas no mercado, bairro sul com praça                             | ✅ feito   | `0d41a2d` |
-| 4d: mundo Natureza (acampamento, fazenda, horta, reciclagem)                                 | ✅ feito   | `3139b1f` |
-| 4e: mundo Casa (banheiro, quarto, cozinha)                                                   | ✅ feito   | `1ff1687` |
-| 4f: mundo Escola e Parque (mochila, falar na escola, esperar a vez)                          | ✅ feito   | `1c4509a` |
-| 4g: mundo Emoções (rostos, histórias, ficar calmo)                                           | ✅ feito   | `7d69f80` |
-| 4h: mercado 3D por dentro                                                                    | ✅ feito   | `275d889` |
-| Vida real 1: controle, faixas, ensino sem adivinhação, CAA, ARASAAC                          | ✅ feito   | —         |
-| Currículo 0 a 2: voz, sensorial, motor único, arrastar, sessão de 10 minutos                 | ✅ feito   | —         |
-| Vida real C0: nada entrega a resposta, frases por id, ajuda gentil, degraus                  | ✅ feito   | —         |
-| Vida real C1: botões de console, cumprimentar, pulo por lugar, pausa calma                   | ✅ feito   | —         |
-| Vida real C2: zonas sob demanda, mundo mais leve, qualidade automática, jogo offline         | ✅ feito   | —         |
-| Vida real C3: criança feita por código, criador, roupas, ações, rostos e pessoas da cidade   | ✅ feito   | —         |
-| Vida real C4: o jogo começa em casa, com agenda do dia; portais e travas por estrelas saíram | ✅ feito   | —         |
-| Vida real C5: fases do dia, clima com semente, céu, chuva, janela, roupa e sons do tempo     | ✅ feito   | —         |
-| Currículo 3: áudio gravado, rimas, vogais e sílabas (depende da gravação)                    | ⏭️ próximo | —         |
-| Vida real 2: casa e mercado para andar, agenda do dia, fim dos portais, receita completa     | ⏳ depois  | —         |
-| Vida real 3: ônibus de verdade, escola e fazenda caminháveis, histórias em figuras           | ⏳ depois  | —         |
-| Mundo vivo                                                                                   | ⏳ depois  | —         |
+| Sprint                                                                                        | Status     | Commit    |
+| --------------------------------------------------------------------------------------------- | ---------- | --------- |
+| Protótipo 3D (ilha, cidade, missão do mercado, guarda-roupa)                                  | ✅ feito   | `1fa268b` |
+| 1: perfis, salvamento, menu, ajustes, mapa, limite de tempo, som                              | ✅ feito   | `f5008d0` |
+| 2: 9 avatares (crianças, animais, robô), pipeline de assets                                   | ✅ feito   | `6bc1982` |
+| 3: mundo bonito (modelos CC0), água bloqueada, controle (gamepad)                             | ✅ feito   | `1d61174` |
+| 4a: padaria (CAA), ônibus (sequência), semáforo (no mundo 3D)                                 | ✅ feito   | `a8f4dfd` |
+| 4b: estações de aprendizado, figurinhas, alfabeto, caixa do mercado                           | ✅ feito   | `2780634` |
+| 4c: missões sorteadas, receitas no mercado, bairro sul com praça                              | ✅ feito   | `0d41a2d` |
+| 4d: mundo Natureza (acampamento, fazenda, horta, reciclagem)                                  | ✅ feito   | `3139b1f` |
+| 4e: mundo Casa (banheiro, quarto, cozinha)                                                    | ✅ feito   | `1ff1687` |
+| 4f: mundo Escola e Parque (mochila, falar na escola, esperar a vez)                           | ✅ feito   | `1c4509a` |
+| 4g: mundo Emoções (rostos, histórias, ficar calmo)                                            | ✅ feito   | `7d69f80` |
+| 4h: mercado 3D por dentro                                                                     | ✅ feito   | `275d889` |
+| Vida real 1: controle, faixas, ensino sem adivinhação, CAA, ARASAAC                           | ✅ feito   | —         |
+| Currículo 0 a 2: voz, sensorial, motor único, arrastar, sessão de 10 minutos                  | ✅ feito   | —         |
+| Vida real C0: nada entrega a resposta, frases por id, ajuda gentil, degraus                   | ✅ feito   | —         |
+| Vida real C1: botões de console, cumprimentar, pulo por lugar, pausa calma                    | ✅ feito   | —         |
+| Vida real C2: zonas sob demanda, mundo mais leve, qualidade automática, jogo offline          | ✅ feito   | —         |
+| Vida real C3: criança feita por código, criador, roupas, ações, rostos e pessoas da cidade    | ✅ feito   | —         |
+| Vida real C4: o jogo começa em casa, com agenda do dia; portais e travas por estrelas saíram  | ✅ feito   | —         |
+| Vida real C5: fases do dia, clima com semente, céu, chuva, janela, roupa e sons do tempo      | ✅ feito   | —         |
+| Vida real C6: estudo na escrivaninha, com mesa e quadro em 3D, três trilhas e novas respostas | ✅ feito   | —         |
+| Currículo 3: áudio gravado, rimas, vogais e sílabas (depende da gravação)                     | ⏭️ próximo | —         |
+| Vida real 2: casa e mercado para andar, agenda do dia, fim dos portais, receita completa      | ⏳ depois  | —         |
+| Vida real 3: ônibus de verdade, escola e fazenda caminháveis, histórias em figuras            | ⏳ depois  | —         |
+| Mundo vivo                                                                                    | ⏳ depois  | —         |
 
 ## Sprint 3: mundo bonito, água e controle (feito)
 

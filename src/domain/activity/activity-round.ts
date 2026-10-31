@@ -1,5 +1,6 @@
 import {
   answerOf,
+  scrambled,
   type ActivityContext,
   type ActivityItem,
   type Interaction,
@@ -68,10 +69,21 @@ interface State {
 const keyOf = (item: ActivityItem): string =>
   `${item.prompt.text}|${JSON.stringify(item.stimulus)}`;
 
-const reshuffled = (interaction: Interaction, context: ActivityContext): Interaction =>
-  interaction.kind === 'tap'
-    ? { ...interaction, options: shuffled(context.random, interaction.options) }
-    : interaction;
+/** A question that comes back must not look solved or remembered by position. */
+function reshuffled(interaction: Interaction, { random }: ActivityContext): Interaction {
+  switch (interaction.kind) {
+    case 'tap':
+      return { ...interaction, options: shuffled(random, interaction.options) };
+    case 'drag':
+      return interaction;
+    case 'order':
+      return { ...interaction, pieces: scrambled(random, interaction.pieces, interaction.answer) };
+    case 'match':
+      return { ...interaction, right: shuffled(random, interaction.right) };
+    case 'sort':
+      return { ...interaction, pieces: shuffled(random, interaction.pieces) };
+  }
+}
 
 const newItem = (config: RoundConfig, context: ActivityContext): ActivityItem => {
   const skill = pick(context.random, config.skills);

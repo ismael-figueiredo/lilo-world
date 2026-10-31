@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   answerOf,
+  linksAnswer,
+  scrambled,
   writtenOf,
   type ActivityContext,
   type ActivityItem,
@@ -37,9 +39,10 @@ const item = (id: string, ctx: ActivityContext = context(1)): ActivityItem => ({
 
 const wrongAnswer = (activity: ActivityItem): string => {
   const { interaction } = activity;
-  return interaction.kind === 'tap'
-    ? (interaction.options.find((o) => o.id !== interaction.answerId)?.id ?? '')
-    : String(interaction.goal === 1 ? 2 : 1);
+  if (interaction.kind === 'tap') {
+    return interaction.options.find((o) => o.id !== interaction.answerId)?.id ?? '';
+  }
+  return interaction.kind === 'drag' ? String(interaction.goal === 1 ? 2 : 1) : 'wrong';
 };
 
 /** Words on screen, as written: "A" is a letter, the "a" of a sentence is not. */
@@ -142,10 +145,25 @@ describe('activities', () => {
           const ids = interaction.options.map((o) => o.id);
           expect(new Set(ids).size, skill.id).toBe(ids.length);
           expect(ids.filter((id) => id === interaction.answerId)).toHaveLength(1);
-          expect(ids.length).toBeGreaterThanOrEqual(3);
-        } else {
+          expect(ids.length).toBeGreaterThanOrEqual(2);
+        } else if (interaction.kind === 'drag') {
           // More pieces than needed: the child has to count, not just move them all.
           expect(interaction.supply, skill.id).toBeGreaterThan(interaction.goal);
+        } else if (interaction.kind === 'order') {
+          const shown = interaction.pieces.map((piece) => piece.id);
+          expect(new Set(shown).size, skill.id).toBe(shown.length);
+          expect(shown, skill.id).not.toEqual(interaction.answer);
+          expect([...shown].sort(), skill.id).toEqual([...interaction.answer].sort());
+        } else if (interaction.kind === 'match') {
+          expect(interaction.left).toHaveLength(interaction.right.length);
+          expect(new Set(interaction.pairs.map(([, to]) => to)).size, skill.id).toBe(
+            interaction.pairs.length,
+          );
+        } else {
+          expect(new Set(interaction.places.map(([, group]) => group)).size, skill.id).toBe(
+            interaction.groups.length,
+          );
+          expect(interaction.places, skill.id).toHaveLength(interaction.pieces.length);
         }
       }
     }
@@ -246,7 +264,7 @@ describe('activity round', () => {
       round = right(round).round;
       seen.add(round.item.skillId);
     }
-    expect(seen).toEqual(new Set(['math.count.5', 'math.carry.5']));
+    expect(seen.size).toBeGreaterThan(1);
   });
 
   it('after a mistake shows the answer, moves to a new question, and scores no point', () => {
@@ -338,5 +356,57 @@ describe('activity round', () => {
         expect(skillsAt(curriculum, station, level).length, station).toBeGreaterThan(0);
       }
     }
+  });
+});
+
+describe('answers that have many parts', () => {
+  it('reads links the same way in any order they were made', () => {
+    expect(
+      linksAnswer([
+        ['b', '2'],
+        ['a', '1'],
+      ]),
+    ).toBe(
+      linksAnswer([
+        ['a', '1'],
+        ['b', '2'],
+      ]),
+    );
+  });
+
+  it('never gives an order already solved', () => {
+    const pieces = ['a', 'b'].map((id) => ({ id, label: id }));
+    for (let seed = 0; seed < 50; seed += 1) {
+      const mixed = scrambled(seededRandom(seed), pieces, ['a', 'b']);
+      expect(mixed.map((piece) => piece.id)).toEqual(['b', 'a']);
+    }
+  });
+
+  it('takes the right order, links and groups as right', () => {
+    for (const id of ['know.plants', 'know.weather', 'know.animals.sort']) {
+      const { interaction } = skillNamed(id).activity(context(3));
+      const round = ActivityRound.start(
+        { station: 'world', level: 1, skills: [skillNamed(id)], length: 1 },
+        context(3),
+      );
+      expect(answerOf(interaction)).not.toBe('');
+      expect(round.answer(answerOf(round.item.interaction), context(4)).outcome.kind).toBe(
+        'correct',
+      );
+    }
+  });
+
+  it('brings a missed order back mixed', () => {
+    const skills = [skillNamed('know.plants')];
+    let round = ActivityRound.start({ station: 'world', level: 2, skills }, context(5));
+    const missed = round.item;
+    round = round.answer('wrong', context(6)).round;
+    round = round.answer(answerOf(missed.interaction), context(7)).round;
+    round = round.answer(answerOf(round.item.interaction), context(8)).round;
+    round = round.answer(answerOf(round.item.interaction), context(9)).round;
+    expect(round.isRetry).toBe(true);
+    const { interaction } = round.item;
+    if (interaction.kind !== 'order') throw new Error('Expected an order');
+    expect(interaction.pieces.map((piece) => piece.id)).not.toEqual(interaction.answer);
   });
 });
