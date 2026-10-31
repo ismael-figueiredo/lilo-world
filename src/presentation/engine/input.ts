@@ -37,6 +37,8 @@ export class Input {
   private dragPointer: number | null = null;
   private lastPointer = { x: 0, y: 0 };
   enabled = true;
+  /** The controls rest, but the child can still look around. */
+  lookOnly = false;
 
   constructor(private readonly surface: HTMLElement) {
     window.addEventListener('keydown', this.onKeyDown);
@@ -73,6 +75,12 @@ export class Input {
     this.look.y += frame.look.y * PAD_LOOK_SPEED * dt;
     if (frame.gesture) this.gestureQueued = true;
     if (frame.select) this.actionQueued = true;
+  }
+
+  /** Only the right stick: the rest of the controller is on a panel. */
+  applyPadLook(frame: PadFrame, dt: number): void {
+    this.look.x += frame.look.x * PAD_LOOK_SPEED * dt;
+    this.look.y += frame.look.y * PAD_LOOK_SPEED * dt;
   }
 
   setJoystick(input: MoveInput): void {
@@ -112,7 +120,7 @@ export class Input {
   consumeLook(): { x: number; y: number } {
     const look = this.look;
     this.look = { x: 0, y: 0 };
-    return this.enabled ? look : { x: 0, y: 0 };
+    return this.enabled || this.lookOnly ? look : { x: 0, y: 0 };
   }
 
   dispose(): void {

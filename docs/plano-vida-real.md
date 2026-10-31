@@ -258,15 +258,15 @@ Objetivo: ir à escola de forma animada e viver um dia de aula.
 
 Objetivo: lazer de verdade, com regras simples e colegas.
 
-- [ ] **C10.1 Base de minijogo.** Início, regras em figuras, fim, modo calmo, sem derrota. Pronto: interface comum.
-- [ ] **C10.2 Basquete.** Mirar e arremessar com um botão, com física simples e ajuda de mira. Pronto: criança acerta em até 5 tentativas com ajuda.
-- [ ] **C10.3 Futebol.** Passar e chutar ao gol. Pronto: colegas passam a bola.
-- [ ] **C10.4 Esconde-esconde.** Colegas se escondem em lugares visíveis. Pronto: sem sustos.
-- [ ] **C10.5 Amarelinha.** Pular e contar. Pronto: liga números e movimento.
-- [ ] **C10.6 Pega-bola e corda.** Brincadeira simples em dupla. Pronto: uma de cada vez, à escolha.
-- [ ] **C10.7 Brinquedos do pátio.** Balanço, escorregador, gangorra, esperando a vez. Pronto: substitui a missão em cartão.
-- [ ] **C10.8 Convidar um colega.** Cumprimentar, chamar para brincar, aceitar um não. Pronto: colega responde de formas variadas.
-- [ ] **C10.9 Educação física.** Aula com aquecimento e um esporte por vez. Pronto: entra na agenda da escola.
+- [x] **C10.1 Base de minijogo.** `PlayController`: regra em figura, poucas rodadas e fim feliz, sem derrota. Com "Reduzir movimento" a mira fica mais lenta.
+- [x] **C10.2 Basquete.** Um botão para em uma barra, e cada erro alarga a cesta: a quinta tentativa sempre entra.
+- [x] **C10.3 Futebol.** Tabela com um colega e chute ao gol.
+- [x] **C10.4 Esconde-esconde.** Colegas ficam atrás de arbustos baixos, sempre aparecendo, e acenam ao serem achados.
+- [x] **C10.5 Amarelinha.** Oito casas numeradas no chão, contadas a cada pulo.
+- [x] **C10.6 Pega-bola e corda.** Cada uma no seu lugar do pátio, à escolha. A corda ainda não é desenhada: é só o pulo contado.
+- [x] **C10.7 Brinquedos do pátio.** Balanço, escorregador e gangorra, sempre esperando a vez. A criança ainda usa uma pose sentada em vez de animação própria de cada brinquedo. A missão de cartão segue na ilha.
+- [x] **C10.8 Convidar um colega.** Colegas dizem sim, depois ou não, e o último chamado sempre aceita.
+- [x] **C10.9 Educação física.** Nos dias pares, aquecimento e um esporte, antes do recreio.
 
 ### C11. Sentimentos, do jeito certo
 

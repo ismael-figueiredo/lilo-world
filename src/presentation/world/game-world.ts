@@ -39,7 +39,7 @@ export class GameWorld {
   /** Where the child stands: only what is around them is drawn. */
   indoors = true;
   /** Walking inside a place far from the island: the market, the school. */
-  inside: WalkableSpace | undefined;
+  private space: WalkableSpace | undefined;
   private town: Town | undefined;
   private assets: Promise<WorldAssets> | undefined;
   private building: Promise<Town> | undefined;
@@ -93,9 +93,19 @@ export class GameWorld {
     return town;
   }
 
+  get inside(): WalkableSpace | undefined {
+    return this.space;
+  }
+
+  /** Into a place of its own, or back out: the weather stays outside. */
+  setInside(space: WalkableSpace | undefined): void {
+    this.space = space;
+    this.showOutside();
+  }
+
   /** The desk in use: the child's own, or the one of the place they are in. */
   get study(): StudyDesk {
-    return this.inside?.study ?? this.house.study;
+    return this.space?.study ?? this.house.study;
   }
 
   /** The town, once the child has opened the door. */
@@ -104,12 +114,12 @@ export class GameWorld {
   }
 
   get colliders(): readonly Collider[] {
-    if (this.inside !== undefined) return this.inside.walkColliders;
+    if (this.space !== undefined) return this.space.walkColliders;
     return this.indoors ? this.house.colliders : (this.town?.colliders ?? []);
   }
 
   get places(): readonly Interactable[] {
-    if (this.inside !== undefined) return this.inside.walkPlaces;
+    if (this.space !== undefined) return this.space.walkPlaces;
     return this.indoors ? this.house.places : (this.town?.places ?? []);
   }
 
@@ -124,13 +134,13 @@ export class GameWorld {
   }
 
   heightAt(x: number, z: number): number {
-    if (this.inside?.contains(x, z) === true) return this.inside.height;
+    if (this.space?.contains(x, z) === true) return this.space.height;
     if (this.house.contains(x, z)) return this.house.floor;
     return this.town?.shape.heightAt(x, z) ?? this.house.floor;
   }
 
   isWalkable(x: number, z: number): boolean {
-    if (this.inside !== undefined) return this.inside.contains(x, z);
+    if (this.space !== undefined) return this.space.contains(x, z);
     if (this.indoors) return this.house.contains(x, z);
     return this.town?.shape.isWalkable(x, z) ?? false;
   }
@@ -181,7 +191,7 @@ export class GameWorld {
     const look = skyLook(this.phase, this.weather);
     const shade = this.weather === 'rain' ? 1 : this.weather === 'cloudy' ? 0.6 : 0;
     this.town?.setSky(look.night, shade, this.weather === 'rain');
-    this.effects.group.visible = !this.indoors;
+    this.effects.group.visible = !this.indoors && this.space === undefined;
   }
 
   update(time: number, dt: number, focus: THREE.Vector3, face: THREE.Vector3): void {
@@ -190,7 +200,7 @@ export class GameWorld {
       this.house.study.update(dt);
     } else {
       this.town?.update(time, dt, focus);
-      this.inside?.study?.update(dt);
+      this.space?.study?.update(dt);
       this.effects.update(time, dt, focus, face);
     }
     this.sky.follow(focus, dt);

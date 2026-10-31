@@ -63,6 +63,8 @@ export interface GameContext {
   leaveSpace(doorId: string): void;
   /** Someone who stays where they are put, and answers a greeting. */
   addClassmate(member: CastMember): Player;
+  /** During a scene that takes a while: the camera stays in the child's hands. */
+  letLookAround(): void;
   /** The goal changed: arrows and the map show the new one. */
   refreshGoal(): void;
   /** Free study of a subject, at the desk. */

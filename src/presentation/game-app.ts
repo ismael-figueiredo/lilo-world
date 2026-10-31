@@ -287,7 +287,7 @@ export class GameApp implements GameContext {
 
   enterSpace(space: WalkableSpace): void {
     const world = this.world;
-    world.inside = space;
+    world.setInside(space);
     this.minimap.setVisible(false);
     this.rig.setIndoors(true);
     this.avatar.placeAt(space.entrance, Math.PI);
@@ -296,7 +296,7 @@ export class GameApp implements GameContext {
 
   leaveSpace(doorId: string): void {
     const world = this.world;
-    world.inside = undefined;
+    world.setInside(undefined);
     this.rig.setIndoors(false);
     const door = world.townPlaces.find((place) => place.id === doorId);
     if (door === undefined) return;
@@ -362,8 +362,13 @@ export class GameApp implements GameContext {
     this.minimap.setVisible(false);
     if (this.input !== undefined) {
       this.input.enabled = false;
+      this.input.lookOnly = false;
       this.input.reset();
     }
+  }
+
+  letLookAround(): void {
+    if (this.input !== undefined) this.input.lookOnly = true;
   }
 
   backToExploring(message?: string): void {
@@ -775,7 +780,7 @@ export class GameApp implements GameContext {
     const session = await this.player.loadSession.execute();
     const world = this.world;
     this.rig.clearFocus();
-    world.inside = undefined;
+    world.setInside(undefined);
     this.setIndoors(true);
     this.addGuardian(profile, world);
     const resumeAt =
@@ -837,7 +842,7 @@ export class GameApp implements GameContext {
     const exploring = this.currentMode === 'explore';
     this.pollGamepad(dt, input, exploring);
     const look = input.consumeLook();
-    if (exploring) rig.rotate(look.x, look.y);
+    if (exploring || input.lookOnly) rig.rotate(look.x, look.y);
 
     const move = exploring ? input.move : { x: 0, y: 0, running: false };
     if (exploring && input.consumeGesture()) this.gesture(player, world);
@@ -894,6 +899,7 @@ export class GameApp implements GameContext {
       return;
     }
     if (pad.pause) this.togglePause();
+    if (input.lookOnly) input.applyPadLook(pad, dt);
     if (!document.body.classList.contains('is-pad')) return;
     this.padFocus.keep();
     if (pad.navigate !== undefined) this.padFocus.move(pad.navigate);

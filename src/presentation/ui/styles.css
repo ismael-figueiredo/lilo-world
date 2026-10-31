@@ -3139,3 +3139,34 @@ body:has(.challenge.is-visible) .dialog {
   font-size: 1.3rem;
   font-weight: 900;
 }
+
+/* ---------- One button, aimed in time ---------- */
+.aim {
+  position: relative;
+  width: min(460px, 76vw);
+  height: 44px;
+  margin: 8px 0 14px;
+  border-radius: 22px;
+  background: linear-gradient(90deg, #f3d9b0, #bde3a6 42%, #7ecb6f 50%, #bde3a6 58%, #f3d9b0);
+}
+
+.aim__middle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 6px;
+  margin-left: -3px;
+  background: var(--leaf);
+}
+
+.aim__dot {
+  position: absolute;
+  top: 4px;
+  width: 36px;
+  height: 36px;
+  margin-left: -18px;
+  border-radius: 50%;
+  background: #f08a3c;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+}
