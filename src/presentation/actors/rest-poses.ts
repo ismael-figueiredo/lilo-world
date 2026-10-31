@@ -3,7 +3,11 @@ import * as THREE from 'three';
 /** Thigh room between the seat and the hips, as a part of the thigh. */
 const ON_THE_SEAT = 0.5;
 
+/** Height of the hips over the mattress, as a part of their height over the floor. */
+const ON_THE_BED = 0.45;
+
 const down = new THREE.Vector3(0, -1, 0);
+const onTheBack = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
 
 interface Leg {
   readonly thigh: THREE.Object3D;
@@ -81,34 +85,59 @@ function seatedLegs(body: THREE.Object3D, legs: readonly Leg[]): THREE.KeyframeT
   return tracks;
 }
 
+/** The whole body turns over its hips, with the face up and the head toward the pillow. */
+function lyingBody(whole: THREE.Object3D, legs: readonly Leg[]): THREE.KeyframeTrack[] {
+  const [first] = legs;
+  if (first === undefined) return [];
+  const hips = place(first.thigh);
+  const rest = new THREE.Vector3(0, (hips.y - place(first.foot).y) * ON_THE_BED, 0);
+  const turned = place(whole).sub(hips).applyQuaternion(onTheBack).add(rest);
+  const parentTurn = whole.parent === null ? new THREE.Quaternion() : turning(whole.parent);
+  return [
+    fixedPlace(whole, turned),
+    fixedTurn(whole, parentTurn.invert().multiply(onTheBack).multiply(turning(whole))),
+  ];
+}
+
 /**
- * Sitting, for models that came without it: built from their own bones, so the
- * upper body keeps the motion of the clip it is based on.
+ * Sitting and lying down, for models that came without them: built from their
+ * own bones, so the upper body keeps the motion of the clip they are based on.
  */
-export function seatedClips(
+export function restClips(
   model: THREE.Object3D,
   clips: readonly THREE.AnimationClip[],
 ): THREE.AnimationClip[] {
   const idle = clips.find((clip) => clip.name === 'idle');
   const body = bone(model, 'Body');
   const legs = [legOf(model, 'L'), legOf(model, 'R')].filter((leg) => leg !== undefined);
-  if (idle === undefined || body === undefined || legs.length < 2) return [];
+  const whole = body?.parent;
+  if (idle === undefined || body === undefined || !whole || legs.length < 2) return [];
 
   const mixer = new THREE.AnimationMixer(model);
   mixer.clipAction(idle).play();
   mixer.update(0);
   model.updateMatrixWorld(true);
   const legTracks = seatedLegs(body, legs);
+  const bedTracks = lyingBody(whole, legs);
   mixer.stopAllAction();
   mixer.uncacheRoot(model);
   model.updateMatrixWorld(true);
 
-  const replaced = new Set(legTracks.map((track) => track.name));
-  const onTheSeat = (base: THREE.AnimationClip, name: string): THREE.AnimationClip =>
-    new THREE.AnimationClip(name, base.duration, [
+  const posed = (
+    base: THREE.AnimationClip,
+    name: string,
+    tracks: readonly THREE.KeyframeTrack[],
+  ): THREE.AnimationClip => {
+    const replaced = new Set(tracks.map((track) => track.name));
+    return new THREE.AnimationClip(name, base.duration, [
       ...base.tracks.filter((track) => !replaced.has(track.name)),
-      ...legTracks,
+      ...tracks,
     ]);
+  };
   const nod = clips.find((clip) => clip.name === 'yes');
-  return [onTheSeat(idle, 'sit'), ...(nod === undefined ? [] : [onTheSeat(nod, 'sit-eat')])];
+  return [
+    posed(idle, 'sit', legTracks),
+    posed(idle, 'lie', bedTracks),
+    ...(nod === undefined ? [] : [posed(nod, 'sit-eat', legTracks)]),
+  ];
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { seatedClips } from '@presentation/actors/seated-pose';
+import { restClips } from '@presentation/actors/rest-poses';
 
 function named(name: string, parent: THREE.Object3D, y: number, x = 0): THREE.Bone {
   const bone = new THREE.Bone();
@@ -36,18 +36,30 @@ function posed(model: THREE.Object3D, clip: THREE.AnimationClip): void {
   model.updateMatrixWorld(true);
 }
 
-describe('sitting, for models without it', () => {
+describe('resting, for models without it', () => {
   const y = (bone: THREE.Object3D) => bone.getWorldPosition(new THREE.Vector3()).y;
   const z = (bone: THREE.Object3D) => bone.getWorldPosition(new THREE.Vector3()).z;
 
-  it('adds sitting and eating while seated', () => {
+  it('adds sitting, lying down and eating while seated', () => {
     const { model, clips } = rig();
-    expect(seatedClips(model, clips).map((clip) => clip.name)).toEqual(['sit', 'sit-eat']);
+    expect(restClips(model, clips).map((clip) => clip.name)).toEqual(['sit', 'lie', 'sit-eat']);
+  });
+
+  it('lies on the back, with the head toward the pillow and the feet away', () => {
+    const { model, body, head, legs, clips } = rig();
+    const lie = restClips(model, clips).find((clip) => clip.name === 'lie');
+    if (lie === undefined) throw new Error('no clip');
+    posed(model, lie);
+    expect(y(body)).toBeCloseTo(0.45);
+    expect(y(head)).toBeCloseTo(0.45);
+    expect(z(body)).toBeCloseTo(0);
+    expect(z(head)).toBeCloseTo(-0.8);
+    for (const { foot } of legs) expect(z(foot)).toBeCloseTo(1);
   });
 
   it('brings the hips to the seat, the knees forward and the feet down', () => {
     const { model, body, legs, clips } = rig();
-    const [sit] = seatedClips(model, clips);
+    const sit = restClips(model, clips).find((clip) => clip.name === 'sit');
     if (sit === undefined) throw new Error('no clip');
     posed(model, sit);
     expect(y(body)).toBeCloseTo(0.25);
@@ -61,11 +73,11 @@ describe('sitting, for models without it', () => {
 
   it('leaves the model as it was', () => {
     const { model, body, clips } = rig();
-    seatedClips(model, clips);
+    restClips(model, clips);
     expect(y(body)).toBeCloseTo(1);
   });
 
   it('does nothing for a model with other bones', () => {
-    expect(seatedClips(new THREE.Group(), [new THREE.AnimationClip('idle', 1, [])])).toEqual([]);
+    expect(restClips(new THREE.Group(), [new THREE.AnimationClip('idle', 1, [])])).toEqual([]);
   });
 });

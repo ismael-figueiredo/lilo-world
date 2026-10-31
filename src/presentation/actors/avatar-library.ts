@@ -4,7 +4,7 @@ import { avatarModelUrl, rigFor } from '@presentation/actors/avatar-rigs';
 import { Figure, figureClips } from '@presentation/actors/child-figure';
 import type { PersonLook } from '@presentation/actors/cast';
 import { Player } from '@presentation/actors/player';
-import { seatedClips } from '@presentation/actors/seated-pose';
+import { restClips } from '@presentation/actors/rest-poses';
 
 /** Loads costume models once and builds fresh characters from them. */
 export class AvatarLibrary {
@@ -23,7 +23,7 @@ export class AvatarLibrary {
   async create(avatarId: string): Promise<Player> {
     const gltf = await this.load(avatarId);
     const model = clone(gltf.scene);
-    const clips = [...gltf.animations, ...seatedClips(model, gltf.animations)];
+    const clips = [...gltf.animations, ...restClips(model, gltf.animations)];
     return new Player(model, clips, avatarId, rigFor(avatarId));
   }
 

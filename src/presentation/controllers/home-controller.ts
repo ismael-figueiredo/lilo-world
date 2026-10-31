@@ -407,7 +407,7 @@ export class HomeController {
     avatar.placeAt(this.house.world(spot), spot.facing);
   }
 
-  /** A costume stays beside the bed: it was not made to lie down. */
+  /** A model without the bones to lie down stays beside the bed. */
   private goToBed(): void {
     const { avatar } = this.ctx;
     if (!avatar.canDo('Lie')) {
