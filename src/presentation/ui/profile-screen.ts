@@ -62,6 +62,7 @@ export class ProfileScreen {
       return;
     }
     this.status.textContent = this.editing ? 'Área dos pais' : 'Quem vai jogar?';
+    this.element.classList.toggle('is-editing', this.editing);
     const cards = profiles.map((profile) => this.card(profile));
     const addCard = h(
       'button',

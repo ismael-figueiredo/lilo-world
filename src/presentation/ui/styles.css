@@ -827,6 +827,8 @@ button {
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  /* Centered while it fits; taller than the screen it scrolls from its top. */
+  margin: auto;
   text-align: center;
 }
 
@@ -834,6 +836,10 @@ button {
   width: 140px;
   height: 140px;
   animation: float 2.6s ease-in-out infinite;
+}
+
+.start.is-editing .start__logo {
+  display: none;
 }
 
 .start__logo .dialog__beak {
@@ -2832,7 +2838,7 @@ img.stimulus__picture {
   }
 
   .challenge .challenge__header {
-    padding-left: 76px;
+    padding-left: 0;
   }
 
   .challenge .drag {
