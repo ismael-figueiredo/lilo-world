@@ -7,7 +7,7 @@ import {
   type StepResult,
 } from '@domain/day/day-plan';
 
-import type { SchoolStage } from '@domain/school/school-day';
+import { firstSchoolStage, type SchoolStage } from '@domain/school/school-day';
 import { planErrand, type Errand, type MoneyLevel } from '@domain/errand/errand';
 
 /** Keeps the day saved at every step, so it resumes exactly where it stopped. */
@@ -38,6 +38,18 @@ export class FollowDay {
 
   async saveSchool(school: SchoolStage): Promise<void> {
     await this.days.save({ ...(await this.days.load()), school });
+  }
+
+  /**
+   * A game closed at school opens at home: the school day starts over from the
+   * stop, with the backpack on the back, and never in the middle of something.
+   */
+  async restartSchool(): Promise<DayState> {
+    const day = await this.days.load();
+    if (day.school === undefined || day.school === firstSchoolStage) return day;
+    const again = { ...day, school: firstSchoolStage };
+    await this.days.save(again);
+    return again;
   }
 
   async skipBlock(): Promise<DayState> {

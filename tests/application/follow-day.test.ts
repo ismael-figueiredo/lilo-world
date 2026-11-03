@@ -60,4 +60,18 @@ describe('the money of the task', () => {
     await expect(levelOf(['math.cash.2'])).resolves.toBe('change');
     await expect(levelOf(['math.cash.2', 'math.cash.3'])).resolves.toBe('cents');
   });
+
+  it('starts the school day over when the game opens in the middle of it', async () => {
+    const days = new InMemoryDayRepository();
+    const follow = new FollowDay(days);
+    await days.save({ ...(await days.load()), done: ['wake'], school: 'ask' });
+    expect((await follow.restartSchool()).school).toBe('stop');
+    expect((await days.load()).school).toBe('stop');
+  });
+
+  it('leaves a day alone when nobody is at school', async () => {
+    const days = new InMemoryDayRepository();
+    const follow = new FollowDay(days);
+    expect((await follow.restartSchool()).school).toBeUndefined();
+  });
 });

@@ -35,6 +35,7 @@ export type Emote =
   | 'Carry'
   | 'Throw'
   | 'Kick'
+  | 'Stretch'
   | 'Swim';
 type Motion = 'idle' | 'walk' | 'run' | 'jump';
 
@@ -43,7 +44,7 @@ const emoteClips: Record<Emote, readonly string[]> = {
   Wave: ['wave'],
   Yes: ['yes', 'wave'],
   ThumbsUp: ['thumbs', 'yes'],
-  Dance: ['dance', 'wave'],
+  Dance: ['dance', 'stretch', 'wave'],
   Sit: ['sit'],
   Stand: ['stand'],
   Lie: ['lie'],
@@ -57,6 +58,7 @@ const emoteClips: Record<Emote, readonly string[]> = {
   Carry: ['carry'],
   Throw: ['throw', 'wave'],
   Kick: ['kick', 'yes'],
+  Stretch: ['stretch', 'wave'],
   Swim: ['swim'],
 };
 
@@ -92,6 +94,8 @@ export class Player {
   private readonly actions = new Map<string, THREE.AnimationAction>();
   private current?: THREE.AnimationAction;
   private emote: Emote | null = null;
+  private pushing = false;
+  private holding: HeldThing | undefined;
   private velocityY = 0;
   private grounded = true;
   private readonly anchors: Record<Anchor, THREE.Object3D>;
@@ -305,7 +309,17 @@ export class Player {
   }
 
   /** Something in the hand. */
+  get held(): HeldThing | undefined {
+    return this.holding;
+  }
+
+  /** Both hands forward, for this frame, on a cart or a bag: they ask again on the next one. */
+  handsForward(): void {
+    this.pushing = true;
+  }
+
   hold(thing: HeldThing | undefined): void {
+    this.holding = thing;
     this.figure?.hold(thing);
     if (this.hand === undefined) return;
     this.hand.holder.clear();
@@ -461,9 +475,13 @@ export class Player {
       this.play('jump', 0.12, true);
       return;
     }
+    const pushing = this.pushing;
+    this.pushing = false;
     if (this.emote !== null) return;
     const motion: Motion = this.speed > 5.2 ? 'run' : this.speed > 0.3 ? 'walk' : 'idle';
-    this.play(motion === 'idle' ? this.idle : motion, 0.25);
+    const pushed = `push-${motion}`;
+    const plain = motion === 'idle' ? this.idle : motion;
+    this.play(pushing && this.actions.has(pushed) ? pushed : plain, 0.25);
     if (this.current !== undefined && motion !== 'idle') {
       this.current.timeScale =
         motion === 'run' ? this.speed / RUN_SPEED + 0.2 : this.speed / WALK_SPEED;

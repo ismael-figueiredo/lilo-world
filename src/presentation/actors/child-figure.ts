@@ -111,7 +111,7 @@ export const outfitClothes: Readonly<Record<OutfitId, Clothes>> = {
 
 /** What can be in the hand during an action. */
 export type HeldThing =
-  'toothbrush' | 'spoon' | 'soap' | 'card' | 'bucket' | 'ball' | 'book' | 'towel' | 'ladle';
+  'toothbrush' | 'spoon' | 'soap' | 'card' | 'bucket' | 'ball' | 'book' | 'towel' | 'ladle' | 'bag';
 
 /** Sizes of the body, in the model's own units. */
 interface Body {
@@ -479,6 +479,13 @@ export function heldShape(thing: HeldThing): THREE.Object3D {
       break;
     case 'towel':
       add(new THREE.BoxGeometry(0.16, 0.26, 0.03), 0x7ec8e0, 0, -0.14, 0);
+      break;
+    case 'bag':
+      add(new THREE.BoxGeometry(0.22, 0.24, 0.18), 0xf6e3c4, 0, -0.22, 0);
+      add(new THREE.BoxGeometry(0.222, 0.05, 0.182), 0x3fae5a, 0, -0.19, 0);
+      add(new THREE.SphereGeometry(0.05, 8, 6), 0xe8504c, -0.04, -0.09, 0);
+      add(new THREE.SphereGeometry(0.045, 8, 6), 0xf2c14e, 0.05, -0.09, 0);
+      add(new THREE.TorusGeometry(0.05, 0.007, 5, 10, Math.PI), 0x3fae5a, 0, -0.1, 0);
       break;
   }
   return group;
@@ -961,6 +968,10 @@ function dailyClips(hips: number): THREE.AnimationClip[] {
       ForearmR: [rest, [-70, 0, 0], [-6, 0, 0], rest],
       Torso: [rest, [-10, 22, 0], [14, -18, 0], rest],
     }),
+    shared('stretch', 1.2, {
+      ArmL: toAndBack(armDownL, [-175, 0, 8]),
+      ArmR: toAndBack(armDownR, [-175, 0, -8]),
+    }),
     shared('kick', 0.9, {
       ...arms,
       LegR: [rest, [28, 0, 0], [-74, 0, 0], rest],
@@ -1007,7 +1018,16 @@ export function figureClips(build: Build = 'child'): THREE.AnimationClip[] {
     ForearmL: still([-25, 0, 0]),
     ForearmR: still([-25, 0, 0]),
   });
+  const pushing: Pose = {
+    ArmL: still([-68, 0, 4]),
+    ArmR: still([-68, 0, -4]),
+    ForearmL: still([-16, 0, 0]),
+    ForearmR: still([-16, 0, 0]),
+  };
   return [
+    clip('push-idle', 2.6, pushing, hips, [0, -0.006, 0]),
+    clip('push-walk', 0.72, { ...stride(30, 28, 3), ...pushing }, hips, [0, 0.016, 0, 0.016, 0]),
+    clip('push-run', 0.46, { ...stride(52, 55, 10), ...pushing }, hips, [0, 0.03, 0, 0.03, 0]),
     clip(
       'idle',
       2.6,

@@ -20,6 +20,8 @@ const FLIGHT_SECONDS = 0.8;
 const ISLAND = { x: -1.6, z: 0.6, width: 7.4, depth: 0.9, height: 1.15 } as const;
 const REACH = 1.25;
 const CART_FOLLOW = 7;
+/** In front of the child the cart turns with the body, as if held. */
+const CART_HELD = 30;
 const CART_AHEAD = 1.2;
 const CART_SIZE = 0.7;
 /** Room the cart needs around its middle, to stay out of walls and counters. */
@@ -295,17 +297,18 @@ export class MarketInterior implements Zone, WalkableSpace {
     this.cart.add(sprite);
   }
 
-  private emptyCart(): void {
+  /** Paid for: what was in the cart went into the bags. */
+  emptyCart(): void {
     for (const child of [...this.cart.children]) {
       if (child instanceof THREE.Sprite) child.removeFromParent();
     }
     this.inCart = 0;
   }
 
-  /** The cart stays just ahead of the child, as if pushed. */
-  followWithCart(position: THREE.Vector3, facing: number, dt: number): void {
+  /** The cart goes ahead of the child. True when it is in front, within their hands. */
+  followWithCart(position: THREE.Vector3, facing: number, dt: number): boolean {
     const free = CART_ANGLES.find((turn) => this.cartFits(position, facing + turn)) ?? 0;
-    const blend = Math.min(1, dt * CART_FOLLOW);
+    const blend = Math.min(1, dt * (free === 0 ? CART_HELD : CART_FOLLOW));
     const wanted = facing + free;
     this.cartAngle +=
       Math.atan2(Math.sin(wanted - this.cartAngle), Math.cos(wanted - this.cartAngle)) * blend;
@@ -313,6 +316,7 @@ export class MarketInterior implements Zone, WalkableSpace {
     this.cart.position.x = position.x + Math.sin(this.cartAngle) * CART_AHEAD - MARKET_INTERIOR.x;
     this.cart.position.z = position.z + Math.cos(this.cartAngle) * CART_AHEAD - MARKET_INTERIOR.z;
     this.cart.rotation.y = this.cartAngle - Math.PI / 2;
+    return free === 0;
   }
 
   private cartFits(position: THREE.Vector3, angle: number): boolean {

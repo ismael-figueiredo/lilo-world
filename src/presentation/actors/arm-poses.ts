@@ -27,12 +27,30 @@ const TOOLS: ReadonlyMap<HeldThing, number> = new Map([
 
 const REACH_SECONDS = 0.9;
 const MOUTH_SECONDS = 1.5;
+const THROW_SECONDS = 0.9;
+const STRETCH_SECONDS = 1.2;
+
+/** The arm goes up behind the head, and comes forward letting the ball go. */
+const WOUND_UPPER = new THREE.Vector3(0, 0.75, -0.65).normalize();
+const WOUND_LOWER = new THREE.Vector3(0, 0.9, 0.45).normalize();
+const RELEASE = new THREE.Vector3(0, 0.55, 0.85).normalize();
+/** Both arms over the head, a little open. */
+const ARM_UP = new THREE.Vector3(0.15, 1, 0).normalize();
+/** Both hands forward at the height of a cart's handle. */
+const PUSH_UPPER = new THREE.Vector3(0.1, -0.5, 0.86).normalize();
+const PUSH_LOWER = new THREE.Vector3(0, -0.1, 1).normalize();
 
 export interface ArmGestures {
   /** The arm reaches forward: a card to the reader, hands to the tap. */
   readonly reach: THREE.KeyframeTrack[];
   /** The hand comes to the mouth and goes back. */
   readonly toMouth: THREE.KeyframeTrack[];
+  /** Up behind the head and forward: a ball leaves the hand. */
+  readonly throwing: THREE.KeyframeTrack[];
+  /** Both arms go up over the head. */
+  readonly stretch: THREE.KeyframeTrack[];
+  /** Both hands stay forward, on a cart: it replaces the arms of walking and standing. */
+  readonly push: THREE.KeyframeTrack[];
 }
 
 export interface Hand {
@@ -42,6 +60,8 @@ export interface Hand {
   /** Points a spoon at the mouth, once the hand is there. */
   readonly towardMouth: THREE.Quaternion;
 }
+
+type Side = 'L' | 'R';
 
 interface Arm {
   readonly upper: THREE.Object3D;
@@ -73,29 +93,32 @@ const place = (object: THREE.Object3D): THREE.Vector3 =>
 const turning = (object: THREE.Object3D): THREE.Quaternion =>
   object.getWorldQuaternion(new THREE.Quaternion());
 
-/** A joint leaves its rest, holds a new turn and comes back. */
-function gesture(
+/** The time of each moment of a gesture of this length. */
+export const gestureTimes = (seconds: number): number[] =>
+  GESTURE.map((moment) => moment * seconds);
+
+/** A joint leaves its rest, goes through two turns and comes back. */
+export function gesture(
   object: THREE.Object3D,
-  held: THREE.Quaternion,
+  first: THREE.Quaternion,
+  second: THREE.Quaternion,
   seconds: number,
 ): THREE.KeyframeTrack {
   const rest = object.quaternion.toArray();
-  return new THREE.QuaternionKeyframeTrack(
-    `${object.name}.quaternion`,
-    GESTURE.map((moment) => moment * seconds),
-    [...rest, ...held.toArray(), ...held.toArray(), ...rest],
-  );
+  return new THREE.QuaternionKeyframeTrack(`${object.name}.quaternion`, gestureTimes(seconds), [
+    ...rest,
+    ...first.toArray(),
+    ...second.toArray(),
+    ...rest,
+  ]);
 }
 
-/** Turns the upper arm and the forearm until they point in these directions. */
-function armTo(
-  upper: THREE.Object3D,
-  lower: THREE.Object3D,
-  hand: THREE.Object3D,
+/** The local turns of the upper arm and the forearm that point them in these directions. */
+function armTurns(
+  { upper, lower, hand }: Arm,
   upperTo: THREE.Vector3,
   lowerTo: THREE.Vector3,
-  seconds: number,
-): THREE.KeyframeTrack[] {
+): readonly [THREE.Quaternion, THREE.Quaternion] {
   const shoulder = place(upper);
   const elbow = place(lower);
   const upperTurn = new THREE.Quaternion()
@@ -105,10 +128,32 @@ function armTo(
     .setFromUnitVectors(place(hand).sub(elbow).normalize(), lowerTo)
     .multiply(turning(lower));
   const parentTurn = upper.parent === null ? new THREE.Quaternion() : turning(upper.parent);
+  return [parentTurn.invert().multiply(upperTurn), upperTurn.clone().invert().multiply(lowerTurn)];
+}
+
+/** The arm goes through two poses, each one its upper arm and forearm directions. */
+function armThrough(
+  arm: Arm,
+  [firstUpper, firstLower]: readonly [THREE.Vector3, THREE.Vector3],
+  [secondUpper, secondLower]: readonly [THREE.Vector3, THREE.Vector3],
+  seconds: number,
+): THREE.KeyframeTrack[] {
+  const [upperFirst, lowerFirst] = armTurns(arm, firstUpper, firstLower);
+  const [upperSecond, lowerSecond] = armTurns(arm, secondUpper, secondLower);
   return [
-    gesture(upper, parentTurn.invert().multiply(upperTurn), seconds),
-    gesture(lower, upperTurn.clone().invert().multiply(lowerTurn), seconds),
+    gesture(arm.upper, upperFirst, upperSecond, seconds),
+    gesture(arm.lower, lowerFirst, lowerSecond, seconds),
   ];
+}
+
+/** The arm goes to one pose, holds it and comes back. */
+function armTo(
+  arm: Arm,
+  upperTo: THREE.Vector3,
+  lowerTo: THREE.Vector3,
+  seconds: number,
+): THREE.KeyframeTrack[] {
+  return armThrough(arm, [upperTo, lowerTo], [upperTo, lowerTo], seconds);
 }
 
 /** Where the elbow stands for two bones to reach from the shoulder to the wrist. */
@@ -132,10 +177,10 @@ function elbowFor(
   return shoulder.clone().addScaledVector(along, fromShoulder).addScaledVector(pole, aside);
 }
 
-function armOf(model: THREE.Object3D): Arm | undefined {
-  const upper = boneNamed(model, 'UpperArmR');
-  const lower = boneNamed(model, 'LowerArmR');
-  const hand = boneNamed(model, 'Middle1R');
+function armOf(model: THREE.Object3D, side: Side = 'R'): Arm | undefined {
+  const upper = boneNamed(model, `UpperArm${side}`);
+  const lower = boneNamed(model, `LowerArm${side}`);
+  const hand = boneNamed(model, `Middle1${side}`);
   const head = boneNamed(model, 'Head');
   return upper === undefined || lower === undefined || hand === undefined || head === undefined
     ? undefined
@@ -167,11 +212,28 @@ function mouthPose(model: THREE.Object3D, { upper, lower, hand, head }: Arm): Mo
 export function armGestures(model: THREE.Object3D): ArmGestures | undefined {
   const arm = armOf(model);
   if (arm === undefined) return undefined;
-  const { upper, lower, hand } = arm;
   const { upperTo, lowerTo } = mouthPose(model, arm);
+  const armUp = (one: Arm): THREE.KeyframeTrack[] => {
+    const out = place(one.upper).x > place(one.head).x ? 1 : -1;
+    const up = ARM_UP.clone().setX(ARM_UP.x * out);
+    return armTo(one, up, up, STRETCH_SECONDS);
+  };
+  const onTheHandle = (one: Arm): THREE.KeyframeTrack[] => {
+    const out = place(one.upper).x > place(one.head).x ? 1 : -1;
+    const upperTo = PUSH_UPPER.clone().setX(PUSH_UPPER.x * out);
+    const [upperTurn, lowerTurn] = armTurns(one, upperTo, PUSH_LOWER);
+    return [
+      new THREE.QuaternionKeyframeTrack(`${one.upper.name}.quaternion`, [0], upperTurn.toArray()),
+      new THREE.QuaternionKeyframeTrack(`${one.lower.name}.quaternion`, [0], lowerTurn.toArray()),
+    ];
+  };
+  const other = armOf(model, 'L');
   return {
-    reach: armTo(upper, lower, hand, STRETCHED, STRETCHED, REACH_SECONDS),
-    toMouth: armTo(upper, lower, hand, upperTo, lowerTo, MOUTH_SECONDS),
+    reach: armTo(arm, STRETCHED, STRETCHED, REACH_SECONDS),
+    toMouth: armTo(arm, upperTo, lowerTo, MOUTH_SECONDS),
+    throwing: armThrough(arm, [WOUND_UPPER, WOUND_LOWER], [RELEASE, RELEASE], THROW_SECONDS),
+    stretch: [...armUp(arm), ...(other === undefined ? [] : armUp(other))],
+    push: [...onTheHandle(arm), ...(other === undefined ? [] : onTheHandle(other))],
   };
 }
 

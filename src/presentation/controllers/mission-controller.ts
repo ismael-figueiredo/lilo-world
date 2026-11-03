@@ -152,7 +152,13 @@ export class MissionController {
   tick(dt: number): void {
     if (this.cashier !== undefined) this.cashier.update(dt, { x: 0, z: 0 }, false, this.ctx.world);
     if (this.indoors) {
-      this.ctx.town.market?.followWithCart(this.ctx.avatar.position, this.ctx.avatar.facing, dt);
+      const { avatar } = this.ctx;
+      const held = this.ctx.town.market?.followWithCart(
+        avatar.position,
+        avatar.root.rotation.y,
+        dt,
+      );
+      if (held === true) avatar.handsForward();
     }
   }
 

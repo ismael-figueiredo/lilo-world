@@ -201,7 +201,7 @@ export class HomeController {
 
   /** Where the child starts: in bed in a new morning, or back at home. */
   async begin(isNew: boolean, resumeAt: THREE.Vector3 | undefined): Promise<void> {
-    this.day = await this.ctx.player.followDay.load();
+    this.day = await this.ctx.player.followDay.restartSchool();
     this.ctx.showDay(this.day);
     this.showBackpack();
     // The swimsuit never leaves the beach, even if the game closed there.

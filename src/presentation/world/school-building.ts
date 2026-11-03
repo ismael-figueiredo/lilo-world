@@ -27,7 +27,7 @@ const ROPE_TURNS = 5;
 /** The tops of what one sits on, over the floor. */
 export const CHAIR_TOP = 0.42;
 export const BENCH_TOP = 0.42;
-export const TOILET_TOP = 0.42;
+const TOILET_TOP = 0.42;
 const SWING_X = 0.8;
 const SWING_BAR = 2.75;
 const SWING_SEAT = 2.05;
@@ -48,7 +48,6 @@ const spots = {
   desk: { x: -9, z: -6 },
   seat: { x: -9, z: -5.15 },
   toilet: { x: -14.5, z: 7.5 },
-  toiletSeat: { x: -17.2, z: 7.5 },
   stall: { x: -15.2, z: 7.5 },
   sink: { x: -11.5, z: 11.3 },
   line: { x: 13, z: 3.6 },
@@ -79,6 +78,13 @@ const yard = {
   seesaw: { x: 15.5, z: -30 },
   hide: { x: 0, z: -31 },
 } as const;
+
+const lapOutside = [
+  { x: 6, z: -19 },
+  { x: -6, z: -21 },
+  { x: 0, z: -17 },
+];
+const lapInside = [{ x: 4, z: -3.3 }, { x: 14, z: -3.3 }, spots.warmUp];
 
 const HOP_GAP = 1.05;
 
@@ -261,10 +267,6 @@ export class SchoolBuilding implements Zone, WalkableSpace {
     return this.at(spots.afterSnack);
   }
 
-  get toiletSeat(): THREE.Vector3 {
-    return this.at(spots.toiletSeat);
-  }
-
   /** In front of the stall. */
   get stallSpot(): THREE.Vector3 {
     return this.at(spots.stall);
@@ -287,6 +289,11 @@ export class SchoolBuilding implements Zone, WalkableSpace {
   get gameCamera(): { position: THREE.Vector3; lookAt: THREE.Vector3 } {
     const position = this.at({ x: 9.8, z: -2.9 }).setY(FLOOR + 3.4);
     return { position, lookAt: this.at({ x: 9, z: -6.4 }) };
+  }
+
+  /** A short run, there and back: around the court, or along the library on rainy days. */
+  warmUpLap(inside: boolean): readonly THREE.Vector3[] {
+    return (inside ? lapInside : lapOutside).map((spot) => this.at(spot));
   }
 
   /** The free floor of the library, for warming up on rainy days. */

@@ -1,11 +1,19 @@
 import * as THREE from 'three';
-import { armGestures } from '@presentation/actors/arm-poses';
+import { armGestures, gesture, gestureTimes } from '@presentation/actors/arm-poses';
 
 /** Seated, the hips stand this far over the feet's floor, as a part of the height: as a figure's. */
 const ON_THE_SEAT = 0.23;
 
 /** Height of the hips over the mattress, as a part of their height over the floor. */
 const ON_THE_BED = 0.45;
+
+const KICK_SECONDS = 0.9;
+/** The leg goes back with the knee bent, and forward almost straight. */
+const KICK_BACK = {
+  thigh: new THREE.Vector3(0, -0.9, -0.43),
+  shin: new THREE.Vector3(0, -0.5, -0.87),
+};
+const KICK_FRONT = { thigh: new THREE.Vector3(0, -0.45, 0.9), shin: new THREE.Vector3(0, -0.2, 1) };
 
 const down = new THREE.Vector3(0, -1, 0);
 const onTheBack = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
@@ -90,6 +98,50 @@ function seatedLegs(
   return tracks;
 }
 
+/** One leg swings back and forward. The feet of these models hang from the root: they go along. */
+function kickingLeg({ thigh, shin, foot }: Leg): THREE.KeyframeTrack[] {
+  const hip = place(thigh);
+  const knee = place(shin);
+  const ankle = place(foot);
+  const along = knee.clone().sub(hip).normalize();
+  const toShin = ankle.clone().sub(knee).normalize();
+  const thighLength = hip.distanceTo(knee);
+  const shinLength = knee.distanceTo(ankle);
+  const parentTurn = thigh.parent === null ? new THREE.Quaternion() : turning(thigh.parent);
+  const poseOf = (pose: typeof KICK_BACK) => {
+    const thighTo = pose.thigh.clone().setX(along.x).normalize();
+    const shinTo = pose.shin.clone().setX(toShin.x).normalize();
+    const thighTurn = new THREE.Quaternion()
+      .setFromUnitVectors(along, thighTo)
+      .multiply(turning(thigh));
+    const shinTurn = new THREE.Quaternion()
+      .setFromUnitVectors(toShin, shinTo)
+      .multiply(turning(shin));
+    const footAt = hip
+      .clone()
+      .addScaledVector(thighTo, thighLength)
+      .addScaledVector(shinTo, shinLength);
+    return {
+      thigh: parentTurn.clone().invert().multiply(thighTurn),
+      shin: thighTurn.clone().invert().multiply(shinTurn),
+      foot: foot.parent?.worldToLocal(footAt) ?? footAt,
+    };
+  };
+  const back = poseOf(KICK_BACK);
+  const front = poseOf(KICK_FRONT);
+  const rest = foot.position.toArray();
+  return [
+    gesture(thigh, back.thigh, front.thigh, KICK_SECONDS),
+    gesture(shin, back.shin, front.shin, KICK_SECONDS),
+    new THREE.VectorKeyframeTrack(`${foot.name}.position`, gestureTimes(KICK_SECONDS), [
+      ...rest,
+      ...back.foot.toArray(),
+      ...front.foot.toArray(),
+      ...rest,
+    ]),
+  ];
+}
+
 /** The whole body turns over its hips, with the face up and the head toward the pillow. */
 function lyingBody(whole: THREE.Object3D, legs: readonly Leg[]): THREE.KeyframeTrack[] {
   const [first] = legs;
@@ -124,6 +176,7 @@ export function restClips(
   model.updateMatrixWorld(true);
   const legTracks = seatedLegs(model, body, legs);
   const bedTracks = lyingBody(whole, legs);
+  const kickTracks = legs[1] === undefined ? [] : kickingLeg(legs[1]);
   const arm = armGestures(model);
   mixer.stopAllAction();
   mixer.uncacheRoot(model);
@@ -142,13 +195,25 @@ export function restClips(
       ...tracks,
     ]);
   };
-  const rest = [posed(idle, 'sit', legTracks), posed(idle, 'lie', bedTracks)];
+  const rest = [
+    posed(idle, 'sit', legTracks),
+    posed(idle, 'lie', bedTracks),
+    posed(idle, 'kick', kickTracks),
+  ];
   if (arm === undefined) return rest;
-  const { reach, toMouth } = arm;
+  const { reach, toMouth, throwing, stretch, push } = arm;
+  const moves = ['walk', 'run'].flatMap((name) => {
+    const base = clips.find((clip) => clip.name === name);
+    return base === undefined ? [] : [posed(base, `push-${name}`, push)];
+  });
   return [
     ...rest,
     posed(idle, 'sit-eat', [...legTracks, ...toMouth]),
-    ...['tap', 'wash'].map((name) => posed(idle, name, reach)),
+    posed(idle, 'push-idle', push),
+    ...moves,
+    posed(idle, 'throw', throwing),
+    posed(idle, 'stretch', stretch),
+    ...['tap', 'wash', 'pick'].map((name) => posed(idle, name, reach)),
     ...['eat', 'drink', 'brush'].map((name) => posed(idle, name, toMouth)),
   ];
 }

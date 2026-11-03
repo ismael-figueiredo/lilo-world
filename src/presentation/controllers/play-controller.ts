@@ -32,6 +32,13 @@ const FACE_NORTH = Math.PI;
 const FACE_SOUTH = 0;
 const FACE_EAST = Math.PI / 2;
 const BALL_REST = 0.3;
+/** How far in front of the feet the ball is kicked, and of the chest it is thrown. */
+const FOOT_AHEAD = 0.45;
+const HAND_AHEAD = 0.4;
+/** When the foot or the hand meets the ball, in a throw or a kick. */
+const CONTACT_MS = 520;
+const WARM_JUMPS = 3;
+const WARM_JUMP_MS = 800;
 const DROP_SECONDS = 0.45;
 const BOUNCE_SECONDS = 0.5;
 const BOUNCE_HEIGHT = 0.6;
@@ -249,8 +256,66 @@ export class PlayController {
     });
   }
 
-  private hand(character: Player): THREE.Vector3 {
-    return character.position.clone().setY(character.position.y + 1);
+  private ahead(character: Player, target: THREE.Vector3, distance: number): THREE.Vector3 {
+    const way = target.clone().sub(character.position).setY(0).normalize();
+    return character.position.clone().addScaledVector(way, distance);
+  }
+
+  private hand(character: Player, target: THREE.Vector3): THREE.Vector3 {
+    const at = this.ahead(character, target, HAND_AHEAD);
+    return at.setY(character.position.y + 1);
+  }
+
+  private foot(character: Player, target: THREE.Vector3): THREE.Vector3 {
+    const at = this.ahead(character, target, FOOT_AHEAD);
+    return at.setY(character.position.y + BALL_REST);
+  }
+
+  /** The ball waits in the hand, the arm comes over and it leaves when the hand lets go. */
+  private async toss(who: Player, target: THREE.Vector3, height: number): Promise<void> {
+    const from = this.hand(who, target);
+    who.faceTowards(target);
+    this.building?.moveBall(from.x, from.y, from.z);
+    who.playEmote('Throw');
+    await wait(CONTACT_MS);
+    await this.throwBall(from, target, height);
+  }
+
+  /** Facing the target, and the ball leaves when the foot gets to it. */
+  private async kick(who: Player, target: THREE.Vector3, height: number): Promise<void> {
+    const from = this.foot(who, target);
+    who.faceTowards(target);
+    this.building?.moveBall(from.x, from.y, from.z);
+    who.playEmote('Kick');
+    await wait(CONTACT_MS);
+    await this.throwBall(from, target, height);
+  }
+
+  /** Warming up is what it says: arms up, jumps, and a real run there and back. */
+  async warmUp(inside: boolean): Promise<void> {
+    const { ctx, building, friends } = this;
+    if (building === undefined) return;
+    ctx.enterPanel('home');
+    ctx.say(phrases.warmUp);
+    const moves = [
+      { icon: '🙆', label: 'Braços' },
+      { icon: '🦵', label: 'Pular' },
+      { icon: '🏃', label: 'Correr' },
+    ];
+    const everyone = inside ? [ctx.avatar] : [ctx.avatar, ...friends];
+    await this.home.sheet.press(moves, 0);
+    ctx.say(phrases.warmArms);
+    for (const who of everyone) who.playEmote('Stretch');
+    await wait(STEP_MS * 2);
+    await this.home.sheet.press(moves, 1);
+    ctx.say(phrases.warmLegs);
+    for (let jump = 0; jump < WARM_JUMPS; jump += 1) {
+      if (ctx.avatar.isGrounded) ctx.avatar.jump();
+      await wait(WARM_JUMP_MS);
+    }
+    await this.home.sheet.press(moves, 2);
+    ctx.say(phrases.warmRun);
+    for (const spot of building.warmUpLap(inside)) await ctx.walkTo(spot);
   }
 
   private async rule(icon: string, label: string, text: string): Promise<void> {
@@ -269,10 +334,9 @@ export class PlayController {
     let misses = 0;
     for (let turn = 0; turn < TRIES; turn += 1) {
       const aim = await this.home.sheet.aim('🏀 Arremessar', calm ? CALM_AIM_SECONDS : AIM_SECONDS);
-      ctx.avatar.playEmote('Throw');
       const hit = shotHits(aim, misses);
       const target = hit ? building.hoop : building.hoop.clone().setX(building.hoop.x + 1.1);
-      await this.throwBall(this.hand(ctx.avatar), target, 2.2);
+      await this.toss(ctx.avatar, target, 2.2);
       await this.ballFalls(target);
       if (hit) {
         ctx.sound('correct');
@@ -294,19 +358,19 @@ export class PlayController {
     await this.rule('⚽', 'Começar', phrases.soccerRule);
     ctx.avatar.placeAt(building.yardSpot('kick'), FACE_NORTH);
     friend.placeAt(building.yardSpot('friend'), 1);
+    ctx.avatar.faceTowards(friend.position);
+    const toFriend = this.foot(friend, ctx.avatar.position);
+    const toChild = this.foot(ctx.avatar, friend.position);
     for (let pass = 0; pass < 2; pass += 1) {
-      friend.playEmote('Kick');
-      await this.throwBall(this.hand(friend), ctx.avatar.position.clone(), 0.4);
+      await this.kick(friend, toChild, 0.4);
       ctx.say(phrases.soccerPass);
       await this.home.sheet.press([{ icon: '⚽', label: 'Devolver' }], 0);
-      ctx.avatar.playEmote('Kick');
-      await this.throwBall(ctx.avatar.position.clone(), friend.position.clone(), 0.4);
+      await this.kick(ctx.avatar, toFriend, 0.4);
     }
-    friend.playEmote('Kick');
-    await this.throwBall(this.hand(friend), ctx.avatar.position.clone(), 0.4);
+    await this.kick(friend, toChild, 0.4);
+    ctx.say(phrases.soccerShoot);
     await this.home.sheet.press([{ icon: '🥅', label: 'Chutar ao gol' }], 0);
-    ctx.avatar.playEmote('Kick');
-    await this.throwBall(ctx.avatar.position.clone(), building.goal, 0.8);
+    await this.kick(ctx.avatar, building.goal, 0.8);
     await this.ballFalls(building.goal);
     ctx.sound('correct');
     friend.playEmote('Yes');
@@ -374,13 +438,11 @@ export class PlayController {
     ctx.avatar.placeAt(building.yardSpot('catch'), FACE_NORTH);
     friend.placeAt(building.yardSpot('catch').setZ(building.yardSpot('catch').z - 4), 0);
     for (let turn = 0; turn < CATCHES; turn += 1) {
-      friend.playEmote('Throw');
-      await this.throwBall(this.hand(friend), this.hand(ctx.avatar), 1.4);
+      await this.toss(friend, this.hand(ctx.avatar, friend.position), 1.4);
       ctx.avatar.playEmote('Pick');
       ctx.say(phrases.catchGot);
       await this.home.sheet.press([{ icon: '🤾', label: 'Jogar de volta' }], 0);
-      ctx.avatar.playEmote('Throw');
-      await this.throwBall(this.hand(ctx.avatar), this.hand(friend), 1.4);
+      await this.toss(ctx.avatar, this.hand(friend, ctx.avatar.position), 1.4);
     }
   }
 

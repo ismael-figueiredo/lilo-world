@@ -21,12 +21,7 @@ import type { GameContext } from '@presentation/game-context';
 import type { Player } from '@presentation/actors/player';
 import { CityPlace } from '@presentation/world/city';
 import { standingGround } from '@presentation/world/neighbors';
-import {
-  BENCH_TOP,
-  CHAIR_TOP,
-  TOILET_TOP,
-  type SchoolBuilding,
-} from '@presentation/world/school-building';
+import { BENCH_TOP, CHAIR_TOP, type SchoolBuilding } from '@presentation/world/school-building';
 import { schoolSpotOf } from '@presentation/world/market-position';
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -41,7 +36,6 @@ const LINE_MS = 2200;
 const AHEAD = 2;
 const FACE_SOUTH = 0;
 const FACE_NORTH = Math.PI;
-const FACE_EAST = Math.PI / 2;
 
 const needs: readonly { readonly id: Need; readonly icon: string; readonly label: string }[] = [
   { id: 'toilet', icon: '🚻', label: 'Ir ao banheiro' },
@@ -169,7 +163,7 @@ export class SchoolController {
         await this.haveClass();
         return;
       case 'toilet':
-        await this.useToilet();
+        await this.washBeforeSnack();
         return;
       case 'snack':
         await this.haveSnack();
@@ -194,18 +188,7 @@ export class SchoolController {
     if (building === undefined) return;
     if (this.rainy) await this.play.warmUpInside(building, this.classmates);
     else await this.play.goOut(building, this.classmates);
-    ctx.enterPanel('home');
-    ctx.say(phrases.warmUp);
-    const moves = [
-      { icon: '🙆', label: 'Braços' },
-      { icon: '🦵', label: 'Pernas' },
-      { icon: '🏃', label: 'Correr' },
-    ];
-    for (const [index] of moves.entries()) {
-      await this.home.sheet.press(moves, index);
-      ctx.avatar.playEmote('Dance');
-      await wait(STEP_MS);
-    }
+    await this.play.warmUp(this.rainy);
     ctx.say(phrases.warmDone);
     await wait(STEP_MS);
     if (this.rainy) {
@@ -470,19 +453,11 @@ export class SchoolController {
     ctx.backToExploring(this.tip);
   }
 
-  private async useToilet(): Promise<void> {
+  /** The bathroom is for clean hands: the sink, and on to the snack. */
+  private async washBeforeSnack(): Promise<void> {
     const { ctx, building } = this;
     if (building === undefined) return;
     ctx.enterPanel('home');
-    ctx.say(phrases.useToilet);
-    await this.home.sheet.press([{ icon: '🚽', label: 'Sentar no vaso' }], 0);
-    await ctx.transition(() => {
-      this.sit(ctx.avatar, building.toiletSeat, FACE_EAST, TOILET_TOP);
-    });
-    await wait(STEP_MS);
-    ctx.say(phrases.flushToilet);
-    await this.home.sheet.press([{ icon: '💦', label: 'Dar a descarga' }], 0);
-    ctx.sound('tap');
     await ctx.transition(() => {
       this.stand(ctx.avatar, building.sinkSpot, FACE_SOUTH);
     });

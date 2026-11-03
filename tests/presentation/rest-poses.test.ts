@@ -51,7 +51,46 @@ describe('resting, for models without it', () => {
   it('adds what the day asks for', () => {
     const { model, clips } = rig();
     const names = restClips(model, clips).map((clip) => clip.name);
-    expect(names).toEqual(['sit', 'lie', 'sit-eat', 'tap', 'wash', 'eat', 'drink', 'brush']);
+    expect(names).toEqual([
+      'sit',
+      'lie',
+      'kick',
+      'sit-eat',
+      'push-idle',
+      'throw',
+      'stretch',
+      'tap',
+      'wash',
+      'pick',
+      'eat',
+      'drink',
+      'brush',
+    ]);
+  });
+
+  it('swings the leg forward to kick, with the foot that hangs from the root', () => {
+    const { model, legs, clips } = rig();
+    const kick = restClips(model, clips).find((clip) => clip.name === 'kick');
+    const right = legs[1];
+    if (kick === undefined || right === undefined) throw new Error('no clip');
+    const standing = z(right.foot);
+    const mixer = new THREE.AnimationMixer(model);
+    mixer.clipAction(kick).play();
+    mixer.update(kick.duration * 0.7);
+    model.updateMatrixWorld(true);
+    expect(z(right.foot)).toBeGreaterThan(standing + 0.5);
+    expect(y(right.foot)).toBeGreaterThan(0.1);
+  });
+
+  it('keeps both hands forward to push, on the motions of the model', () => {
+    const { model, hand, clips } = rig();
+    const walk = new THREE.AnimationClip('walk', 1, []);
+    const made = restClips(model, [...clips, walk]);
+    expect(made.map((clip) => clip.name)).toContain('push-walk');
+    const push = made.find((clip) => clip.name === 'push-idle');
+    if (push === undefined) throw new Error('no clip');
+    posed(model, push);
+    expect(z(hand)).toBeGreaterThan(0.3);
   });
 
   it('stretches the arm to reach, and comes back to rest', () => {

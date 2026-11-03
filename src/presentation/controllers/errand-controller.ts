@@ -143,9 +143,27 @@ export class ErrandController {
 
   /** Every frame while shopping: the cart comes along. */
   update(dt: number): void {
+    this.carryBags();
     if (!this.shopping) return;
-    this.market?.followWithCart(this.ctx.avatar.position, this.ctx.avatar.facing, dt);
+    const { avatar } = this.ctx;
+    // Once paid the cart stays at the counter, and the bags go along.
+    if (
+      this.errand?.stage === 'shop' &&
+      this.market?.followWithCart(avatar.position, avatar.root.rotation.y, dt) === true
+    ) {
+      avatar.handsForward();
+    }
     this.cashier?.update(dt, STANDING, false, this.ctx.world);
+  }
+
+  /** From the counter to the kitchen the bags stay in the hand, even with the game reopened. */
+  private carryBags(): void {
+    const { avatar } = this.ctx;
+    const carrying = this.errand?.stage === 'bring';
+    if (carrying && avatar.held === undefined) avatar.hold('bag');
+    else if (!carrying && avatar.held === 'bag') avatar.hold(undefined);
+    // In front of the body, in both hands: on short arms a bag would drag on the ground.
+    if (avatar.held === 'bag') avatar.handsForward();
   }
 
   /** The action button, inside the market. Answers false for what is not of the task. */
@@ -210,6 +228,7 @@ export class ErrandController {
     const view = market.checkoutCamera;
     this.ctx.rig.setFocus(view.position, view.lookAt);
     await this.payFor(errand);
+    market.emptyCart();
     this.cashier?.playEmote('Wave');
     this.ctx.rig.clearFocus();
     this.ctx.backToExploring(this.tip);
