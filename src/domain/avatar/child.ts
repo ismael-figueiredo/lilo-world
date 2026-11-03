@@ -17,7 +17,17 @@ export interface ChildLook {
 
 export type GuardianId = 'mother' | 'father' | 'grandmother' | 'grandfather' | 'aunt' | 'uncle';
 
-export type OutfitId = 'pajamas' | 'home' | 'school' | 'coat' | 'raincoat' | 'summer' | 'swim';
+export type OutfitId =
+  | 'pajamas'
+  | 'home'
+  | 'school'
+  | 'coat'
+  | 'raincoat'
+  | 'summer'
+  | 'sport'
+  | 'party'
+  | 'overalls'
+  | 'swim';
 
 /** What each child chose. Families are different, so the adult at home is a choice too. */
 export interface ChildChoices {
@@ -92,6 +102,9 @@ export const outfits: readonly { readonly id: OutfitId; readonly name: string }[
   { id: 'coat', name: 'Casaco' },
   { id: 'raincoat', name: 'Capa de chuva' },
   { id: 'summer', name: 'Bermuda' },
+  { id: 'sport', name: 'Roupa de esporte' },
+  { id: 'party', name: 'Roupa de festa' },
+  { id: 'overalls', name: 'Macacão' },
   { id: 'swim', name: 'Roupa de banho' },
 ];
 

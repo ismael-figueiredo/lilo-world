@@ -81,6 +81,7 @@ export interface GameContext {
   /** Life inside the house. */
   readonly home: HomeController;
   readonly wardrobe: WardrobeController;
+  openWardrobe(): Promise<void>;
   /** The town, for those who only happen outside. */
   readonly town: Town;
   enterPanel(mode: PanelMode): void;

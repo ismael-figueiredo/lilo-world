@@ -78,6 +78,7 @@ import type { Interactable } from '@presentation/world/interactable';
 import { captureMap } from '@presentation/world/map-snapshot';
 import type { RoadEvent } from '@presentation/world/road-safety';
 import { standSpots, thingOf } from '@presentation/world/house';
+import { BakeryPlace } from '@presentation/world/market-position';
 import { WorldAssets } from '@presentation/world/world-assets';
 import '@presentation/ui/styles.css';
 
@@ -236,6 +237,9 @@ export class GameApp implements GameContext {
       onGesture: () => this.input?.requestGesture(),
       onAgenda: () => {
         if (this.currentMode === 'explore') this.home.openAgenda();
+      },
+      onWardrobe: () => {
+        void this.openWardrobe();
       },
       onAction: () => this.input?.requestAction(),
     });
@@ -1092,6 +1096,14 @@ export class GameApp implements GameContext {
     this.returningToSidewalk = false;
   }
 
+  /** Changing clothes needs no trip home: at home it is in front of the mirror. */
+  async openWardrobe(): Promise<void> {
+    if (this.currentMode !== 'explore') return;
+    const atHome = this.gameWorld?.indoors === true && this.gameWorld.inside === undefined;
+    if (atHome) await this.home.use('wardrobe');
+    else await this.wardrobe.open();
+  }
+
   /** Reaching a place after crossing safely gives a small prize. */
   private async rewardSafeTrip(): Promise<void> {
     if (!this.safeTrip || this.playerServices === undefined) return;
@@ -1234,11 +1246,16 @@ export class GameApp implements GameContext {
         await this.errands.enterMarket();
         return;
       }
-      if (place.id === CityPlace.bakery && isBakeryRun(task)) {
-        this.sound('open');
-        await this.errands.orderAtBakery();
-        return;
-      }
+    }
+    if (place.id === CityPlace.bakery) {
+      this.sound('open');
+      await this.errands.enterBakery();
+      return;
+    }
+    if (await this.errands.useInBakery(place.id)) return;
+    if (place.id === BakeryPlace.counter) {
+      await this.missions.open('city-bakery');
+      return;
     }
     if (await this.errands.useInMarket(place.id)) return;
     if (await this.schoolDay.use(place.id)) return;
@@ -1405,8 +1422,8 @@ export class GameApp implements GameContext {
     switch (this.goal.kind) {
       case 'mission': {
         const placeId = missionPlaces[this.goal.missionId];
-        const name =
-          this.gameWorld?.places.find((p) => p.id === placeId)?.name ?? 'a próxima missão';
+        const name = this.gameWorld?.places.find((p) => p.id === placeId)?.name;
+        if (name === undefined) return 'Vamos explorar a ilha!';
         return this.goal.isNew ? phrases.goToMission(name) : phrases.backToMission(name);
       }
       case 'wardrobe':
@@ -1560,7 +1577,7 @@ export class GameApp implements GameContext {
         },
         step: () => this.home.step,
         /** Goes straight to a place of its own, for looking at it. */
-        visit: async (place: 'bus' | 'school' | 'zoo' | 'beach' | 'market') => {
+        visit: async (place: 'bus' | 'school' | 'zoo' | 'beach' | 'market' | 'farm' | 'bakery') => {
           const town = await this.world.openTown();
           const prepare = {
             bus: () => town.prepareBus(),
@@ -1568,6 +1585,8 @@ export class GameApp implements GameContext {
             zoo: () => town.prepareZoo(),
             beach: () => town.prepareBeach(),
             market: () => town.prepareMarket(),
+            farm: () => town.prepareFarm(),
+            bakery: () => town.prepareBakery(),
           };
           this.setIndoors(false);
           this.enterSpace(await prepare[place]());

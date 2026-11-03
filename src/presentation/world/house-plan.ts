@@ -10,9 +10,10 @@ interface Point {
   readonly z: number;
 }
 
-type Room = 'bedroom' | 'bathroom' | 'living' | 'kitchen';
+type Room = 'bedroom' | 'bathroom' | 'living' | 'kitchen' | 'yard';
 
 const roomAt = ({ x, z }: Point): Room => {
+  if (x < -8) return 'yard';
   if (z < 0) return x < 0 ? 'bedroom' : 'bathroom';
   return x < 0 ? 'living' : 'kitchen';
 };
@@ -22,6 +23,7 @@ const doors: readonly { readonly rooms: readonly [Room, Room]; readonly at: Poin
   { rooms: ['bedroom', 'bathroom'], at: { x: 0, z: -2.6 } },
   { rooms: ['bedroom', 'living'], at: { x: -4.1, z: 0 } },
   { rooms: ['living', 'kitchen'], at: { x: 0, z: 2.8 } },
+  { rooms: ['living', 'yard'], at: { x: -8, z: 1.8 } },
 ];
 
 /** The doors to go through, in order, walking from one spot to another. */

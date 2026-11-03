@@ -5,6 +5,7 @@ export interface ControlsCallbacks {
   onMove(input: MoveInput): void;
   onGesture(): void;
   onAgenda(): void;
+  onWardrobe(): void;
   onAction(): void;
 }
 
@@ -61,6 +62,17 @@ export class Controls {
       },
       [h('span', { text: '📅' })],
     );
+    const wardrobe = h(
+      'button',
+      {
+        className: 'round-button round-button--touch',
+        attrs: { type: 'button', 'aria-label': 'Trocar de roupa' },
+        onTap: () => {
+          callbacks.onWardrobe();
+        },
+      },
+      [h('span', { text: '👕' })],
+    );
 
     this.action = h(
       'button',
@@ -76,7 +88,7 @@ export class Controls {
 
     this.element = h('div', { className: 'controls' }, [
       base,
-      h('div', { className: 'controls__right' }, [this.action, this.gesture, agenda]),
+      h('div', { className: 'controls__right' }, [this.action, this.gesture, wardrobe, agenda]),
     ]);
   }
 

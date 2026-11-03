@@ -22,6 +22,13 @@ export const BUS_INTERIOR = { x: -460, z: 0 } as const;
 export const SCHOOL_BUILDING = { x: 0, z: -460 } as const;
 export const ZOO_PARK = { x: 460, z: 460 } as const;
 export const BEACH_PARK = { x: -460, z: 460 } as const;
+export const FARM_PARK = { x: 460, z: -460 } as const;
+export const BAKERY_INTERIOR = { x: -460, z: -460 } as const;
+
+export const BakeryPlace = {
+  counter: 'bakery:counter',
+  door: 'bakery:door',
+} as const;
 
 /** Where each stage of the school agenda happens. */
 export const schoolSpotOf: Readonly<Partial<Record<SchoolStage, string>>> = {

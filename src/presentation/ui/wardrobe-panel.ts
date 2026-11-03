@@ -45,6 +45,8 @@ const lookIcons: Record<WardrobeLook, string> = {
   cap: '🧢',
   'party-hat': '🥳',
   beanie: '🧶',
+  'straw-hat': '👒',
+  bow: '🎀',
   crown: '👑',
   glasses: '👓',
   backpack: '🎒',

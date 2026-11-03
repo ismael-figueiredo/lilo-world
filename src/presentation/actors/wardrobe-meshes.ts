@@ -61,6 +61,24 @@ export function buildAccessory(look: WardrobeLook, color: number): AccessoryMode
       group.add(solid(new THREE.IcosahedronGeometry(0.14, 1), lowPoly(0xffffff), [0, 0.46, 0]));
       return { anchor: 'head-top', object: group };
     }
+    case 'straw-hat': {
+      const brim = solid(new THREE.CylinderGeometry(0.72, 0.76, 0.05, 18), main, [0, -0.02, 0]);
+      group.add(brim);
+      group.add(solid(new THREE.CylinderGeometry(0.4, 0.46, 0.34, 14), main, [0, 0.16, 0]));
+      group.add(
+        solid(new THREE.CylinderGeometry(0.47, 0.47, 0.09, 14), lowPoly(0xe8504c), [0, 0.04, 0]),
+      );
+      return { anchor: 'head-top', object: group };
+    }
+    case 'bow': {
+      for (const x of [-0.17, 0.17]) {
+        const side = solid(new THREE.ConeGeometry(0.15, 0.3, 8), main, [x, 0.02, 0.22]);
+        side.rotation.z = x < 0 ? -Math.PI / 2 : Math.PI / 2;
+        group.add(side);
+      }
+      group.add(solid(new THREE.IcosahedronGeometry(0.08, 1), main, [0, 0.02, 0.22]));
+      return { anchor: 'head-top', object: group };
+    }
     case 'crown': {
       const gold = lowPoly(color, { emissive: color, emissiveIntensity: 0.25, roughness: 0.4 });
       group.add(

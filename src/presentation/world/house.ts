@@ -7,6 +7,7 @@ import { box, type Collider } from '@presentation/world/collision';
 import { paintFrost, paintRain } from '@presentation/world/window-view';
 import { routeInside, type HouseSpot } from '@presentation/world/house-plan';
 import type { Interactable } from '@presentation/world/interactable';
+import { treeRing } from '@presentation/world/scenery';
 import { pictureOf, StudyDesk } from '@presentation/world/study-desk';
 import { lowPoly, solid } from '@presentation/world/materials';
 import { mergeStatic } from '@presentation/world/merge-static';
@@ -26,11 +27,15 @@ export type HouseThing =
   | 'fridge'
   | 'stove'
   | 'calm'
-  | 'decor';
+  | 'decor'
+  | 'garden';
 
 export type FoodId = 'bread' | 'fruit' | 'cereal' | 'egg';
 
 const HALF_WIDTH = 8;
+/** The yard beside the living room, with the vegetable garden, through the side door. */
+const YARD = { west: -14.6, north: -1.4, south: 7.2 } as const;
+const SIDE_DOOR = { north: 0.9, south: 2.7 } as const;
 const HALF_DEPTH = 6;
 const WALL = 2.6;
 /** Walls between the camera and the room are low, as in a dollhouse. */
@@ -64,6 +69,7 @@ export const standSpots: Readonly<Record<HouseThing, HouseSpot>> = {
   stove: { x: 3.3, z: 1.5, facing: Math.PI },
   calm: { x: -3.6, z: 2.4, facing: 0 },
   decor: { x: -3.2, z: -2.4, facing: Math.PI },
+  garden: { x: -10.6, z: 2.9, facing: -Math.PI / 2 },
 };
 
 const looks: Readonly<Record<HouseThing, { icon: string; label: string; name: string }>> = {
@@ -78,6 +84,7 @@ const looks: Readonly<Record<HouseThing, { icon: string; label: string; name: st
   stove: { icon: '🍳', label: 'Fogão', name: 'Fogão' },
   calm: { icon: '🧸', label: 'Cantinho calmo', name: 'Cantinho calmo' },
   decor: { icon: '🖼️', label: 'Enfeitar o quarto', name: 'Enfeites do quarto' },
+  garden: { icon: '🌱', label: 'Horta', name: 'Horta' },
 };
 
 export type MirrorId = 'bedroom' | 'bathroom';
@@ -232,7 +239,8 @@ export class House {
   contains(x: number, z: number): boolean {
     const dx = x - HOUSE.x;
     const dz = z - HOUSE.z;
-    return Math.abs(dx) <= HALF_WIDTH + 1 && Math.abs(dz) <= HALF_DEPTH + 1;
+    const inYard = dx >= YARD.west && dx <= -HALF_WIDTH && dz >= YARD.north && dz <= YARD.south;
+    return inYard || (Math.abs(dx) <= HALF_WIDTH + 1 && Math.abs(dz) <= HALF_DEPTH + 1);
   }
 
   /** A spot of the house in world coordinates. */
@@ -470,6 +478,7 @@ export class House {
       icon: look.icon,
       label: look.label,
       name: look.name,
+      ...(thing === 'garden' ? { viewFrom: 'south' as const } : {}),
     });
   }
 
@@ -506,10 +515,24 @@ export class House {
       strip.receiveShadow = true;
       this.group.add(strip);
     };
-    ground([140, 2.4], 0xcfc8b6, 8.6, 0);
-    ground([140, 9], 0x2f3a55, 14.3, 0);
-    ground([140, 2.4], 0xcfc8b6, 20, 0);
-    for (const x of [-18, -9, 0, 9, 18]) this.piece([4, 0.02, 0.3], 0xf4efe4, [x, 0.02, 14.3]);
+    const asphalt = 0x4a5068;
+    const curb = 0xcfc8b6;
+    ground([260, 2.4], curb, 8.6, 0);
+    ground([260, 9], asphalt, 14.3, 0.005);
+    ground([260, 2.4], curb, 20, 0);
+    ground([260, 2.4], curb, -33.6, 0);
+    ground([260, 9], asphalt, -39.3, 0.005);
+    ground([260, 2.4], curb, -45, 0);
+    for (const x of [-44, 44]) this.piece([9, 0.02, 260], asphalt, [x, 0.008, 0]);
+    for (let x = -120; x <= 120; x += 9) {
+      if (Math.abs(Math.abs(x) - 44) < 8) continue;
+      for (const z of [14.3, -39.3]) this.piece([4, 0.02, 0.3], 0xf4efe4, [x, 0.02, z]);
+    }
+    for (let z = -120; z <= 120; z += 9) {
+      if (Math.abs(z - 14.3) < 8 || Math.abs(z + 39.3) < 8) continue;
+      for (const x of [-44, 44]) this.piece([0.3, 0.02, 4], 0xf4efe4, [x, 0.02, z]);
+    }
+    this.addFrontYard();
     const homes: readonly [number, number, number, number][] = [
       [-24, 30, 0xbde0fe, 0x3f7fd6],
       [-8, 30, 0xffc8dd, 0xe8604c],
@@ -518,6 +541,20 @@ export class House {
       [-26, -24, 0xffd6a5, 0xe8604c],
       [-2, -30, 0xbde0fe, 0x9b6bf2],
       [24, -24, 0xe3b8ff, 0x3f7fd6],
+      [-26, 52, 0xffd6a5, 0x3fae5a],
+      [-8, 52, 0xe3b8ff, 0xe8604c],
+      [10, 52, 0xbde0fe, 0x3fae5a],
+      [27, 52, 0xffc8dd, 0x3f7fd6],
+      [-26, -56, 0xc8f2c2, 0xe8604c],
+      [-8, -56, 0xfff1a8, 0x3f7fd6],
+      [10, -56, 0xffd6a5, 0x9b6bf2],
+      [27, -56, 0xbde0fe, 0xe8604c],
+      [-62, -24, 0xfff1a8, 0xe8604c],
+      [-62, 6, 0xbde0fe, 0x3fae5a],
+      [-62, 34, 0xffc8dd, 0x3f7fd6],
+      [62, -24, 0xc8f2c2, 0x3f7fd6],
+      [62, 6, 0xffd6a5, 0xe8604c],
+      [62, 34, 0xe3b8ff, 0x3fae5a],
     ];
     for (const [x, z, wall, roof] of homes) {
       this.piece([9, 3.6, 7], wall, [x, 1.8, z]);
@@ -534,13 +571,49 @@ export class House {
       [20, 1, 1.6],
       [-30, 8, 1.5],
       [33, 12, 1.7],
+      [-35, 26, 1.6],
+      [36, 42, 1.8],
+      [-16, 42, 1.5],
+      [18, 42, 1.6],
+      [-16, -46, 1.7],
+      [17, -48, 1.5],
+      [-54, -8, 1.8],
+      [54, 20, 1.7],
     ];
     for (const [x, z, size] of trees) {
       this.piece([0.36, size * 1.6, 0.36], 0x8a5a3b, [x, size * 0.8, z]);
       const crown = new THREE.IcosahedronGeometry(size, 1);
       this.group.add(solid(crown, lowPoly(0x4f9a56), [x, size * 2.2, z]));
     }
+    this.group.add(treeRing(98, 64));
+    for (let hill = 0; hill < 10; hill += 1) {
+      const angle = (hill / 10) * Math.PI * 2;
+      const mound = solid(
+        new THREE.IcosahedronGeometry(46 + (hill % 3) * 12, 1),
+        lowPoly(hill % 2 === 0 ? 0x74b866 : 0x86c774),
+        [Math.cos(angle) * 190, -8, Math.sin(angle) * 190],
+      );
+      mound.scale.y = 0.42;
+      this.group.add(mound);
+    }
     this.addWindowSky();
+  }
+
+  /** The way from the door to the sidewalk, between a hedge and flower beds. */
+  private addFrontYard(): void {
+    this.piece([2.2, 0.03, 1.7], 0xe2d6bc, [-4, 0.02, 7]);
+    for (const [x, width] of [
+      [-6.9, 4.4],
+      [2.6, 11],
+    ] as const) {
+      this.piece([width, 0.5, 0.45], 0x4f9a56, [x, 0.25, 7.2]);
+      this.block(x, 7.2, width, 0.5);
+    }
+    const flowers = [0xff7fb0, 0xffd23f, 0xf7efe0, 0xe8604c];
+    for (let x = -2.4; x < 8; x += 0.9) {
+      const color = flowers[Math.round(x * 2) % flowers.length] ?? 0xffd23f;
+      this.group.add(solid(new THREE.IcosahedronGeometry(0.13, 0), lowPoly(color), [x, 0.58, 7.2]));
+    }
   }
 
   private addWindowSky(): void {
@@ -571,13 +644,14 @@ export class House {
 
   private addGrounds(): void {
     const lawn = new THREE.Mesh(
-      new THREE.CircleGeometry(70, 40).rotateX(-Math.PI / 2),
+      new THREE.CircleGeometry(520, 48).rotateX(-Math.PI / 2),
       lowPoly(0x8fd86e),
     );
     lawn.position.y = -0.02;
     lawn.receiveShadow = true;
     this.group.add(lawn);
     this.addNeighborhood();
+    this.addYard();
     const rooms: readonly [number, number, number][] = [
       [-4, -3, 0xf6d9e6],
       [4, -3, 0xd6f0fb],
@@ -585,6 +659,56 @@ export class House {
       [4, 3, 0xfff1c8],
     ];
     for (const [x, z, color] of rooms) this.piece([8, 0.04, 6], color, [x, 0.02, z]);
+  }
+
+  /** Three raised beds at the side of the house: flowers, carrots and one ready for seeds. */
+  private addYard(): void {
+    const { west, north, south } = YARD;
+    const middle = (north + south) / 2;
+    const wood = 0xc98a4b;
+    this.piece([-west - HALF_WIDTH, 0.02, south - north], 0x9fdf80, [
+      (west - HALF_WIDTH) / 2,
+      0.01,
+      middle,
+    ]);
+    this.piece([2.6, 0.03, 1.8], 0xe2d6bc, [-9.2, 0.02, 1.8]);
+    for (const [x, z, width, depth] of [
+      [west, middle, 0.12, south - north],
+      [(west - HALF_WIDTH) / 2, north, -west - HALF_WIDTH, 0.12],
+      [(west - HALF_WIDTH) / 2, south, -west - HALF_WIDTH, 0.12],
+    ] as const) {
+      for (const y of [0.4, 0.75]) this.piece([width, 0.1, depth], wood, [x, y, z]);
+      this.block(x, z, width + 0.2, depth + 0.2);
+    }
+    for (const x of [west, west + 1.6, west + 3.2, west + 4.8]) {
+      for (const z of [north, south]) this.piece([0.16, 1, 0.16], wood, [x, 0.5, z]);
+    }
+    for (const z of [north + 2.2, north + 4.4, north + 6.6]) {
+      this.piece([0.16, 1, 0.16], wood, [west, 0.5, z]);
+    }
+    const plants: readonly (readonly [number, number])[] = [
+      [0xff7fb0, 0.5],
+      [0xf08a3c, 2.9],
+      [0x6b4a2f, 5.3],
+    ];
+    for (const [color, z] of plants) {
+      this.piece([2.6, 0.4, 1.7], 0xa86b3c, [-12.9, 0.2, z]);
+      this.piece([2.4, 0.08, 1.5], 0x6b4a2f, [-12.9, 0.42, z]);
+      this.block(-12.9, z, 2.7, 1.8);
+      if (color === 0x6b4a2f) continue;
+      for (const x of [-13.7, -12.9, -12.1]) {
+        for (const offset of [-0.4, 0.4]) {
+          this.piece([0.06, 0.34, 0.06], 0x4f9a56, [x, 0.6, z + offset]);
+          this.group.add(
+            solid(new THREE.IcosahedronGeometry(0.11, 0), lowPoly(color), [x, 0.8, z + offset]),
+          );
+        }
+      }
+    }
+    this.group.add(
+      solid(new THREE.CylinderGeometry(0.2, 0.24, 0.4, 12), lowPoly(0x3fa9f5), [-11.1, 0.2, 5.9]),
+    );
+    this.block(-11.1, 5.9, 0.5, 0.5);
   }
 
   /** A wall from one point to another, along x or along z. */
@@ -615,7 +739,8 @@ export class House {
     this.piece([gap, bottom, THICK], outer, [middle, bottom / 2, -HALF_DEPTH]);
     this.piece([gap, WALL - top, THICK], outer, [middle, (WALL + top) / 2, -HALF_DEPTH]);
     this.block(middle, -HALF_DEPTH, gap, THICK);
-    this.wall(-HALF_WIDTH, -HALF_DEPTH, -HALF_WIDTH, HALF_DEPTH, WALL, outer);
+    this.wall(-HALF_WIDTH, -HALF_DEPTH, -HALF_WIDTH, SIDE_DOOR.north, WALL, outer);
+    this.wall(-HALF_WIDTH, SIDE_DOOR.south, -HALF_WIDTH, HALF_DEPTH, WALL, outer);
     this.wall(HALF_WIDTH, -HALF_DEPTH, HALF_WIDTH, HALF_DEPTH, WALL, outer);
     // The front wall, with the street door.
     this.wall(-HALF_WIDTH, HALF_DEPTH, -5, HALF_DEPTH, LOW_WALL, outer);
@@ -745,9 +870,9 @@ export class House {
     this.calmGlow.position.set(-3.6, 1.6, 3.4);
     this.calmGlow.visible = false;
     this.group.add(this.calmGlow);
-    this.piece([1, 0.45, 2.6], 0x5b8fd6, [-7.2, 0.25, 3]);
-    this.piece([0.3, 0.9, 2.6], 0x4a7fc4, [-7.6, 0.5, 3]);
-    this.block(-7.2, 3, 1.2, 2.7);
+    this.piece([1, 0.45, 2.6], 0x5b8fd6, [-7.2, 0.25, 4.4]);
+    this.piece([0.3, 0.9, 2.6], 0x4a7fc4, [-7.6, 0.5, 4.4]);
+    this.block(-7.2, 4.4, 1.2, 2.7);
     this.group.add(
       solid(new THREE.CylinderGeometry(1.4, 1.4, 0.03, 24), lowPoly(0xe9b872), [-3.6, 0.05, 2.8]),
     );

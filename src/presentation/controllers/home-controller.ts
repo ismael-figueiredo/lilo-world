@@ -297,6 +297,8 @@ export class HomeController {
       case 'decor':
         await this.decorate();
         return;
+      case 'garden':
+        return;
       case 'stove':
         if (this.isOpen('lunch') && this.errand?.stage === 'cook') await this.ctx.errand.cook();
         else this.ctx.say(phrases.stoveNow);

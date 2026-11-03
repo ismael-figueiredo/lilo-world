@@ -7,7 +7,8 @@ import { MissionPanel } from '@presentation/ui/mission-panel';
 import type { Player } from '@presentation/actors/player';
 import { CITY, CityPlace, CROSSWALK } from '@presentation/world/city';
 import { CrossingTracker, type CrossingEvent } from '@presentation/world/crosswalk';
-import { EmotionsPlace, NaturePlace, SchoolPlace } from '@presentation/world/zones/anchors';
+import { placeOf } from '@presentation/world/house';
+import { EmotionsPlace } from '@presentation/world/zones/anchors';
 
 /** Where each mission happens in the open world. */
 export const missionPlaces: Readonly<Record<string, string>> = {
@@ -15,12 +16,9 @@ export const missionPlaces: Readonly<Record<string, string>> = {
   'city-bakery': CityPlace.bakery,
   'city-bus': CityPlace.busStop,
   'city-crosswalk': CityPlace.crosswalk,
-  'nature-animals': NaturePlace.farm,
-  'nature-garden': NaturePlace.garden,
-  'nature-recycling': NaturePlace.recycling,
-  'school-backpack': SchoolPlace.classroom,
-  'school-talk': SchoolPlace.teacher,
-  'school-turn': SchoolPlace.park,
+  'nature-animals': 'farm:animals',
+  'nature-garden': placeOf('garden'),
+  'nature-recycling': 'farm:recycling',
   'emotions-faces': EmotionsPlace.faces,
   'emotions-stories': EmotionsPlace.stories,
   'emotions-calm': EmotionsPlace.calm,

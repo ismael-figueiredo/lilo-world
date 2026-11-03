@@ -1,6 +1,6 @@
 import type { MissionId } from '@domain/mission/mission';
 
-export type WorldId = 'city' | 'nature' | 'school' | 'emotions';
+export type WorldId = 'city' | 'nature' | 'emotions';
 
 export interface World {
   readonly id: WorldId;

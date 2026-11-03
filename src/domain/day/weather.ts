@@ -48,8 +48,8 @@ export function weatherOf(dayNumber: number, seed: string, fixed: Weather | 'aut
 }
 
 const fitting: Readonly<Record<Weather, readonly OutfitId[]>> = {
-  sunny: ['summer', 'home', 'school'],
-  cloudy: ['home', 'school', 'coat'],
+  sunny: ['summer', 'home', 'school', 'sport', 'party', 'overalls'],
+  cloudy: ['home', 'school', 'coat', 'sport', 'party', 'overalls'],
   rain: ['raincoat'],
   wind: ['coat', 'raincoat'],
   cold: ['coat'],

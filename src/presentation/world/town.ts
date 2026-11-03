@@ -3,10 +3,12 @@ import type { Point } from '@domain/city/route';
 import type { TrafficPhase } from '@domain/city/traffic-light';
 import type { Random } from '@presentation/engine/math';
 import { CITY, City, isInsideCity, PLAYGROUND, SOUTH_DISTRICT } from '@presentation/world/city';
-import { isInsideAny, type Area, type Collider } from '@presentation/world/collision';
+import { isInsideAny, type Collider } from '@presentation/world/collision';
 import type { Interactable } from '@presentation/world/interactable';
+import type { BakeryInterior } from '@presentation/world/bakery-interior';
 import type { BeachPark } from '@presentation/world/beach-park';
 import type { BusInterior } from '@presentation/world/bus-interior';
+import type { FarmPark } from '@presentation/world/farm-park';
 import type { MarketInterior } from '@presentation/world/market-interior';
 import type { SchoolBuilding } from '@presentation/world/school-building';
 import type { ZooPark } from '@presentation/world/zoo-park';
@@ -17,12 +19,7 @@ import { createTerrainMesh } from '@presentation/world/terrain-mesh';
 import { defaultTerrainOptions, TerrainShape } from '@presentation/world/terrain-shape';
 import { Water } from '@presentation/world/water';
 import type { WorldAssets } from '@presentation/world/world-assets';
-import {
-  EMOTIONS_GARDEN,
-  NATURE_CAMP,
-  SCHOOL_AREA,
-  SchoolPlace,
-} from '@presentation/world/zones/anchors';
+import { EMOTIONS_GARDEN } from '@presentation/world/zones/anchors';
 import { zoneEntries, ZoneId } from '@presentation/world/zones/zone-entries';
 import { ZoneManager } from '@presentation/world/zones/zone-manager';
 
@@ -51,8 +48,6 @@ export class Town {
       flatAreas: [
         { x: CITY.x, z: CITY.z, radius: CITY.radius, height: CITY.height, blend: 14 },
         { ...SOUTH_DISTRICT, height: CITY.height, blend: 12 },
-        { ...NATURE_CAMP, blend: 10 },
-        { ...SCHOOL_AREA, blend: 10 },
         { ...EMOTIONS_GARDEN, blend: 10 },
       ],
     });
@@ -70,8 +65,6 @@ export class Town {
     this.nature = new Nature(this.shape, random, assets, {
       keepClear: (x, z) =>
         isInsideCity(x, z, 3) ||
-        Math.hypot(x - NATURE_CAMP.x, z - NATURE_CAMP.z) < NATURE_CAMP.radius + 2 ||
-        Math.hypot(x - SCHOOL_AREA.x, z - SCHOOL_AREA.z) < SCHOOL_AREA.radius + 2 ||
         Math.hypot(x - EMOTIONS_GARDEN.x, z - EMOTIONS_GARDEN.z) < EMOTIONS_GARDEN.radius + 2,
     });
     this.group.add(this.nature.group);
@@ -99,6 +92,14 @@ export class Town {
 
   prepareBeach(): Promise<BeachPark> {
     return this.zones.prepare(ZoneId.beach) as Promise<BeachPark>;
+  }
+
+  prepareBakery(): Promise<BakeryInterior> {
+    return this.zones.prepare(ZoneId.bakery) as Promise<BakeryInterior>;
+  }
+
+  prepareFarm(): Promise<FarmPark> {
+    return this.zones.prepare(ZoneId.farm) as Promise<FarmPark>;
   }
 
   get bus(): City {
@@ -136,12 +137,7 @@ export class Town {
 
   /** Jumping belongs to play: on playgrounds, not on the way to places. */
   canJumpAt(x: number, z: number): boolean {
-    const park = this.places.find((place) => place.id === SchoolPlace.park);
-    const areas: readonly Area[] = [
-      PLAYGROUND,
-      ...(park === undefined ? [] : [{ x: park.position.x, z: park.position.z, radius: 6.5 }]),
-    ];
-    return isInsideAny(areas, x, z);
+    return isInsideAny([PLAYGROUND], x, z);
   }
 
   /** Solid things that were added after the town was built. */

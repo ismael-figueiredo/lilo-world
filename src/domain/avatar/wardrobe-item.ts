@@ -3,7 +3,16 @@ export type WardrobeSlot = 'hat' | 'body' | 'trim' | 'accessory';
 
 /** How an item looks. The presentation layer decides how each look is drawn. */
 export type WardrobeLook =
-  'color' | 'cap' | 'party-hat' | 'crown' | 'beanie' | 'glasses' | 'backpack' | 'headphones';
+  | 'color'
+  | 'cap'
+  | 'party-hat'
+  | 'crown'
+  | 'beanie'
+  | 'straw-hat'
+  | 'bow'
+  | 'glasses'
+  | 'backpack'
+  | 'headphones';
 
 export type WardrobeItemId = string;
 

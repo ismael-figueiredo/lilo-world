@@ -1,46 +1,28 @@
 import {
+  BAKERY_INTERIOR,
   BEACH_PARK,
   BUS_INTERIOR,
+  FARM_PARK,
   MARKET_INTERIOR,
   SCHOOL_BUILDING,
   ZOO_PARK,
 } from '@presentation/world/market-position';
-import { EMOTIONS_GARDEN, NATURE_CAMP, SCHOOL_AREA } from '@presentation/world/zones/anchors';
+import { EMOTIONS_GARDEN } from '@presentation/world/zones/anchors';
 import type { Zone, ZoneContext, ZoneEntry } from '@presentation/world/zones/zone';
 
 export const ZoneId = {
-  camp: 'camp',
-  school: 'school',
   emotions: 'emotions',
   market: 'market',
   bus: 'bus',
   schoolBuilding: 'school-building',
   zoo: 'zoo',
   beach: 'beach',
+  farm: 'farm',
+  bakery: 'bakery',
 } as const;
 
 /** Every zone of the game. A new place of the world starts here. */
 export const zoneEntries: readonly ZoneEntry[] = [
-  {
-    id: ZoneId.camp,
-    area: NATURE_CAMP,
-    models: ['cow', 'pig', 'sheep', 'horse', 'chick'],
-    onIsland: true,
-    build: async ({ assets }: ZoneContext): Promise<Zone> => {
-      const { NatureCamp } = await import('@presentation/world/nature-camp');
-      return new NatureCamp(assets);
-    },
-  },
-  {
-    id: ZoneId.school,
-    area: SCHOOL_AREA,
-    models: [],
-    onIsland: true,
-    build: async ({ assets }: ZoneContext): Promise<Zone> => {
-      const { SchoolArea } = await import('@presentation/world/school-area');
-      return new SchoolArea(assets);
-    },
-  },
   {
     id: ZoneId.emotions,
     area: EMOTIONS_GARDEN,
@@ -89,6 +71,26 @@ export const zoneEntries: readonly ZoneEntry[] = [
     build: async (): Promise<Zone> => {
       const { BeachPark } = await import('@presentation/world/beach-park');
       return new BeachPark();
+    },
+  },
+  {
+    id: ZoneId.farm,
+    area: { ...FARM_PARK, radius: 30 },
+    models: ['cow', 'pig', 'sheep', 'horse', 'chick'],
+    onIsland: false,
+    build: async ({ assets }: ZoneContext): Promise<Zone> => {
+      const { FarmPark } = await import('@presentation/world/farm-park');
+      return new FarmPark(assets);
+    },
+  },
+  {
+    id: ZoneId.bakery,
+    area: { ...BAKERY_INTERIOR, radius: 12 },
+    models: [],
+    onIsland: false,
+    build: async (): Promise<Zone> => {
+      const { BakeryInterior } = await import('@presentation/world/bakery-interior');
+      return new BakeryInterior();
     },
   },
   {

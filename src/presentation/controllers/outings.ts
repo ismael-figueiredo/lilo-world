@@ -29,6 +29,7 @@ import {
 import type { HomeController } from '@presentation/controllers/home-controller';
 import type { GameContext } from '@presentation/game-context';
 import type { BeachPark } from '@presentation/world/beach-park';
+import { farmAnimals, type FarmPark } from '@presentation/world/farm-park';
 import { standingGround } from '@presentation/world/neighbors';
 import type { ZooPark } from '@presentation/world/zoo-park';
 
@@ -50,6 +51,7 @@ const rules = [
 export class Outings {
   private zoo: ZooPark | undefined;
   private beach: BeachPark | undefined;
+  private farm: FarmPark | undefined;
   /** The swimsuit is for the beach: the child's own clothes come back after it. */
   private wornBefore: OutfitId = 'home';
 
@@ -60,7 +62,9 @@ export class Outings {
 
   private get here(): boolean {
     const { inside } = this.ctx.world;
-    return inside !== undefined && (inside === this.zoo || inside === this.beach);
+    return (
+      inside !== undefined && (inside === this.zoo || inside === this.beach || inside === this.farm)
+    );
   }
 
   /** At the bus stop, in the free part of the day. */
@@ -71,10 +75,12 @@ export class Outings {
     const chosen = await this.home.sheet.choose(phrases.tripOffer, [
       { id: 'zoo', icon: '🦁', label: 'Zoológico' },
       { id: 'beach', icon: '🏖️', label: 'Praia' },
+      { id: 'farm', icon: '🐮', label: 'Fazenda' },
       { id: 'stay', icon: '🌳', label: 'Ficar aqui' },
     ]);
     if (chosen === 'zoo') await this.ctx.school.takeBus(() => this.arriveAtZoo());
     else if (chosen === 'beach') await this.goToBeach();
+    else if (chosen === 'farm') await this.ctx.school.takeBus(() => this.arriveAtFarm());
     else this.ctx.backToExploring();
     return true;
   }
@@ -97,6 +103,7 @@ export class Outings {
       await this.useAtZoo(placeId.slice('zoo:'.length));
       return true;
     }
+    if (placeId.startsWith('farm:')) return this.useAtFarm(placeId.slice('farm:'.length));
     if (placeId.startsWith('beach:')) {
       await this.useAtBeach(placeId.slice('beach:'.length));
       return true;
@@ -128,6 +135,35 @@ export class Outings {
       ctx.guardianStandsAt('kitchen');
     });
     ctx.backToExploring();
+  }
+
+  // ---------- The farm ----------
+
+  private async arriveAtFarm(): Promise<void> {
+    const { ctx } = this;
+    const park = await ctx.whileLoading(ctx.town.prepareFarm());
+    this.farm = park;
+    await ctx.transition(() => {
+      ctx.avatar.setPerch(0);
+      ctx.avatar.release();
+      ctx.rig.clearFocus();
+      ctx.enterSpace(park);
+      ctx.bringGuardian(park.entrance);
+    });
+    ctx.backToExploring(phrases.farmWalk);
+  }
+
+  /** The animals answer by themselves; the two games are missions. */
+  private async useAtFarm(id: string): Promise<boolean> {
+    if (id === 'exit') {
+      await this.leave();
+      return true;
+    }
+    const animal = farmAnimals.find((candidate) => candidate.id === id);
+    if (animal === undefined) return false;
+    this.ctx.avatar.playEmote('Wave');
+    this.ctx.say(phrases.zooHear(animal.called, animal.sound));
+    return true;
   }
 
   // ---------- The zoo ----------

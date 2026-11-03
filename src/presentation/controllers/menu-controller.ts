@@ -75,6 +75,10 @@ export class MenuController {
       case 'today':
         this.ctx.home.openAgenda();
         return;
+      case 'wardrobe':
+        this.ctx.backToExploring();
+        await this.ctx.openWardrobe();
+        return;
       case 'map':
         this.showMap();
         return;

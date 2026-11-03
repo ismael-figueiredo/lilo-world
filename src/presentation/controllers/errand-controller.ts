@@ -11,6 +11,7 @@ import {
   advance,
   type Errand,
 } from '@domain/errand/errand';
+import type { BakeryInterior } from '@presentation/world/bakery-interior';
 import { groceries, groceryOf, recipeOf, type GroceryId } from '@domain/errand/groceries';
 import { randomInt, shuffled } from '@domain/shared/random';
 import { spoken, total, type Cents } from '@domain/money/money';
@@ -20,7 +21,12 @@ import type { Player } from '@presentation/actors/player';
 import { PayPanel, type BillLine } from '@presentation/ui/pay-panel';
 import { CityPlace } from '@presentation/world/city';
 import type { MarketInterior } from '@presentation/world/market-interior';
-import { itemOfPlace, ITEM_PLACE, MarketPlace } from '@presentation/world/market-position';
+import {
+  BakeryPlace,
+  itemOfPlace,
+  ITEM_PLACE,
+  MarketPlace,
+} from '@presentation/world/market-position';
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 const SHELF_SIZE = 8;
@@ -33,6 +39,7 @@ export class ErrandController {
   readonly panel = new PayPanel();
   private cashier: Player | undefined;
   private market: MarketInterior | undefined;
+  private bakery: BakeryInterior | undefined;
 
   constructor(
     private readonly ctx: GameContext,
@@ -41,6 +48,10 @@ export class ErrandController {
 
   private get errand(): Errand | undefined {
     return this.home.errand;
+  }
+
+  private get atBakery(): boolean {
+    return this.bakery !== undefined && this.ctx.world.inside === this.bakery;
   }
 
   private get shopping(): boolean {
@@ -58,6 +69,7 @@ export class ErrandController {
     }
     if (errand.stage === 'bring') return CityPlace.home;
     if (errand.stage !== 'shop') return undefined;
+    if (this.atBakery) return BakeryPlace.counter;
     return isBakeryRun(errand) ? CityPlace.bakery : CityPlace.market;
   }
 
@@ -72,6 +84,7 @@ export class ErrandController {
           const next = nextToPick(errand);
           return next === undefined ? phrases.goToCashier : phrases.findItem(groceryOf(next).name);
         }
+        if (this.atBakery) return phrases.toTheCounter;
         return isBakeryRun(errand) ? phrases.goToBakery : phrases.goToMarket;
       case 'bring':
         return this.ctx.world.indoors ? phrases.toTheKitchen : phrases.goHomeWithBags;
@@ -141,9 +154,43 @@ export class ErrandController {
     this.ctx.refreshGoal();
   }
 
+  /** Into the bakery, by the same door whether the child came on a task or just to look. */
+  async enterBakery(): Promise<void> {
+    this.ctx.enterPanel('home');
+    const bakery = await this.ctx.whileLoading(this.ctx.town.prepareBakery());
+    this.bakery = bakery;
+    this.cashier ??= this.ctx.addPerson('cashier');
+    const cashier = this.cashier;
+    await this.ctx.transition(() => {
+      cashier.placeAt(bakery.bakerSpot, 0);
+      this.ctx.enterSpace(bakery);
+    });
+    this.ctx.backToExploring(this.tip ?? phrases.toTheCounter);
+    this.ctx.refreshGoal();
+  }
+
+  /** The action button, inside the bakery. False when the child came without a task. */
+  async useInBakery(placeId: string): Promise<boolean> {
+    if (!this.atBakery) return false;
+    if (placeId === BakeryPlace.door) {
+      await this.leave(CityPlace.bakery);
+      return true;
+    }
+    const errand = this.errand;
+    if (placeId !== BakeryPlace.counter) return false;
+    if (errand?.stage === 'bring') {
+      this.ctx.say(this.tip ?? phrases.thanksCashier);
+      return true;
+    }
+    if (errand?.stage !== 'shop' || !isBakeryRun(errand)) return false;
+    await this.orderAtBakery();
+    return true;
+  }
+
   /** Every frame while shopping: the cart comes along. */
   update(dt: number): void {
     this.carryBags();
+    if (this.atBakery) this.cashier?.update(dt, STANDING, false, this.ctx.world);
     if (!this.shopping) return;
     const { avatar } = this.ctx;
     // Once paid the cart stays at the counter, and the bags go along.
@@ -273,9 +320,13 @@ export class ErrandController {
       this.ctx.say(phrases.payFirst);
       return;
     }
+    await this.leave(CityPlace.market);
+  }
+
+  private async leave(doorId: string): Promise<void> {
     this.ctx.enterPanel('home');
     await this.ctx.transition(() => {
-      this.ctx.leaveSpace(CityPlace.market);
+      this.ctx.leaveSpace(doorId);
     });
     this.ctx.backToExploring(this.tip);
     this.ctx.refreshGoal();
@@ -286,6 +337,8 @@ export class ErrandController {
     const { errand } = this;
     if (errand === undefined) return;
     this.ctx.enterPanel('home');
+    const view = this.bakery?.orderCamera;
+    if (view !== undefined) this.ctx.rig.setFocus(view.position, view.lookAt);
     this.ctx.say(phrases.askWithCards);
     await this.home.sheet.choose(phrases.askWithCards, [
       { id: 'want', icon: '🙋', label: 'Eu quero' },
@@ -304,6 +357,8 @@ export class ErrandController {
     this.ctx.say(phrases.bakeryOrder(wanted.short.toLowerCase()));
     await wait(STEP_MS);
     await this.payFor(pick(errand, 'bread'));
+    this.cashier?.playEmote('Wave');
+    this.ctx.rig.clearFocus();
     this.ctx.backToExploring(this.tip);
     this.ctx.refreshGoal();
   }
